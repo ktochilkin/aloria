@@ -1,0 +1,35 @@
+import 'dart:async';
+
+import 'package:aloria/app.dart';
+import 'package:aloria/app_config.dart';
+import 'package:aloria/core/env/env.dart';
+import 'package:aloria/core/logging/logger.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+void main() {
+  runZonedGuarded(
+    () {
+      WidgetsFlutterBinding.ensureInitialized();
+      final config = AppConfig.fromEnv();
+
+      FlutterError.onError = (details) {
+        FlutterError.presentError(details);
+        appLogger.e(
+          'FlutterError',
+          error: details.exception,
+          stackTrace: details.stack,
+        );
+      };
+
+      runApp(
+        ProviderScope(
+          overrides: [appConfigProvider.overrideWithValue(config)],
+          child: AloriaApp(config: config),
+        ),
+      );
+    },
+    (error, stack) =>
+        appLogger.e('Uncaught zone error', error: error, stackTrace: stack),
+  );
+}
