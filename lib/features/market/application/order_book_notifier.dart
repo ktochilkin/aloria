@@ -27,7 +27,7 @@ class OrderBookNotifier
         )
         .listen(
           (book) => state = AsyncData(book),
-            onError: (Object error, StackTrace stack) =>
+          onError: (Object error, StackTrace stack) =>
               state = AsyncError<OrderBook?>(error, stack),
         );
 
@@ -40,8 +40,9 @@ class OrderBookNotifier
   }
 }
 
-final orderBookProvider = AutoDisposeAsyncNotifierProviderFamily<
-  OrderBookNotifier,
-  OrderBook?,
-  OrderBookParams
->(OrderBookNotifier.new);
+final orderBookProvider =
+    AutoDisposeAsyncNotifierProviderFamily<
+      OrderBookNotifier,
+      OrderBook?,
+      OrderBookParams
+    >(OrderBookNotifier.new);

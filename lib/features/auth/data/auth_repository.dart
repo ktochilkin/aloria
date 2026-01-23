@@ -1,11 +1,13 @@
+import 'package:aloria/app_config.dart';
 import 'package:aloria/core/errors/error_types.dart';
 import 'package:aloria/features/auth/data/models/auth_tokens.dart';
 import 'package:dio/dio.dart';
 
 class AuthRepository {
-  AuthRepository(this._dio);
+  AuthRepository(this._dio, this._config);
 
   final Dio _dio;
+  final AppConfig _config;
 
   Future<AuthTokens> login({
     required String login,
@@ -13,8 +15,9 @@ class AuthRepository {
     String? twoFactorPin,
   }) async {
     try {
+      final url = _buildUrl(_config.authBaseUrl, '/sso-auth/client');
       final res = await _dio.post(
-        'https://lk.alor.ru/api/sso-auth/client',
+        url,
         data: {
           'credentials': {
             'login': login,
@@ -22,7 +25,7 @@ class AuthRepository {
             'twoFactorPin': twoFactorPin,
           },
           'client_id': 'SingleSignOn',
-          'redirect_url': '//astras.alor.ru/auth/callback/',
+          'redirect_url': _config.authRedirectUrl,
         },
         options: Options(headers: _defaultHeaders),
       );
@@ -36,8 +39,9 @@ class AuthRepository {
 
   Future<AuthTokens> refresh(String refreshToken) async {
     try {
+      final url = _buildUrl(_config.authApiBaseUrl, '/auth/actions/refresh');
       final res = await _dio.post(
-        'https://lk-api.alor.ru/auth/actions/refresh',
+        url,
         data: {'refreshToken': refreshToken},
         options: Options(headers: _defaultHeaders),
       );
@@ -47,6 +51,14 @@ class AuthRepository {
       throw _mapError(e);
     }
   }
+}
+
+String _buildUrl(String base, String path) {
+  final normalizedBase = base.endsWith('/')
+      ? base.substring(0, base.length - 1)
+      : base;
+  final normalizedPath = path.startsWith('/') ? path : '/$path';
+  return '$normalizedBase$normalizedPath';
 }
 
 const _defaultHeaders = <String, String>{

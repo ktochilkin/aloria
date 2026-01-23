@@ -10,13 +10,13 @@ class MarketSecurity {
   MarketSecurity({
     required this.symbol,
     required this.shortName,
-    this.exchange = 'MOEX',
+    this.exchange = 'TEREX',
   });
 
   factory MarketSecurity.fromJson(Map<String, dynamic> json) => MarketSecurity(
     symbol: json['symbol'] as String? ?? '',
     shortName: json['shortname'] as String? ?? '',
-    exchange: json['exchange'] as String? ?? 'MOEX',
+    exchange: json['exchange'] as String? ?? 'TEREX',
   );
 }
 
@@ -27,8 +27,8 @@ class MarketRepository {
 
   Future<List<MarketSecurity>> fetchSecurities({int limit = 15}) async {
     final data = await _dio.getSafe<List<dynamic>>(
-      'https://api.alor.ru/md/v2/Securities',
-      queryParameters: {'limit': limit, 'exchange': 'MOEX'},
+      '/md/v2/Securities',
+      queryParameters: {'limit': limit, 'exchange': 'TEREX', 'query': 'SBER'},
     );
     return data
         .map((e) => MarketSecurity.fromJson(e as Map<String, dynamic>))

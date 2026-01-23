@@ -10,8 +10,8 @@ class LoginPage extends ConsumerStatefulWidget {
 }
 
 class _LoginPageState extends ConsumerState<LoginPage> {
-  final _loginCtrl = TextEditingController(text: 'P061971');
-  final _passwordCtrl = TextEditingController(text: 'D1qaz@WSX3edc\$RFV');
+  final _loginCtrl = TextEditingController(text: 'P000034');
+  final _passwordCtrl = TextEditingController(text: 'test_igra_1');
 
   @override
   void dispose() {
@@ -68,7 +68,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             await notifier.login(
                               login: _loginCtrl.text.trim(),
                               password: _passwordCtrl.text,
-                              twoFactorPin: null,
                             );
                           },
                     child: state.loading

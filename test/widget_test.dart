@@ -31,6 +31,9 @@ void main() {
       env: AppEnv.dev,
       apiBaseUrl: 'https://example.com',
       wsBaseUrl: 'wss://example.com/ws',
+      authBaseUrl: 'https://example.com',
+      authApiBaseUrl: 'https://example.com',
+      authRedirectUrl: '//example.com/auth/callback/',
       enableLogging: false,
     );
 

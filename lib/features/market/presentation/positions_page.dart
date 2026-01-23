@@ -1,11 +1,20 @@
 import 'package:aloria/core/theme/components/list_items.dart';
 import 'package:aloria/features/auth/application/auth_controller.dart';
+import 'package:aloria/features/market/application/orders_provider.dart';
 import 'package:aloria/features/market/application/portfolio_summary_provider.dart';
 import 'package:aloria/features/market/application/positions_provider.dart';
+import 'package:aloria/features/market/domain/portfolio_order.dart';
 import 'package:aloria/features/market/domain/portfolio_summary.dart';
 import 'package:aloria/features/market/domain/position.dart';
+import 'package:aloria/features/market/domain/trade_order.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+enum _PortfolioTab { positions, orders }
+
+final portfolioTabProvider = StateProvider<_PortfolioTab>(
+  (_) => _PortfolioTab.positions,
+);
 
 class PositionsPage extends ConsumerWidget {
   const PositionsPage({super.key});
@@ -14,6 +23,7 @@ class PositionsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final positions = ref.watch(positionsProvider);
     final summary = ref.watch(portfolioSummaryProvider);
+    final orders = ref.watch(ordersProvider);
     final auth = ref.read(authControllerProvider.notifier);
     return Scaffold(
       appBar: AppBar(
@@ -28,23 +38,76 @@ class PositionsPage extends ConsumerWidget {
           ),
         ],
       ),
-      body: _PositionsBlock(positions: positions, summary: summary),
+      body: _PositionsBlock(
+        positions: positions,
+        summary: summary,
+        orders: orders,
+      ),
     );
   }
 }
 
-class _PositionsBlock extends StatefulWidget {
-  const _PositionsBlock({required this.positions, required this.summary});
+class _PositionsBlock extends ConsumerStatefulWidget {
+  const _PositionsBlock({
+    required this.positions,
+    required this.summary,
+    required this.orders,
+  });
   final AsyncValue<List<Position>> positions;
   final AsyncValue<PortfolioSummary> summary;
+  final AsyncValue<List<ClientOrder>> orders;
 
   @override
-  State<_PositionsBlock> createState() => _PositionsBlockState();
+  ConsumerState<_PositionsBlock> createState() => _PositionsBlockState();
 }
 
-class _PositionsBlockState extends State<_PositionsBlock>
+class _PositionsBlockState extends ConsumerState<_PositionsBlock>
     with TickerProviderStateMixin {
   bool _showTopUpSection = false;
+
+  String _sideLabel(OrderSide side) =>
+      side == OrderSide.buy ? 'Покупка' : 'Продажа';
+
+  String _typeLabel(OrderType type) =>
+      type == OrderType.limit ? 'Лимит' : 'Рыночная';
+
+  String _statusLabel(OrderStatus status) {
+    switch (status) {
+      case OrderStatus.working:
+        return 'Активна';
+      case OrderStatus.filled:
+        return 'Исполнена';
+      case OrderStatus.canceled:
+        return 'Отменена';
+      case OrderStatus.rejected:
+        return 'Отклонена';
+      case OrderStatus.unknown:
+        return 'Неизвестно';
+    }
+  }
+
+  Color _statusColor(OrderStatus status, ColorScheme scheme) {
+    switch (status) {
+      case OrderStatus.working:
+        return scheme.primary;
+      case OrderStatus.filled:
+        return scheme.secondary;
+      case OrderStatus.canceled:
+      case OrderStatus.rejected:
+        return scheme.error;
+      case OrderStatus.unknown:
+        return scheme.outline;
+    }
+  }
+
+  String _formatTime(DateTime? value) {
+    if (value == null) return '--:--';
+    final local = value.toLocal();
+    final h = local.hour.toString().padLeft(2, '0');
+    final m = local.minute.toString().padLeft(2, '0');
+    final s = local.second.toString().padLeft(2, '0');
+    return '$h:$m:$s';
+  }
 
   Future<void> _handleQuizStart(_PortfolioQuiz quiz) async {
     final result = await showModalBottomSheet<bool>(
@@ -63,6 +126,7 @@ class _PositionsBlockState extends State<_PositionsBlock>
   Future<void> _showSuccessDialog(_PortfolioQuiz quiz) async {
     final text = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
+    final tab = ref.watch(portfolioTabProvider);
 
     await showDialog<void>(
       context: context,
@@ -97,6 +161,7 @@ class _PositionsBlockState extends State<_PositionsBlock>
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
+    final tab = ref.watch(portfolioTabProvider);
 
     final positionsWidget = widget.positions.when(
       data: (list) {
@@ -158,6 +223,108 @@ class _PositionsBlockState extends State<_PositionsBlock>
       error: (e, _) => Center(child: Text('Ошибка позиций: $e')),
     );
 
+    final ordersWidget = widget.orders.when(
+      data: (orders) {
+        final sorted = [...orders]
+          ..sort((a, b) {
+            final activeCmp = (b.isActive ? 1 : 0) - (a.isActive ? 1 : 0);
+            if (activeCmp != 0) return activeCmp;
+            final aTime = a.updateTime ?? a.transTime;
+            final bTime = b.updateTime ?? b.transTime;
+            if (aTime != null && bTime != null) {
+              return bTime.compareTo(aTime);
+            }
+            return b.id.compareTo(a.id);
+          });
+        if (sorted.isEmpty) {
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  scheme.surface.withValues(alpha: 0.96),
+                  scheme.surfaceContainerHighest.withValues(alpha: 0.9),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: scheme.outline.withValues(alpha: 0.6)),
+            ),
+            child: Text('Заявок нет', style: text.bodyMedium),
+          );
+        }
+
+        return AppListSection(
+          children: sorted.map((order) {
+            final statusColor = _statusColor(order.status, scheme);
+            final label = _statusLabel(order.status);
+            final filled = order.filledQtyBatch ?? order.filled ?? 0;
+            final qty = order.qtyBatch ?? order.qty ?? order.qtyUnits;
+            final priceLabel = order.type == OrderType.market
+                ? 'По рынку'
+                : (order.price != null ? order.price!.toStringAsFixed(2) : '—');
+            return AppListTile(
+              title: '${order.symbol} · ${order.exchange}',
+              subtitleWidget: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${_sideLabel(order.side)} · ${_typeLabel(order.type)} · ${_formatTime(order.updateTime ?? order.transTime)}',
+                    style: text.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          label,
+                          style: text.labelMedium?.copyWith(
+                            color: statusColor,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            qty != null ? 'Объём: $qty' : 'Объём: —',
+                            style: text.bodySmall,
+                          ),
+                          const SizedBox(height: 6),
+                          Text('Цена: $priceLabel', style: text.bodySmall),
+                          if (filled > 0) ...[
+                            const SizedBox(height: 4),
+                            Text('Исполнено: $filled', style: text.bodySmall),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              isThreeLine: filled > 0,
+            );
+          }).toList(),
+        );
+      },
+      loading: () => const Center(
+        child: SizedBox(
+          height: 56,
+          width: 56,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      ),
+      error: (e, _) => Center(child: Text('Ошибка заявок: $e')),
+    );
+
     final quizzesSection = AnimatedSize(
       duration: const Duration(milliseconds: 240),
       curve: Curves.easeInOut,
@@ -214,8 +381,9 @@ class _PositionsBlockState extends State<_PositionsBlock>
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(18),
-                    border:
-                        Border.all(color: scheme.outline.withValues(alpha: 0.6)),
+                    border: Border.all(
+                      color: scheme.outline.withValues(alpha: 0.6),
+                    ),
                     boxShadow: [
                       BoxShadow(
                         color: scheme.primary.withValues(alpha: 0.12),
@@ -267,10 +435,7 @@ class _PositionsBlockState extends State<_PositionsBlock>
                         turns: _showTopUpSection ? 0 : -0.25,
                         duration: const Duration(milliseconds: 220),
                         curve: Curves.easeInOut,
-                        child: Icon(
-                          Icons.expand_more,
-                          color: scheme.primary,
-                        ),
+                        child: Icon(Icons.expand_more, color: scheme.primary),
                       ),
                     ],
                   ),
@@ -279,8 +444,35 @@ class _PositionsBlockState extends State<_PositionsBlock>
               quizzesSection,
               const SizedBox(height: 18),
               Text('Портфель', style: text.titleMedium),
+              const SizedBox(height: 8),
+              SegmentedButton<_PortfolioTab>(
+                segments: const [
+                  ButtonSegment(
+                    value: _PortfolioTab.positions,
+                    label: Text('Позиции'),
+                  ),
+                  ButtonSegment(
+                    value: _PortfolioTab.orders,
+                    label: Text('Заявки'),
+                  ),
+                ],
+                selected: {tab},
+                onSelectionChanged: (selection) {
+                  if (selection.isEmpty) return;
+                  ref.read(portfolioTabProvider.notifier).state =
+                      selection.first;
+                },
+              ),
               const SizedBox(height: 12),
-              positionsWidget,
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 220),
+                child: KeyedSubtree(
+                  key: ValueKey(tab),
+                  child: tab == _PortfolioTab.positions
+                      ? positionsWidget
+                      : ordersWidget,
+                ),
+              ),
             ]),
           ),
         ),
@@ -651,12 +843,16 @@ class _QuizSheetState extends State<_QuizSheet> {
                                 controlAffinity:
                                     ListTileControlAffinity.leading,
                               )
-                            : RadioListTile<int>(
-                                value: index,
-                                groupValue: selected.isEmpty
-                                    ? null
-                                    : selected.first,
-                                onChanged: (_) => _toggleOption(index),
+                            : ListTile(
+                                onTap: () => _toggleOption(index),
+                                leading: Icon(
+                                  isActive
+                                      ? Icons.radio_button_checked
+                                      : Icons.radio_button_off,
+                                  color: isActive
+                                      ? scheme.primary
+                                      : scheme.onSurfaceVariant,
+                                ),
                                 title: Text(
                                   option.text,
                                   style: text.bodyMedium,

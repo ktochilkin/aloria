@@ -23,7 +23,7 @@ class Position {
 
     return Position(
       symbol: asString(map['symbol'] ?? map['code'] ?? map['ticker']),
-      exchange: asString(map['exchange'] ?? map['board'] ?? 'MOEX'),
+      exchange: asString(map['exchange'] ?? map['board'] ?? 'TEREX'),
       quantity: asDouble(
         map['qtyTFuture'] ??
             map['qty'] ??

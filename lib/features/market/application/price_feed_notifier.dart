@@ -111,16 +111,12 @@ class PriceFeedNotifier
   }
 }
 
-List<MarketPrice> _mergeHistory(
-  List<MarketPrice> a,
-  List<MarketPrice> b,
-) {
+List<MarketPrice> _mergeHistory(List<MarketPrice> a, List<MarketPrice> b) {
   final byTs = <int, MarketPrice>{};
   for (final p in [...a, ...b]) {
     byTs[p.ts.millisecondsSinceEpoch] = p;
   }
-  final merged = byTs.values.toList()
-    ..sort((l, r) => l.ts.compareTo(r.ts));
+  final merged = byTs.values.toList()..sort((l, r) => l.ts.compareTo(r.ts));
   const maxHistory = 200;
   return merged.length > maxHistory
       ? merged.sublist(merged.length - maxHistory)

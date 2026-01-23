@@ -3,7 +3,7 @@ enum OrderSide { buy, sell }
 enum OrderType { market, limit }
 
 class TradeOrder {
-  static const defaultPortfolio = 'D61971';
+  static const defaultPortfolio = 'T00013';
   static const defaultTimeInForce = 'oneday';
 
   final String symbol;
@@ -30,14 +30,10 @@ class TradeOrder {
     final base = <String, dynamic>{
       'side': side.name,
       'quantity': quantity,
-      'instrument': {
-        'symbol': symbol,
-        'exchange': exchange,
-      },
-      'user': {
-        'portfolio': portfolio,
-      },
+      'instrument': {'symbol': symbol, 'exchange': exchange},
+      'user': {'portfolio': portfolio},
       'timeInForce': timeInForce,
+      'instrumentGroup': 'TEREX',
     };
 
     if (type == OrderType.limit && limitPrice != null) {

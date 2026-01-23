@@ -73,3 +73,20 @@ final realtimeClientProvider = Provider<RealtimeClient>((ref) {
   ref.onDispose(client.close);
   return client;
 });
+
+// Dedicated WS client for background/portfolio streams.
+final portfolioRealtimeClientProvider = Provider<RealtimeClient>((ref) {
+  final config = ref.watch(appConfigProvider);
+  final client = WebSocketRealtimeClient(url: Uri.parse(config.wsBaseUrl));
+  ref.onDispose(client.close);
+  return client;
+});
+
+// Separate WS client for trading (quotes/order book), so UI tab swaps
+// don't impact portfolio subscription state.
+final tradingRealtimeClientProvider = Provider<RealtimeClient>((ref) {
+  final config = ref.watch(appConfigProvider);
+  final client = WebSocketRealtimeClient(url: Uri.parse(config.wsBaseUrl));
+  ref.onDispose(client.close);
+  return client;
+});

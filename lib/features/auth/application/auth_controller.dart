@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:aloria/core/env/env.dart';
 import 'package:aloria/core/logging/logger.dart';
 import 'package:aloria/core/storage/storage.dart';
 import 'package:aloria/core/storage/storage_factory.dart';
@@ -26,7 +27,8 @@ final authDioProvider = Provider<Dio>((ref) {
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   final dio = ref.watch(authDioProvider);
-  return AuthRepository(dio);
+  final config = ref.watch(appConfigProvider);
+  return AuthRepository(dio, config);
 });
 
 final authControllerProvider = StateNotifierProvider<AuthController, AuthState>(

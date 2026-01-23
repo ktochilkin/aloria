@@ -12,12 +12,16 @@ import 'package:go_router/go_router.dart';
 
 enum _FeedTab { tape, orderBook }
 
+final feedTabProvider = StateProvider.family<_FeedTab, String>(
+  (_, __) => _FeedTab.tape,
+);
+
 class TradePage extends ConsumerStatefulWidget {
   const TradePage({
     super.key,
     required this.symbol,
     required this.shortName,
-    this.exchange = 'MOEX',
+    this.exchange = 'TEREX',
   });
 
   final String symbol;
@@ -34,7 +38,6 @@ class _TradePageState extends ConsumerState<TradePage> {
   final _scrollController = ScrollController();
   bool _isLimit = false;
   bool _submitting = false;
-  _FeedTab _feedTab = _FeedTab.tape;
 
   @override
   void dispose() {
@@ -104,6 +107,7 @@ class _TradePageState extends ConsumerState<TradePage> {
         depth: 10,
       )),
     );
+    final feedTab = ref.watch(feedTabProvider(widget.symbol));
 
     return Scaffold(
       appBar: AppBar(title: Text('${widget.symbol} · ${widget.shortName}')),
@@ -114,8 +118,9 @@ class _TradePageState extends ConsumerState<TradePage> {
           data: (state) => _TradeBody(
             state: state,
             orderBook: orderBook,
-            feedTab: _feedTab,
-            onFeedTabChanged: (tab) => setState(() => _feedTab = tab),
+            feedTab: feedTab,
+            onFeedTabChanged: (tab) =>
+                ref.read(feedTabProvider(widget.symbol).notifier).state = tab,
             isLimit: _isLimit,
             onToggleType: (value) => setState(() => _isLimit = value),
             qtyController: _qtyController,
@@ -227,9 +232,7 @@ class _TradeBody extends StatelessWidget {
                 feedTab == _FeedTab.tape
                     ? 'Лента последних сделок'
                     : 'Биржевой стакан в реальном времени',
-                style: text.bodySmall?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
+                style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
               ),
               const SizedBox(height: 10),
               SegmentedButton<_FeedTab>(
@@ -253,17 +256,17 @@ class _TradeBody extends StatelessWidget {
                 style: ButtonStyle(
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   visualDensity: VisualDensity.compact,
-                  backgroundColor: MaterialStateProperty.resolveWith(
-                    (states) => states.contains(MaterialState.selected)
+                  backgroundColor: WidgetStateProperty.resolveWith(
+                    (states) => states.contains(WidgetState.selected)
                         ? scheme.primary.withValues(alpha: 0.14)
                         : scheme.surfaceContainerHighest,
                   ),
-                  foregroundColor: MaterialStateProperty.resolveWith(
-                    (states) => states.contains(MaterialState.selected)
+                  foregroundColor: WidgetStateProperty.resolveWith(
+                    (states) => states.contains(WidgetState.selected)
                         ? scheme.primary
                         : scheme.onSurface,
                   ),
-                  side: MaterialStatePropertyAll(
+                  side: WidgetStatePropertyAll(
                     BorderSide(color: scheme.outline.withValues(alpha: 0.7)),
                   ),
                 ),
@@ -274,10 +277,7 @@ class _TradeBody extends StatelessWidget {
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 220),
             child: feedTab == _FeedTab.tape
-                ? _QuotesList(
-                  key: const ValueKey('tape'),
-                  history: history,
-                )
+                ? _QuotesList(key: const ValueKey('tape'), history: history)
                 : orderBook.when(
                     data: (book) => _OrderBookCard(
                       key: const ValueKey('orderbook'),
@@ -299,7 +299,8 @@ class _TradeBody extends StatelessWidget {
                 constraints: const BoxConstraints(),
                 icon: const Icon(Icons.help_outline, size: 20),
                 tooltip: 'Что такое заявка?',
-                onPressed: () => context.push('/learn/trading-basics/orderbook'),
+                onPressed: () =>
+                    context.push('/learn/trading-basics/orderbook'),
               ),
             ],
           ),
@@ -556,7 +557,11 @@ class _QuotesList extends StatelessWidget {
 }
 
 class _OrderBookCard extends StatelessWidget {
-  const _OrderBookCard({super.key, required this.book, required this.onSelectPrice});
+  const _OrderBookCard({
+    super.key,
+    required this.book,
+    required this.onSelectPrice,
+  });
 
   final OrderBook? book;
   final ValueChanged<double> onSelectPrice;
@@ -584,8 +589,10 @@ class _OrderBookCard extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: scheme.primary.withValues(alpha: 0.14),
                     borderRadius: BorderRadius.circular(12),
@@ -660,15 +667,20 @@ class _OrderBookSide extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final color = isAsk ? AppColors.error : AppColors.success;
     return Column(
-      crossAxisAlignment:
-          isAsk ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      crossAxisAlignment: isAsk
+          ? CrossAxisAlignment.end
+          : CrossAxisAlignment.start,
       children: [
         Row(
-          mainAxisAlignment:
-              isAsk ? MainAxisAlignment.end : MainAxisAlignment.start,
+          mainAxisAlignment: isAsk
+              ? MainAxisAlignment.end
+              : MainAxisAlignment.start,
           children: [
-            Icon(isAsk ? Icons.north_east : Icons.south_west,
-                size: 18, color: color),
+            Icon(
+              isAsk ? Icons.north_east : Icons.south_west,
+              size: 18,
+              color: color,
+            ),
             const SizedBox(width: 4),
             Text(title, style: text.labelMedium?.copyWith(color: color)),
           ],
@@ -741,8 +753,9 @@ class _OrderBookRow extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               child: Row(
-                mainAxisAlignment:
-                    isAsk ? MainAxisAlignment.end : MainAxisAlignment.start,
+                mainAxisAlignment: isAsk
+                    ? MainAxisAlignment.end
+                    : MainAxisAlignment.start,
                 children: [
                   if (!isAsk) ...[
                     Text(

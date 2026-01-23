@@ -439,14 +439,14 @@ class _LessonImage extends StatelessWidget {
             height: height,
             width: double.infinity,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => fallbackContainer(),
+            errorBuilder: (context, error, stack) => fallbackContainer(),
           )
         : Image.asset(
             source,
             height: height,
             width: double.infinity,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => fallbackContainer(),
+            errorBuilder: (context, error, stack) => fallbackContainer(),
           );
 
     return ClipRRect(borderRadius: borderRadius, child: image);

@@ -63,18 +63,22 @@ class AppListTile extends StatelessWidget {
     super.key,
     required this.title,
     this.subtitle,
+    this.subtitleWidget,
     this.leading,
     this.trailing,
     this.onTap,
     this.destructive = false,
+    this.isThreeLine = false,
   });
 
   final String title;
   final String? subtitle;
+  final Widget? subtitleWidget;
   final Widget? leading;
   final Widget? trailing;
   final VoidCallback? onTap;
   final bool destructive;
+  final bool isThreeLine;
 
   @override
   Widget build(BuildContext context) {
@@ -83,17 +87,21 @@ class AppListTile extends StatelessWidget {
     final titleStyle = theme.textTheme.bodyLarge;
     final subtitleStyle = theme.textTheme.bodySmall;
     final color = destructive ? scheme.error : scheme.onSurface;
+    final subtitleContent =
+        subtitleWidget ??
+        (subtitle == null
+            ? null
+            : Text(
+                subtitle!,
+                style: subtitleStyle?.copyWith(color: scheme.onSurfaceVariant),
+              ));
     return ListTile(
       leading: leading,
       title: Text(title, style: titleStyle?.copyWith(color: color)),
-      subtitle: subtitle == null
-          ? null
-          : Text(
-              subtitle!,
-              style: subtitleStyle?.copyWith(color: scheme.onSurfaceVariant),
-            ),
+      subtitle: subtitleContent,
       trailing: trailing,
       onTap: onTap,
+      isThreeLine: isThreeLine,
       tileColor: Colors.transparent,
       hoverColor: scheme.primary.withValues(alpha: 0.05),
       shape: const RoundedRectangleBorder(

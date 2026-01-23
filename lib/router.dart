@@ -4,6 +4,7 @@ import 'package:aloria/core/env/env.dart';
 import 'package:aloria/features/auth/application/auth_controller.dart';
 import 'package:aloria/features/auth/presentation/login_page.dart';
 import 'package:aloria/features/learn/presentation/learning_page.dart';
+import 'package:aloria/features/market/application/orders_provider.dart';
 import 'package:aloria/features/market/application/portfolio_summary_provider.dart';
 import 'package:aloria/features/market/application/positions_provider.dart';
 import 'package:aloria/features/market/data/market_repository.dart';
@@ -89,7 +90,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   : symbol;
               final exchange = security is MarketSecurity
                   ? security.exchange
-                  : 'MOEX';
+                  : 'TEREX';
               return TradePage(
                 symbol: symbol,
                 shortName: shortName,
@@ -151,6 +152,7 @@ class _NavShell extends ConsumerWidget {
     // Keep positions stream connected even when tab not visible.
     ref.read(positionsBootstrapperProvider);
     ref.read(portfolioSummaryBootstrapperProvider);
+    ref.read(ordersBootstrapperProvider);
     if (location.startsWith('/learn')) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ref.read(lastLearningLocationProvider.notifier).state = location;
