@@ -76,4 +76,20 @@ class MarketHttpService {
       options: Options(headers: {'X-REQID': reqId}),
     );
   }
+
+  Future<void> cancelOrder({
+    required String orderId,
+    required String portfolio,
+    required String exchange,
+    bool stop = false,
+  }) async {
+    await _dio.delete(
+      '/commandapi/warptrans/TRADE/v2/client/orders/$orderId',
+      queryParameters: {
+        'portfolio': portfolio,
+        'exchange': exchange,
+        'stop': stop,
+      },
+    );
+  }
 }

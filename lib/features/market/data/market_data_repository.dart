@@ -81,6 +81,18 @@ class MarketDataRepository {
 
   Future<void> placeOrder(TradeOrder order) => _http.placeOrder(order);
 
+  Future<void> cancelOrder({
+    required String orderId,
+    required String portfolio,
+    required String exchange,
+    bool stop = false,
+  }) => _http.cancelOrder(
+    orderId: orderId,
+    portfolio: portfolio,
+    exchange: exchange,
+    stop: stop,
+  );
+
   Stream<List<Position>> watchPositions({
     String portfolio = TradeOrder.defaultPortfolio,
   }) => _streaming.watchPositions(portfolio: portfolio);

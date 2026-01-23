@@ -14,3 +14,27 @@ final ordersBootstrapperProvider = Provider<void>((ref) {
     (previous, next) {},
   );
 });
+
+/// Provider for canceling orders
+final cancelOrderProvider =
+    Provider<
+      Future<void> Function({
+        required String orderId,
+        required String portfolio,
+        required String exchange,
+      })
+    >((ref) {
+      return ({
+        required String orderId,
+        required String portfolio,
+        required String exchange,
+      }) async {
+        final repo = await ref.read(marketDataRepositoryProvider.future);
+        await repo.cancelOrder(
+          orderId: orderId,
+          portfolio: portfolio,
+          exchange: exchange,
+          stop: false,
+        );
+      };
+    });

@@ -109,6 +109,60 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
     return '$h:$m:$s';
   }
 
+  Future<void> _handleCancelOrder(
+    BuildContext context,
+    WidgetRef ref,
+    ClientOrder order,
+  ) async {
+    final scheme = Theme.of(context).colorScheme;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Отменить заявку?'),
+        content: Text(
+          'Вы уверены, что хотите отменить заявку на ${_sideLabel(order.side).toLowerCase()} ${order.symbol}?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Нет'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(backgroundColor: scheme.error),
+            child: const Text('Да, отменить'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    try {
+      final cancelOrder = ref.read(cancelOrderProvider);
+      await cancelOrder(
+        orderId: order.id,
+        portfolio: order.portfolio,
+        exchange: order.exchange,
+      );
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Заявка отменена')));
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка отмены: $e'),
+            backgroundColor: scheme.error,
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _handleQuizStart(_PortfolioQuiz quiz) async {
     final result = await showModalBottomSheet<bool>(
       context: context,
@@ -126,7 +180,6 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
   Future<void> _showSuccessDialog(_PortfolioQuiz quiz) async {
     final text = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
-    final tab = ref.watch(portfolioTabProvider);
 
     await showDialog<void>(
       context: context,
@@ -268,45 +321,84 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
             return AppListTile(
               title: '${order.symbol} · ${order.exchange}',
               subtitleWidget: Column(
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          label,
+                          style: text.labelMedium?.copyWith(
+                            color: statusColor,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (order.isActive) ...[
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          height: 28,
+                          width: 28,
+                          child: IconButton(
+                            padding: EdgeInsets.zero,
+                            iconSize: 18,
+                            icon: Icon(Icons.close, color: scheme.error),
+                            tooltip: 'Отменить заявку',
+                            onPressed: () =>
+                                _handleCancelOrder(context, ref, order),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 4),
                   Text(
                     '${_sideLabel(order.side)} · ${_typeLabel(order.type)} · ${_formatTime(order.updateTime ?? order.transTime)}',
                     style: text.bodySmall?.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    label,
-                    style: text.labelMedium?.copyWith(
-                      color: statusColor,
-                      fontWeight: FontWeight.w700,
+                ],
+              ),
+              trailing: Container(
+                constraints: const BoxConstraints(maxWidth: 140),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      qty != null ? 'Объём: $qty' : 'Объём: —',
+                      style: text.bodySmall,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: false,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-              trailing: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  Text(
-                    qty != null ? 'Объём: $qty' : 'Объём: —',
-                    style: text.bodySmall,
-                  ),
-                  const SizedBox(height: 4),
-                  Text('Цена: $priceLabel', style: text.bodySmall),
-                  if (filled > 0) ...[
                     const SizedBox(height: 4),
-                    Text('Исполнено: $filled', style: text.bodySmall),
+                    Text(
+                      'Цена: $priceLabel',
+                      style: text.bodySmall,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: false,
+                    ),
+                    if (filled > 0) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'Исполнено: $filled',
+                        style: text.bodySmall,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        softWrap: false,
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-              topAlignTrailing: true,
               isThreeLine: true,
+              topAlignTrailing: true,
             );
           }).toList(),
         );

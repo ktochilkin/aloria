@@ -102,27 +102,45 @@ class AppListTile extends StatelessWidget {
                 subtitle!,
                 style: subtitleStyle?.copyWith(color: scheme.onSurfaceVariant),
               ));
-    final trailingContent = trailing == null
-        ? null
-        : ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 160),
-            child: topAlignTrailing
-                ? Align(alignment: Alignment.topRight, child: trailing)
-                : trailing,
-          );
-    return ListTile(
-      leading: leading,
-      title: Text(title, style: titleStyle?.copyWith(color: color)),
-      subtitle: subtitleContent,
-      trailing: trailingContent,
+    final trailingContent = topAlignTrailing && trailing != null
+        ? Align(alignment: Alignment.topRight, child: trailing)
+        : trailing;
+    return InkWell(
       onTap: onTap,
-      isThreeLine: isThreeLine,
-      visualDensity: VisualDensity.compact,
-      contentPadding: contentPadding,
-      tileColor: Colors.transparent,
+      borderRadius: const BorderRadius.all(Radius.circular(12)),
       hoverColor: scheme.primary.withValues(alpha: 0.05),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(Radius.circular(12)),
+      child: Padding(
+        padding: contentPadding,
+        child: Row(
+          crossAxisAlignment: topAlignTrailing
+              ? CrossAxisAlignment.start
+              : CrossAxisAlignment.center,
+          children: [
+            if (leading != null) ...[leading!, const SizedBox(width: 12)],
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: titleStyle?.copyWith(color: color),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (subtitleContent != null) ...[
+                    const SizedBox(height: 4),
+                    subtitleContent,
+                  ],
+                ],
+              ),
+            ),
+            if (trailingContent != null) ...[
+              const SizedBox(width: 12),
+              trailingContent,
+            ],
+          ],
+        ),
       ),
     );
   }
