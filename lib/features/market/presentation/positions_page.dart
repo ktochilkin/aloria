@@ -276,41 +276,37 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
                       color: scheme.onSurfaceVariant,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          label,
-                          style: text.labelMedium?.copyWith(
-                            color: statusColor,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            qty != null ? 'Объём: $qty' : 'Объём: —',
-                            style: text.bodySmall,
-                          ),
-                          const SizedBox(height: 6),
-                          Text('Цена: $priceLabel', style: text.bodySmall),
-                          if (filled > 0) ...[
-                            const SizedBox(height: 4),
-                            Text('Исполнено: $filled', style: text.bodySmall),
-                          ],
-                        ],
-                      ),
-                    ],
+                  const SizedBox(height: 2),
+                  Text(
+                    label,
+                    style: text.labelMedium?.copyWith(
+                      color: statusColor,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
-              isThreeLine: filled > 0,
+              trailing: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  Text(
+                    qty != null ? 'Объём: $qty' : 'Объём: —',
+                    style: text.bodySmall,
+                  ),
+                  const SizedBox(height: 4),
+                  Text('Цена: $priceLabel', style: text.bodySmall),
+                  if (filled > 0) ...[
+                    const SizedBox(height: 4),
+                    Text('Исполнено: $filled', style: text.bodySmall),
+                  ],
+                ],
+              ),
+              topAlignTrailing: true,
+              isThreeLine: true,
             );
           }).toList(),
         );
@@ -466,6 +462,8 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
               const SizedBox(height: 12),
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 220),
+                transitionBuilder: (child, animation) =>
+                    FadeTransition(opacity: animation, child: child),
                 child: KeyedSubtree(
                   key: ValueKey(tab),
                   child: tab == _PortfolioTab.positions

@@ -69,6 +69,11 @@ class AppListTile extends StatelessWidget {
     this.onTap,
     this.destructive = false,
     this.isThreeLine = false,
+    this.topAlignTrailing = false,
+    this.contentPadding = const EdgeInsets.symmetric(
+      vertical: 8,
+      horizontal: 12,
+    ),
   });
 
   final String title;
@@ -79,6 +84,8 @@ class AppListTile extends StatelessWidget {
   final VoidCallback? onTap;
   final bool destructive;
   final bool isThreeLine;
+  final bool topAlignTrailing;
+  final EdgeInsetsGeometry contentPadding;
 
   @override
   Widget build(BuildContext context) {
@@ -95,13 +102,23 @@ class AppListTile extends StatelessWidget {
                 subtitle!,
                 style: subtitleStyle?.copyWith(color: scheme.onSurfaceVariant),
               ));
+    final trailingContent = trailing == null
+        ? null
+        : ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 160),
+            child: topAlignTrailing
+                ? Align(alignment: Alignment.topRight, child: trailing)
+                : trailing,
+          );
     return ListTile(
       leading: leading,
       title: Text(title, style: titleStyle?.copyWith(color: color)),
       subtitle: subtitleContent,
-      trailing: trailing,
+      trailing: trailingContent,
       onTap: onTap,
       isThreeLine: isThreeLine,
+      visualDensity: VisualDensity.compact,
+      contentPadding: contentPadding,
       tileColor: Colors.transparent,
       hoverColor: scheme.primary.withValues(alpha: 0.05),
       shape: const RoundedRectangleBorder(
