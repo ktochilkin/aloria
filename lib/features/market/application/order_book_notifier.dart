@@ -14,9 +14,17 @@ typedef OrderBookParams = ({
 class OrderBookNotifier
     extends AutoDisposeFamilyAsyncNotifier<OrderBook?, OrderBookParams> {
   StreamSubscription<OrderBook>? _subscription;
+  Timer? _keepAliveTimer;
 
   @override
   FutureOr<OrderBook?> build(OrderBookParams params) async {
+    // Сохраняем провайдер активным для сохранения состояния
+    final link = ref.keepAlive();
+
+    // Автоматически очищаем через 60 секунд неактивности
+    _keepAliveTimer?.cancel();
+    _keepAliveTimer = Timer(const Duration(seconds: 60), link.close);
+
     final repo = await ref.watch(marketDataRepositoryProvider.future);
     _subscription = repo
         .watchOrderBook(
@@ -32,8 +40,8 @@ class OrderBookNotifier
         );
 
     ref.onDispose(() async {
+      _keepAliveTimer?.cancel();
       await _subscription?.cancel();
-      _subscription = null;
     });
 
     return null;

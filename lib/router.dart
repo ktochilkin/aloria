@@ -82,7 +82,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/market/:symbol',
             name: 'market_trade',
-            builder: (ctx, state) {
+            pageBuilder: (ctx, state) {
               final symbol = state.pathParameters['symbol']!;
               final security = state.extra;
               final shortName = security is MarketSecurity
@@ -91,10 +91,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               final exchange = security is MarketSecurity
                   ? security.exchange
                   : 'TEREX';
-              return TradePage(
-                symbol: symbol,
-                shortName: shortName,
-                exchange: exchange,
+              return NoTransitionPage(
+                key: ValueKey('trade_${exchange}_$symbol'),
+                child: TradePage(
+                  symbol: symbol,
+                  shortName: shortName,
+                  exchange: exchange,
+                ),
               );
             },
           ),

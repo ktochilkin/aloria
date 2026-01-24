@@ -41,8 +41,10 @@ class MarketStreamingService {
     required String exchange,
   }) async* {
     final key = 'price:$exchange:$symbol';
+
     final existing = _priceSubs[key];
     if (existing != null) {
+      // Если подписка уже существует и активна, переиспользуем её
       existing.listeners++;
       yield* existing.controller.stream;
       return;
@@ -120,13 +122,16 @@ class MarketStreamingService {
 
     controller.onCancel = () async {
       subState.listeners = 0;
-      final shouldDispose = true;
       subState.disposed = true;
       if (subState.subId != null) {
-        _tradingRealtime.send({
-          'opcode': 'Unsubscribe',
-          'guid': subState.subId,
-        });
+        final token = await _tokenProvider.accessToken(forceRefresh: false);
+        if (token != null) {
+          _tradingRealtime.send({
+            'opcode': 'Unsubscribe',
+            'guid': subState.subId,
+            'token': token,
+          });
+        }
       }
       await subState.sub?.cancel();
       subState.sub = null;
@@ -148,6 +153,7 @@ class MarketStreamingService {
         'orderbook:$exchange:$symbol:$instrumentGroup:$depth:$frequencyMs';
     final existing = _orderBookSubs[key];
     if (existing != null) {
+      // Если подписка уже существует и активна, переиспользуем её
       existing.listeners++;
       yield* existing.controller.stream;
       return;
@@ -215,13 +221,16 @@ class MarketStreamingService {
 
     controller.onCancel = () async {
       subState.listeners = 0;
-      final shouldDispose = true;
       subState.disposed = true;
       if (subState.subId != null) {
-        _tradingRealtime.send({
-          'opcode': 'Unsubscribe',
-          'guid': subState.subId,
-        });
+        final token = await _tokenProvider.accessToken(forceRefresh: false);
+        if (token != null) {
+          _tradingRealtime.send({
+            'opcode': 'Unsubscribe',
+            'guid': subState.subId,
+            'token': token,
+          });
+        }
       }
       await subState.sub?.cancel();
       subState.sub = null;
@@ -312,7 +321,6 @@ class MarketStreamingService {
 
     controller.onCancel = () async {
       subState.listeners = 0;
-      final shouldDispose = true;
       subState.disposed = true;
       if (subState.subId != null) {
         _portfolioRealtime.send({
@@ -402,7 +410,6 @@ class MarketStreamingService {
 
     controller.onCancel = () async {
       subState.listeners = 0;
-      final shouldDispose = true;
       subState.disposed = true;
       if (subState.subId != null) {
         _portfolioRealtime.send({

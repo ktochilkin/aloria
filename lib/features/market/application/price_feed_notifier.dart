@@ -47,9 +47,17 @@ typedef PriceFeedParams = ({String symbol, String exchange});
 class PriceFeedNotifier
     extends AutoDisposeFamilyAsyncNotifier<PriceFeedState, PriceFeedParams> {
   StreamSubscription<MarketPrice>? _subscription;
+  Timer? _keepAliveTimer;
 
   @override
   FutureOr<PriceFeedState> build(PriceFeedParams params) async {
+    // Сохраняем провайдер активным для сохранения состояния
+    final link = ref.keepAlive();
+
+    // Автоматически очищаем через 60 секунд неактивности
+    _keepAliveTimer?.cancel();
+    _keepAliveTimer = Timer(const Duration(seconds: 60), link.close);
+
     final repo = await ref.watch(marketDataRepositoryProvider.future);
     final cachedHistory = await repo.loadCachedHistory(params.symbol);
     var current = PriceFeedState(
@@ -104,6 +112,7 @@ class PriceFeedNotifier
         });
 
     ref.onDispose(() async {
+      _keepAliveTimer?.cancel();
       await _subscription?.cancel();
     });
 

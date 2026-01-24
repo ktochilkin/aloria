@@ -13,7 +13,7 @@ import 'package:go_router/go_router.dart';
 enum _FeedTab { tape, orderBook }
 
 final feedTabProvider = StateProvider.family<_FeedTab, String>(
-  (_, __) => _FeedTab.tape,
+  (ref, symbol) => _FeedTab.tape,
 );
 
 class TradePage extends ConsumerStatefulWidget {
