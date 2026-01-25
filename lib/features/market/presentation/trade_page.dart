@@ -211,6 +211,7 @@ class _TradeBody extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Card(
+            margin: EdgeInsets.zero,
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -243,6 +244,7 @@ class _TradeBody extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Card(
+            margin: EdgeInsets.zero,
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: SizedBox(
@@ -304,19 +306,15 @@ class _TradeBody extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          IndexedStack(
-            index: feedTab == _FeedTab.tape ? 0 : 1,
-            sizing: StackFit.loose,
-            children: [
-              _QuotesList(history: history),
-              orderBook.when(
-                data: (book) =>
-                    _OrderBookCard(book: book, onSelectPrice: onSelectPrice),
-                loading: () => const _OrderBookSkeleton(),
-                error: (e, _) => _OrderBookError(message: '$e'),
-              ),
-            ],
-          ),
+          if (feedTab == _FeedTab.tape)
+            _QuotesList(history: history)
+          else
+            orderBook.when(
+              data: (book) =>
+                  _OrderBookCard(book: book, onSelectPrice: onSelectPrice),
+              loading: () => const _OrderBookSkeleton(),
+              error: (e, _) => _OrderBookError(message: '$e'),
+            ),
           const SizedBox(height: 16),
           Row(
             children: [
@@ -386,6 +384,10 @@ class _TradeBody extends StatelessWidget {
               Expanded(
                 child: FilledButton.icon(
                   onPressed: submitting ? null : () => onSubmit(OrderSide.buy),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.success,
+                    foregroundColor: Colors.white,
+                  ),
                   icon: const Icon(Icons.shopping_cart_checkout),
                   label: submitting
                       ? const Text('Отправка...')
@@ -396,6 +398,10 @@ class _TradeBody extends StatelessWidget {
               Expanded(
                 child: FilledButton.tonalIcon(
                   onPressed: submitting ? null : () => onSubmit(OrderSide.sell),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.error,
+                    foregroundColor: Colors.white,
+                  ),
                   icon: const Icon(Icons.sell),
                   label: submitting
                       ? const Text('Отправка...')
@@ -696,6 +702,7 @@ class _QuotesList extends StatelessWidget {
   Widget build(BuildContext context) {
     final reversed = history.reversed.take(5).toList();
     return Card(
+      margin: EdgeInsets.zero,
       child: ListView.separated(
         physics: const NeverScrollableScrollPhysics(),
         shrinkWrap: true,
@@ -738,6 +745,7 @@ class _OrderBookCard extends StatelessWidget {
         : 'обновлено в ${TimeOfDay.fromDateTime(book!.ts).format(context)}';
 
     return Card(
+      margin: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -956,6 +964,7 @@ class _OrderBookSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Card(
+      margin: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -985,6 +994,7 @@ class _OrderBookError extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
     return Card(
+      margin: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
