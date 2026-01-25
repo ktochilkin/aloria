@@ -4,6 +4,7 @@ import 'package:aloria/core/networking/realtime_client.dart';
 import 'package:aloria/features/market/data/market_cache.dart';
 import 'package:aloria/features/market/data/market_http_service.dart';
 import 'package:aloria/features/market/data/token_provider.dart';
+import 'package:aloria/features/market/domain/candle.dart';
 import 'package:aloria/features/market/domain/market_price.dart';
 import 'package:aloria/features/market/domain/order_book.dart';
 import 'package:aloria/features/market/domain/portfolio_order.dart';
@@ -32,6 +33,7 @@ class MarketStreamingService {
 
   final _priceSubs = <String, _PriceSubscription>{};
   final _orderBookSubs = <String, _OrderBookSubscription>{};
+  final _candleSubs = <String, _CandleSubscription>{};
   final _positionsSubs = <String, _SharedSubscription<List<Position>>>{};
   final _summarySubs = <String, _SharedSubscription<PortfolioSummary>>{};
   final _ordersSubs = <String, _SharedSubscription<List<ClientOrder>>>{};
@@ -242,6 +244,115 @@ class MarketStreamingService {
       subState.sub = null;
       await controller.close();
       _orderBookSubs.remove(key);
+    };
+
+    await subscribe();
+    yield* controller.stream;
+  }
+
+  Stream<Candle> watchCandles({
+    required String symbol,
+    required String exchange,
+    String? instrumentGroup,
+    required String timeframe,
+    required DateTime fromTime,
+  }) async* {
+    final key = 'candles:$exchange:$symbol:$timeframe';
+
+    final existing = _candleSubs[key];
+    if (existing != null) {
+      existing.listeners++;
+      yield* existing.controller.stream;
+      return;
+    }
+
+    final controller = StreamController<Candle>.broadcast();
+    final subState = _CandleSubscription(controller: controller, listeners: 1);
+    _candleSubs[key] = subState;
+
+    Future<void> subscribe() async {
+      if (subState.disposed) return;
+      final token = await _tokenProvider.accessToken(forceRefresh: true);
+      if (token == null) {
+        controller.addError(
+          StateError('Auth token missing for candles subscription'),
+        );
+        return;
+      }
+
+      await _tradingRealtime.ensureConnected();
+      final subId = 'candles-$symbol-${DateTime.now().millisecondsSinceEpoch}';
+      subState.subId = subId;
+      final payload = {
+        'opcode': 'BarsGetAndSubscribe',
+        'exchange': exchange,
+        'code': symbol,
+        'tf': timeframe,
+        'from': fromTime.millisecondsSinceEpoch ~/ 1000,
+        'skipHistory': false,
+        'splitAdjust': true,
+        'format': 'Simple',
+        'frequency': 250,
+        'guid': subId,
+        'token': token,
+      };
+      if (instrumentGroup != null && instrumentGroup.isNotEmpty) {
+        payload['instrumentGroup'] = instrumentGroup;
+      }
+      _tradingRealtime.send(payload);
+
+      subState.sub?.cancel();
+      subState.sub = _tradingRealtime.stream.listen(
+        (event) async {
+          if (event['__ws_closed'] == true) {
+            await _handleReconnect(subscribe, subState.disposed, delayMs: 600);
+            return;
+          }
+          // Проверяем что событие относится к нашей подписке
+          final eventGuid = event['guid'] as String?;
+          if (eventGuid != null && eventGuid != subId) return;
+
+          final data = event['data'];
+          if (data == null) return;
+
+          try {
+            final candle = Candle.fromMap(data as Map<String, dynamic>);
+            if (candle.isValid && !controller.isClosed) {
+              controller.add(candle);
+            }
+          } catch (e) {
+            // Игнорируем невалидные свечи
+          }
+        },
+        onError: (Object error, StackTrace stack) async {
+          if (!controller.isClosed) controller.addError(error, stack);
+          await _handleReconnect(subscribe, subState.disposed, delayMs: 600);
+        },
+        onDone: () async {
+          await _handleReconnect(subscribe, subState.disposed, delayMs: 600);
+        },
+      );
+    }
+
+    controller.onCancel = () async {
+      subState.listeners--;
+      if (subState.listeners > 0) return;
+      subState.listeners = 0;
+      subState.disposed = true;
+      if (subState.subId != null) {
+        final token = await _tokenProvider.accessToken(forceRefresh: false);
+        if (token != null) {
+          _tradingRealtime.send({
+            'opcode': 'Unsubscribe',
+            'guid': subState.subId,
+            'token': token,
+          });
+        }
+      }
+      await subState.sub?.cancel();
+      subState.sub = null;
+      await controller.close();
+      _candleSubs.remove(key);
     };
 
     await subscribe();
@@ -587,6 +698,16 @@ class _OrderBookSubscription {
   _OrderBookSubscription({required this.controller, required this.listeners});
 
   final StreamController<OrderBook> controller;
+  int listeners;
+  StreamSubscription<Map<String, dynamic>>? sub;
+  String? subId;
+  bool disposed = false;
+}
+
+class _CandleSubscription {
+  _CandleSubscription({required this.controller, required this.listeners});
+
+  final StreamController<Candle> controller;
   int listeners;
   StreamSubscription<Map<String, dynamic>>? sub;
   String? subId;

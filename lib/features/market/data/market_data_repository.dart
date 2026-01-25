@@ -47,13 +47,13 @@ class MarketDataRepository {
     required String symbol,
     required String exchange,
     Duration lookback = const Duration(hours: 4),
-    Duration tf = const Duration(minutes: 1),
+    int tfMinutes = 60,
   }) {
     return _http.fetchHistoryPrices(
       symbol: symbol,
       exchange: exchange,
       lookback: lookback,
-      tf: tf,
+      tfMinutes: tfMinutes,
     );
   }
 
@@ -74,6 +74,20 @@ class MarketDataRepository {
     instrumentGroup: instrumentGroup,
     depth: depth,
     frequencyMs: frequencyMs,
+  );
+
+  Stream<Candle> watchCandles({
+    required String symbol,
+    required String exchange,
+    String? instrumentGroup,
+    required String timeframe,
+    required DateTime fromTime,
+  }) => _streaming.watchCandles(
+    symbol: symbol,
+    exchange: exchange,
+    instrumentGroup: instrumentGroup,
+    timeframe: timeframe,
+    fromTime: fromTime,
   );
 
   Future<List<MarketPrice>> loadCachedHistory(String symbol) =>

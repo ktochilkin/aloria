@@ -40,13 +40,43 @@ class PriceFeedState {
         : updatedHistory;
     return copyWith(latest: price, history: trimmed, fromCache: false);
   }
+
+  PriceFeedState updateCandle(Candle newCandle) {
+    if (candles.isEmpty) {
+      // Добавляем первую свечу и ограничиваем до 10
+      return copyWith(candles: [newCandle]);
+    }
+
+    final lastCandle = candles.last;
+    final isSameCandle =
+        lastCandle.ts.millisecondsSinceEpoch ==
+        newCandle.ts.millisecondsSinceEpoch;
+
+    List<Candle> updated;
+    if (isSameCandle) {
+      // Обновляем последнюю свечу
+      updated = [...candles.sublist(0, candles.length - 1), newCandle];
+    } else {
+      // Добавляем новую свечу
+      updated = [...candles, newCandle];
+    }
+
+    // Ограничиваем до 10 последних свечей
+    const maxCandles = 10;
+    final trimmed = updated.length > maxCandles
+        ? updated.sublist(updated.length - maxCandles)
+        : updated;
+
+    return copyWith(candles: trimmed);
+  }
 }
 
 typedef PriceFeedParams = ({String symbol, String exchange});
 
 class PriceFeedNotifier
     extends AutoDisposeFamilyAsyncNotifier<PriceFeedState, PriceFeedParams> {
-  StreamSubscription<MarketPrice>? _subscription;
+  StreamSubscription<MarketPrice>? _priceSubscription;
+  StreamSubscription<Candle>? _candleSubscription;
   Timer? _keepAliveTimer;
 
   @override
@@ -73,6 +103,7 @@ class PriceFeedNotifier
     final history = await repo.fetchHistoryPrices(
       symbol: params.symbol,
       exchange: params.exchange,
+      tfMinutes: 60,
     );
     if (history.isNotEmpty) {
       // Фильтруем только данные текущего инструмента перед merge
@@ -92,9 +123,16 @@ class PriceFeedNotifier
             )
             .toList(),
       );
+
+      // Обрезаем свечи до 10 последних сразу при загрузке
+      const maxCandles = 10;
+      final trimmedCandles = history.length > maxCandles
+          ? history.sublist(history.length - maxCandles)
+          : history;
+
       current = current.copyWith(
         history: merged,
-        candles: history,
+        candles: trimmedCandles,
         latest: merged.isNotEmpty ? merged.last : current.latest,
         fromCache: false,
       );
@@ -110,7 +148,7 @@ class PriceFeedNotifier
       state = AsyncData(current);
     }
 
-    _subscription = repo
+    _priceSubscription = repo
         .watchPrice(symbol: params.symbol, exchange: params.exchange)
         .listen((price) {
           // Проверяем что цена относится к нашему инструменту
@@ -119,9 +157,29 @@ class PriceFeedNotifier
           state = AsyncData(next);
         });
 
+    // Подписываемся на обновления свечей
+    // from = время самой молодой (последней) свечи, чтобы обновлять активную свечу
+    final fromTime = current.candles.isNotEmpty
+        ? current.candles.last.ts
+        : DateTime.now().subtract(const Duration(hours: 10));
+
+    _candleSubscription = repo
+        .watchCandles(
+          symbol: params.symbol,
+          exchange: params.exchange,
+          instrumentGroup: null,
+          timeframe: '60', // 1 час
+          fromTime: fromTime,
+        )
+        .listen((candle) {
+          final next = (state.value ?? current).updateCandle(candle);
+          state = AsyncData(next);
+        });
+
     ref.onDispose(() async {
       _keepAliveTimer?.cancel();
-      await _subscription?.cancel();
+      await _priceSubscription?.cancel();
+      await _candleSubscription?.cancel();
     });
 
     return current;

@@ -410,24 +410,126 @@ class _TradeBody extends StatelessWidget {
   }
 }
 
-class _CandleChart extends StatelessWidget {
+class _CandleChart extends StatefulWidget {
   const _CandleChart({required this.data, required this.scheme});
   final List<Candle> data;
   final ColorScheme scheme;
 
   @override
+  State<_CandleChart> createState() => _CandleChartState();
+}
+
+class _CandleChartState extends State<_CandleChart> {
+  Candle? _selectedCandle;
+
+  @override
+  void didUpdateWidget(_CandleChart oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Если свеча была выбрана, обновляем её данные при изменении widget.data
+    if (_selectedCandle != null) {
+      final updatedCandle = widget.data.firstWhere(
+        (c) =>
+            c.ts.millisecondsSinceEpoch ==
+            _selectedCandle!.ts.millisecondsSinceEpoch,
+        orElse: () => _selectedCandle!,
+      );
+      if (updatedCandle != _selectedCandle) {
+        setState(() {
+          _selectedCandle = updatedCandle;
+        });
+      }
+    }
+  }
+
+  void _handleTap(TapDownDetails details) {
+    if (widget.data.isEmpty) return;
+
+    const paddingLeft = 48.0;
+    const paddingRight = 12.0;
+    final chartWidth = context.size!.width - paddingLeft - paddingRight;
+
+    final tapX = details.localPosition.dx - paddingLeft;
+
+    // Если нажали вне графика, показываем последнюю свечу
+    if (tapX < 0 || tapX > chartWidth) {
+      setState(() {
+        _selectedCandle = widget.data.last;
+      });
+      return;
+    }
+
+    final candleWidth = chartWidth / widget.data.length;
+    final index = (tapX / candleWidth).floor();
+
+    if (index >= 0 && index < widget.data.length) {
+      setState(() {
+        _selectedCandle = widget.data[index];
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _CandlePainter(data: data, scheme: scheme),
-      child: Container(),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (_selectedCandle != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              children: [
+                Text(
+                  'Макс: ${_selectedCandle!.high.toStringAsFixed(2)}',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.success,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Text(
+                  'Мин: ${_selectedCandle!.low.toStringAsFixed(2)}',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.error,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.close, size: 16),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  onPressed: () => setState(() => _selectedCandle = null),
+                ),
+              ],
+            ),
+          ),
+        Expanded(
+          child: GestureDetector(
+            onTapDown: _handleTap,
+            child: CustomPaint(
+              painter: _CandlePainter(
+                data: widget.data,
+                scheme: widget.scheme,
+                selectedCandle: _selectedCandle,
+              ),
+              child: Container(),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
 
 class _CandlePainter extends CustomPainter {
-  _CandlePainter({required this.data, required this.scheme});
+  _CandlePainter({
+    required this.data,
+    required this.scheme,
+    this.selectedCandle,
+  });
   final List<Candle> data;
   final ColorScheme scheme;
+  final Candle? selectedCandle;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -448,10 +550,16 @@ class _CandlePainter extends CustomPainter {
     final highs = valid.map((c) => c.high).toList();
     final minP = lows.reduce((a, b) => a < b ? a : b);
     final maxP = highs.reduce((a, b) => a > b ? a : b);
-    final range = (maxP - minP).abs() < 1e-9 ? 1 : (maxP - minP);
+
+    // Добавляем отступы сверху и снизу (10% от диапазона)
+    final rawRange = (maxP - minP).abs();
+    final padding = rawRange < 1e-9 ? 0.5 : rawRange * 0.1;
+    final paddedMin = minP - padding;
+    final paddedMax = maxP + padding;
+    final range = paddedMax - paddedMin;
 
     double priceToY(double price) {
-      final normalized = (price - minP) / range;
+      final normalized = (price - paddedMin) / range;
       return paddingTop + chartHeight - normalized * chartHeight;
     }
 
@@ -483,7 +591,7 @@ class _CandlePainter extends CustomPainter {
     );
 
     // Y ticks (min, mid, max)
-    final yTicks = [minP, minP + range / 2, maxP];
+    final yTicks = [paddedMin, paddedMin + range / 2, paddedMax];
     for (final value in yTicks) {
       final y = priceToY(value);
       canvas.drawLine(
@@ -528,6 +636,27 @@ class _CandlePainter extends CustomPainter {
     for (var i = 0; i < valid.length; i++) {
       final c = valid[i];
       final x = paddingLeft + i * (candleWidth + space) + candleWidth / 2;
+
+      // Подсветка выбранной свечи
+      final isSelected =
+          selectedCandle != null &&
+          c.ts.millisecondsSinceEpoch ==
+              selectedCandle!.ts.millisecondsSinceEpoch;
+
+      if (isSelected) {
+        final highlightPaint = Paint()
+          ..color = scheme.primary.withValues(alpha: 0.15)
+          ..style = PaintingStyle.fill;
+        canvas.drawRect(
+          Rect.fromLTWH(
+            x - candleWidth / 2 - 2,
+            paddingTop,
+            candleWidth + 4,
+            chartHeight,
+          ),
+          highlightPaint,
+        );
+      }
 
       // Wick
       canvas.drawLine(

@@ -27,7 +27,7 @@ class MarketHttpService {
     required String symbol,
     required String exchange,
     Duration lookback = const Duration(hours: 4),
-    Duration tf = const Duration(minutes: 1),
+    int tfMinutes = 60,
   }) async {
     final to = DateTime.now().toUtc();
     final from = to.subtract(lookback);
@@ -41,7 +41,7 @@ class MarketHttpService {
           'exchange': exchange,
           'from': fromTs,
           'to': toTs,
-          'tf': 900,
+          'tf': tfMinutes,
           'format': 'Simple',
         },
       );
