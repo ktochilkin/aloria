@@ -28,7 +28,7 @@ class MarketRepository {
   Future<List<MarketSecurity>> fetchSecurities({int limit = 15}) async {
     final data = await _dio.getSafe<List<dynamic>>(
       '/md/v2/Securities',
-      queryParameters: {'limit': limit, 'exchange': 'TEREX', 'query': 'SBER'},
+      queryParameters: {'limit': limit, 'exchange': 'TEREX', 'query': 'F'},
     );
     return data
         .map((e) => MarketSecurity.fromJson(e as Map<String, dynamic>))

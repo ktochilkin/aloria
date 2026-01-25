@@ -12,18 +12,29 @@ class MarketCache {
     final raw = await _storage.read('$_cachePrefix$symbol');
     if (raw == null) return [];
     try {
-      return MarketPrice.listFromJson(raw);
+      final all = MarketPrice.listFromJson(raw);
+      // Фильтруем только цены с нужным instrumentId
+      return all.where((p) => p.instrumentId == symbol).toList();
     } catch (_) {
       return [];
     }
   }
 
   Future<void> appendPrice(String symbol, MarketPrice price) async {
-    final history = await loadHistory(symbol);
-    final updated = [...history, price];
+    // Загружаем все данные по этому symbol (может содержать данные разных instrumentId)
+    final raw = await _storage.read('$_cachePrefix$symbol');
+    final allHistory = raw != null
+        ? MarketPrice.listFromJson(raw)
+        : <MarketPrice>[];
+
+    // Добавляем новую цену
+    final updated = [...allHistory, price];
+
+    // Обрезаем старые данные, сохраняя последние _maxHistory записей
     final trimmed = updated.length > _maxHistory
         ? updated.sublist(updated.length - _maxHistory)
         : updated;
+
     await _storage.write(
       '$_cachePrefix$symbol',
       MarketPrice.listToJson(trimmed),

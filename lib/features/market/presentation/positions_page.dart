@@ -1,4 +1,5 @@
 import 'package:aloria/core/theme/components/list_items.dart';
+import 'package:aloria/core/widgets/top_notification.dart';
 import 'package:aloria/features/auth/application/auth_controller.dart';
 import 'package:aloria/features/market/application/orders_provider.dart';
 import 'package:aloria/features/market/application/portfolio_summary_provider.dart';
@@ -147,18 +148,11 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
       );
 
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Заявка отменена')));
+        showTopNotification(context, 'Заявка отменена');
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Ошибка отмены: $e'),
-            backgroundColor: scheme.error,
-          ),
-        );
+        showTopNotification(context, 'Ошибка отмены: $e', isError: true);
       }
     }
   }
@@ -801,9 +795,7 @@ class _QuizSheetState extends State<_QuizSheet> {
   void _goNext() {
     final selected = _answers[_currentIndex] ?? <int>{};
     if (selected.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Выберите вариант ответа')));
+      showTopNotification(context, 'Выберите вариант ответа', isError: true);
       return;
     }
 
@@ -820,10 +812,10 @@ class _QuizSheetState extends State<_QuizSheet> {
     if (success) {
       Navigator.of(context).pop(true);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Есть неверные ответы, попробуйте ещё раз'),
-        ),
+      showTopNotification(
+        context,
+        'Есть неверные ответы, попробуйте ещё раз',
+        isError: true,
       );
     }
   }

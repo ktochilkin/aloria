@@ -59,6 +59,8 @@ class PriceFeedNotifier
     _keepAliveTimer = Timer(const Duration(seconds: 60), link.close);
 
     final repo = await ref.watch(marketDataRepositoryProvider.future);
+
+    // Загружаем кэшированную историю для данного инструмента
     final cachedHistory = await repo.loadCachedHistory(params.symbol);
     var current = PriceFeedState(
       latest: cachedHistory.isNotEmpty ? cachedHistory.last : null,
@@ -73,8 +75,12 @@ class PriceFeedNotifier
       exchange: params.exchange,
     );
     if (history.isNotEmpty) {
+      // Фильтруем только данные текущего инструмента перед merge
+      final filtered = current.history
+          .where((p) => p.instrumentId == params.symbol)
+          .toList();
       final merged = _mergeHistory(
-        current.history,
+        filtered,
         history
             .where((c) => c.isValid)
             .map(
@@ -99,7 +105,7 @@ class PriceFeedNotifier
       symbol: params.symbol,
       exchange: params.exchange,
     );
-    if (snapshot != null) {
+    if (snapshot != null && snapshot.instrumentId == params.symbol) {
       current = current.append(snapshot);
       state = AsyncData(current);
     }
@@ -107,6 +113,8 @@ class PriceFeedNotifier
     _subscription = repo
         .watchPrice(symbol: params.symbol, exchange: params.exchange)
         .listen((price) {
+          // Проверяем что цена относится к нашему инструменту
+          if (price.instrumentId != params.symbol) return;
           final next = (state.value ?? current).append(price);
           state = AsyncData(next);
         });

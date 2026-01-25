@@ -1,4 +1,5 @@
 import 'package:aloria/core/theme/tokens.dart';
+import 'package:aloria/core/widgets/top_notification.dart';
 import 'package:aloria/features/market/application/order_book_notifier.dart';
 import 'package:aloria/features/market/application/price_feed_notifier.dart';
 import 'package:aloria/features/market/data/market_data_repository.dart';
@@ -12,8 +13,15 @@ import 'package:go_router/go_router.dart';
 
 enum _FeedTab { tape, orderBook }
 
-final feedTabProvider = StateProvider.family<_FeedTab, String>(
-  (ref, symbol) => _FeedTab.tape,
+final feedTabProvider = StateProvider.family<_FeedTab, String>((ref, symbol) {
+  // Сохраняем состояние вкладки, чтобы не сбрасывалось
+  ref.keepAlive();
+  return _FeedTab.tape;
+});
+
+// Провайдер для сохранения позиции прокрутки
+final scrollPositionProvider = StateProvider.family<double, String>(
+  (ref, symbol) => 0.0,
 );
 
 class TradePage extends ConsumerStatefulWidget {
@@ -35,12 +43,35 @@ class TradePage extends ConsumerStatefulWidget {
 class _TradePageState extends ConsumerState<TradePage> {
   final _qtyController = TextEditingController(text: '1');
   final _priceController = TextEditingController();
-  final _scrollController = ScrollController();
+  late final ScrollController _scrollController;
   bool _isLimit = false;
   bool _submitting = false;
 
   @override
+  void initState() {
+    super.initState();
+
+    // Создаем ScrollController с начальной позицией сразу
+    final savedPosition = ref.read(scrollPositionProvider(widget.symbol));
+    _scrollController = ScrollController(initialScrollOffset: savedPosition);
+
+    // Сохраняем позицию при прокрутке
+    _scrollController.addListener(() {
+      if (_scrollController.hasClients) {
+        ref.read(scrollPositionProvider(widget.symbol).notifier).state =
+            _scrollController.offset;
+      }
+    });
+  }
+
+  @override
   void dispose() {
+    // Сохраняем позицию при выходе со страницы
+    if (_scrollController.hasClients) {
+      ref.read(scrollPositionProvider(widget.symbol).notifier).state =
+          _scrollController.offset;
+    }
+
     _qtyController.dispose();
     _priceController.dispose();
     _scrollController.dispose();
@@ -79,15 +110,11 @@ class _TradePageState extends ConsumerState<TradePage> {
     try {
       await repo.placeOrder(order);
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Заявка отправлена')));
+        showTopNotification(context, 'Заявка отправлена');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Ошибка отправки: $e')));
+        showTopNotification(context, 'Ошибка отправки: $e', isError: true);
       }
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -116,6 +143,7 @@ class _TradePageState extends ConsumerState<TradePage> {
         onTap: () => FocusScope.of(context).unfocus(),
         child: feed.when(
           data: (state) => _TradeBody(
+            symbol: widget.symbol,
             state: state,
             orderBook: orderBook,
             feedTab: feedTab,
@@ -140,6 +168,7 @@ class _TradePageState extends ConsumerState<TradePage> {
 
 class _TradeBody extends StatelessWidget {
   const _TradeBody({
+    required this.symbol,
     required this.state,
     required this.orderBook,
     required this.feedTab,
@@ -154,6 +183,7 @@ class _TradeBody extends StatelessWidget {
     required this.scrollController,
   });
 
+  final String symbol;
   final PriceFeedState state;
   final AsyncValue<OrderBook?> orderBook;
   final _FeedTab feedTab;
@@ -274,19 +304,18 @@ class _TradeBody extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 220),
-            child: feedTab == _FeedTab.tape
-                ? _QuotesList(key: const ValueKey('tape'), history: history)
-                : orderBook.when(
-                    data: (book) => _OrderBookCard(
-                      key: const ValueKey('orderbook'),
-                      book: book,
-                      onSelectPrice: onSelectPrice,
-                    ),
-                    loading: () => const _OrderBookSkeleton(),
-                    error: (e, _) => _OrderBookError(message: '$e'),
-                  ),
+          IndexedStack(
+            index: feedTab == _FeedTab.tape ? 0 : 1,
+            sizing: StackFit.loose,
+            children: [
+              _QuotesList(history: history),
+              orderBook.when(
+                data: (book) =>
+                    _OrderBookCard(book: book, onSelectPrice: onSelectPrice),
+                loading: () => const _OrderBookSkeleton(),
+                error: (e, _) => _OrderBookError(message: '$e'),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           Row(
@@ -531,7 +560,7 @@ class _CandlePainter extends CustomPainter {
 }
 
 class _QuotesList extends StatelessWidget {
-  const _QuotesList({super.key, required this.history});
+  const _QuotesList({required this.history});
   final List<MarketPrice> history;
 
   @override
@@ -545,10 +574,13 @@ class _QuotesList extends StatelessWidget {
         separatorBuilder: (_, index) => const Divider(height: 1),
         itemBuilder: (context, index) {
           final item = reversed[index];
+          final time = item.ts.toLocal();
+          final timeStr =
+              '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}:${time.second.toString().padLeft(2, '0')}';
           return ListTile(
             dense: true,
             title: Text(item.price.toStringAsFixed(2)),
-            subtitle: Text(item.ts.toLocal().toIso8601String()),
+            subtitle: Text(timeStr),
           );
         },
       ),
@@ -557,11 +589,7 @@ class _QuotesList extends StatelessWidget {
 }
 
 class _OrderBookCard extends StatelessWidget {
-  const _OrderBookCard({
-    super.key,
-    required this.book,
-    required this.onSelectPrice,
-  });
+  const _OrderBookCard({required this.book, required this.onSelectPrice});
 
   final OrderBook? book;
   final ValueChanged<double> onSelectPrice;

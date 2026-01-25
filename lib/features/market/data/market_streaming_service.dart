@@ -83,6 +83,11 @@ class MarketStreamingService {
             await _handleReconnect(subscribe, subState.disposed);
             return;
           }
+          // Проверяем что событие относится к нашей подписке
+          final eventGuid = event['guid'] as String?;
+          if (eventGuid != null && eventGuid != subId) {
+            return;
+          }
           final code = event['code'] as String? ?? event['symbol'] as String?;
           if (code != null && code.toUpperCase() != symbol.toUpperCase()) {
             return;
@@ -105,6 +110,7 @@ class MarketStreamingService {
     controller.onListen = () async {
       if (subState.started) return;
       subState.started = true;
+      // Загружаем кэшированные данные для этого инструмента
       final cached = await _cache.loadHistory(symbol);
       if (cached.isNotEmpty && !controller.isClosed) {
         controller.add(cached.last);
