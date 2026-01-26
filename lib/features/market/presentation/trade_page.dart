@@ -9,6 +9,7 @@ import 'package:aloria/features/market/domain/trade_order.dart';
 import 'package:aloria/features/market/presentation/widgets/news_widget.dart';
 import 'package:aloria/features/market/presentation/widgets/order_book_widget.dart';
 import 'package:aloria/features/market/presentation/widgets/quotes_list.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -116,7 +117,22 @@ class _TradePageState extends ConsumerState<TradePage> {
       }
     } catch (e) {
       if (mounted) {
-        showTopNotification(context, 'Ошибка отправки: $e', isError: true);
+        String errorMessage = 'Ошибка отправки';
+
+        // Проверяем, является ли ошибка DioException
+        if (e is DioException && e.response != null) {
+          final responseData = e.response!.data;
+          if (responseData is Map<String, dynamic> &&
+              responseData.containsKey('message')) {
+            errorMessage = responseData['message'] as String;
+          } else {
+            errorMessage = 'Ошибка отправки: ${e.response!.statusCode}';
+          }
+        } else {
+          errorMessage = 'Ошибка отправки: $e';
+        }
+
+        showTopNotification(context, errorMessage, isError: true);
       }
     } finally {
       if (mounted) setState(() => _submitting = false);

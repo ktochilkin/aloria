@@ -212,7 +212,7 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
 
     final positionsWidget = widget.positions.when(
       data: (list) {
-        final items = list.take(50).toList();
+        final items = list.where((p) => p.quantity != 0).take(50).toList();
         if (items.isEmpty) {
           return Container(
             width: double.infinity,
@@ -237,7 +237,7 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
           children: items
               .map(
                 (p) => AppListTile(
-                  title: '${p.symbol} · ${p.exchange}',
+                  title: p.symbol,
                   subtitle:
                       'Средняя ${p.averagePrice.toStringAsFixed(2)} ${p.currency}',
                   trailing: Column(
@@ -313,40 +313,19 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
                 ? 'По рынку'
                 : (order.price != null ? order.price!.toStringAsFixed(2) : '—');
             return AppListTile(
-              title: '${order.symbol} · ${order.exchange}',
+              title: order.symbol,
               subtitleWidget: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          label,
-                          style: text.labelMedium?.copyWith(
-                            color: statusColor,
-                            fontWeight: FontWeight.w700,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (order.isActive) ...[
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          height: 28,
-                          width: 28,
-                          child: IconButton(
-                            padding: EdgeInsets.zero,
-                            iconSize: 18,
-                            icon: Icon(Icons.close, color: scheme.error),
-                            tooltip: 'Отменить заявку',
-                            onPressed: () =>
-                                _handleCancelOrder(context, ref, order),
-                          ),
-                        ),
-                      ],
-                    ],
+                  Text(
+                    label,
+                    style: text.labelMedium?.copyWith(
+                      color: statusColor,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -386,6 +365,27 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         softWrap: false,
+                      ),
+                    ],
+                    if (order.isActive) ...[
+                      const SizedBox(height: 8),
+                      OutlinedButton(
+                        onPressed: () =>
+                            _handleCancelOrder(context, ref, order),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          side: BorderSide(color: Colors.orange, width: 1.5),
+                          foregroundColor: Colors.orange,
+                        ),
+                        child: const Text(
+                          'Отменить',
+                          style: TextStyle(fontSize: 12),
+                        ),
                       ),
                     ],
                   ],
