@@ -6,18 +6,19 @@ import 'package:aloria/features/market/data/market_data_repository.dart';
 import 'package:aloria/features/market/domain/candle.dart';
 import 'package:aloria/features/market/domain/order_book.dart';
 import 'package:aloria/features/market/domain/trade_order.dart';
+import 'package:aloria/features/market/presentation/widgets/news_widget.dart';
 import 'package:aloria/features/market/presentation/widgets/order_book_widget.dart';
 import 'package:aloria/features/market/presentation/widgets/quotes_list.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-enum _FeedTab { tape, orderBook }
+enum _FeedTab { news, tape, orderBook }
 
 final feedTabProvider = StateProvider.family<_FeedTab, String>((ref, symbol) {
   // Сохраняем состояние вкладки, чтобы не сбрасывалось
   ref.keepAlive();
-  return _FeedTab.tape;
+  return _FeedTab.news;
 });
 
 // Провайдер для сохранения позиции прокрутки
@@ -258,56 +259,68 @@ class _TradeBody extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text('Пульс рынка', style: text.titleMedium),
               Text(
-                feedTab == _FeedTab.tape
+                feedTab == _FeedTab.news
+                    ? 'Новости и события по инструменту'
+                    : feedTab == _FeedTab.tape
                     ? 'Лента последних сделок'
                     : 'Биржевой стакан в реальном времени',
                 style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+                textAlign: TextAlign.center,
               ),
               const SizedBox(height: 10),
-              SegmentedButton<_FeedTab>(
-                segments: const [
-                  ButtonSegment(
-                    value: _FeedTab.tape,
-                    icon: Icon(Icons.bolt),
-                    label: Text('Лента'),
-                  ),
-                  ButtonSegment(
-                    value: _FeedTab.orderBook,
-                    icon: Icon(Icons.stacked_bar_chart),
-                    label: Text('Стакан'),
-                  ),
-                ],
-                selected: {feedTab},
-                onSelectionChanged: (value) {
-                  if (value.isNotEmpty) onFeedTabChanged(value.first);
-                },
-                showSelectedIcon: false,
-                style: ButtonStyle(
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  visualDensity: VisualDensity.compact,
-                  backgroundColor: WidgetStateProperty.resolveWith(
-                    (states) => states.contains(WidgetState.selected)
-                        ? scheme.primary.withValues(alpha: 0.14)
-                        : scheme.surfaceContainerHighest,
-                  ),
-                  foregroundColor: WidgetStateProperty.resolveWith(
-                    (states) => states.contains(WidgetState.selected)
-                        ? scheme.primary
-                        : scheme.onSurface,
-                  ),
-                  side: WidgetStatePropertyAll(
-                    BorderSide(color: scheme.outline.withValues(alpha: 0.7)),
+              Center(
+                child: SegmentedButton<_FeedTab>(
+                  segments: const [
+                    ButtonSegment(
+                      value: _FeedTab.news,
+                      icon: Icon(Icons.article),
+                      label: Text('Новости'),
+                    ),
+                    ButtonSegment(
+                      value: _FeedTab.tape,
+                      icon: Icon(Icons.bolt),
+                      label: Text('Лента'),
+                    ),
+                    ButtonSegment(
+                      value: _FeedTab.orderBook,
+                      icon: Icon(Icons.stacked_bar_chart),
+                      label: Text('Стакан'),
+                    ),
+                  ],
+                  selected: {feedTab},
+                  onSelectionChanged: (value) {
+                    if (value.isNotEmpty) onFeedTabChanged(value.first);
+                  },
+                  showSelectedIcon: false,
+                  style: ButtonStyle(
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    visualDensity: VisualDensity.compact,
+                    backgroundColor: WidgetStateProperty.resolveWith(
+                      (states) => states.contains(WidgetState.selected)
+                          ? scheme.primary.withValues(alpha: 0.14)
+                          : scheme.surfaceContainerHighest,
+                    ),
+                    foregroundColor: WidgetStateProperty.resolveWith(
+                      (states) => states.contains(WidgetState.selected)
+                          ? scheme.primary
+                          : scheme.onSurface,
+                    ),
+                    side: WidgetStatePropertyAll(
+                      BorderSide(color: scheme.outline.withValues(alpha: 0.7)),
+                    ),
                   ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 8),
-          if (feedTab == _FeedTab.tape)
+          if (feedTab == _FeedTab.news)
+            NewsWidget(news: _getMockNews())
+          else if (feedTab == _FeedTab.tape)
             QuotesList(history: history)
           else
             orderBook.when(
@@ -693,4 +706,28 @@ class _CandlePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+// Моковые данные новостей (временно)
+List<NewsItem> _getMockNews() {
+  return [
+    NewsItem(
+      title: 'Компания объявила о выплате дивидендов',
+      content:
+          'Совет директоров компании принял решение о выплате промежуточных дивидендов акционерам. Размер дивидендов составит 15 рублей на одну акцию. Дата закрытия реестра - 15 февраля 2026 года.',
+      publishedAt: DateTime.now().subtract(const Duration(hours: 2)),
+    ),
+    NewsItem(
+      title: 'Квартальная отчетность превзошла ожидания',
+      content:
+          'Финансовые результаты за четвертый квартал 2025 года показали значительный рост выручки на 23% по сравнению с аналогичным периодом прошлого года. Чистая прибыль увеличилась на 31%, что существенно превысило прогнозы аналитиков. Руководство компании отмечает улучшение операционной эффективности и рост продаж в ключевых сегментах.',
+      publishedAt: DateTime.now().subtract(const Duration(hours: 5)),
+    ),
+    NewsItem(
+      title: 'Планируется расширение производства',
+      content:
+          'Компания анонсировала инвестиционный план на ближайшие три года, предусматривающий строительство нового производственного комплекса. Ожидается, что проект увеличит производственные мощности на 40%.',
+      publishedAt: DateTime.now().subtract(const Duration(days: 1)),
+    ),
+  ];
 }
