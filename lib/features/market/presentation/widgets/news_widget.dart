@@ -1,23 +1,11 @@
+import 'package:aloria/features/market/domain/market_news.dart';
 import 'package:flutter/material.dart';
-
-/// Модель новости
-class NewsItem {
-  final String title;
-  final String content;
-  final DateTime publishedAt;
-
-  const NewsItem({
-    required this.title,
-    required this.content,
-    required this.publishedAt,
-  });
-}
 
 /// Виджет для отображения новостей по инструменту
 class NewsWidget extends StatefulWidget {
   const NewsWidget({super.key, required this.news});
 
-  final List<NewsItem> news;
+  final List<MarketNews> news;
 
   @override
   State<NewsWidget> createState() => _NewsWidgetState();
@@ -38,7 +26,7 @@ class _NewsWidgetState extends State<NewsWidget> {
     }
   }
 
-  void _showFullNews(BuildContext context, NewsItem news) {
+  void _showFullNews(BuildContext context, MarketNews news) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -222,25 +210,38 @@ class _NewsWidgetState extends State<NewsWidget> {
             ],
             const SizedBox(height: 16),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                IconButton(
-                  onPressed: _currentIndex > 0 ? _goToPrevious : null,
-                  icon: const Icon(Icons.chevron_left),
-                  tooltip: 'Предыдущая',
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: _currentIndex > 0 ? _goToPrevious : null,
+                    icon: const Icon(Icons.chevron_left),
+                    label: const Text('Назад'),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(48),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                    ),
+                  ),
                 ),
+                const SizedBox(width: 12),
                 Text(
                   '${_currentIndex + 1} из ${widget.news.length}',
                   style: text.bodySmall?.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
-                IconButton(
-                  onPressed: _currentIndex < widget.news.length - 1
-                      ? _goToNext
-                      : null,
-                  icon: const Icon(Icons.chevron_right),
-                  tooltip: 'Следующая',
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: _currentIndex < widget.news.length - 1
+                        ? _goToNext
+                        : null,
+                    icon: const Icon(Icons.chevron_right),
+                    label: const Text('Далее'),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(48),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                    ),
+                  ),
                 ),
               ],
             ),
