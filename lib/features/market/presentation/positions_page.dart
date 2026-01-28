@@ -235,28 +235,7 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
 
         return AppListSection(
           children: items
-              .map(
-                (p) => AppListTile(
-                  title: p.symbol,
-                  subtitle:
-                      'Средняя ${p.averagePrice.toStringAsFixed(2)} ${p.currency}',
-                  trailing: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        p.quantity.toStringAsFixed(2),
-                        style: text.bodyLarge,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Всего ${(p.quantity * p.averagePrice).toStringAsFixed(2)} ${p.currency}',
-                        style: text.bodySmall,
-                      ),
-                    ],
-                  ),
-                ),
-              )
+              .map((p) => _PositionExpansionTile(position: p))
               .toList(),
         );
       },
@@ -1203,3 +1182,132 @@ const List<_PortfolioQuiz> _portfolioQuizzes = [
     ],
   ),
 ];
+
+class _PositionExpansionTile extends StatelessWidget {
+  const _PositionExpansionTile({required this.position});
+
+  final Position position;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final text = theme.textTheme;
+
+    return Theme(
+      data: theme.copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        title: Text(position.symbol, style: text.titleMedium),
+        subtitle: Text(
+          'Средняя ${position.averagePrice.toStringAsFixed(2)} ${position.currency}',
+          style: text.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
+        ),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              '${position.quantity.toStringAsFixed(2)} шт.',
+              style: text.bodyLarge,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${(position.quantity * position.averagePrice).toStringAsFixed(2)} ${position.currency}',
+              style: text.bodySmall?.copyWith(color: scheme.primary),
+            ),
+          ],
+        ),
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Divider(),
+                const SizedBox(height: 8),
+                _buildInfoRow(
+                  context,
+                  label: 'Тикер',
+                  value: position.symbol,
+                  description: 'Краткое название инструмента на бирже.',
+                ),
+                _buildInfoRow(
+                  context,
+                  label: 'Количество',
+                  value: '${position.quantity} шт.',
+                  description: 'Количество ценных бумаг в вашем портфеле.',
+                ),
+                _buildInfoRow(
+                  context,
+                  label: 'Средняя цена',
+                  value: '${position.averagePrice} ${position.currency}',
+                  description:
+                      'Цена покупки (усредненная, если было несколько сделок).',
+                ),
+                _buildInfoRow(
+                  context,
+                  label: 'Текущая стоимость',
+                  value: '${position.currentVolume} ${position.currency}',
+                  description: 'Рыночная стоимость всего пакета бумаг сейчас.',
+                ),
+                _buildInfoRow(
+                  context,
+                  label: 'Биржа',
+                  value: position.exchange,
+                  description: 'Торговая площадка, где куплен инструмент.',
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(
+    BuildContext context, {
+    required String label,
+    required String value,
+    required String description,
+  }) {
+    final text = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                label,
+                style: text.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: scheme.onSurface,
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  value,
+                  textAlign: TextAlign.end,
+                  style: text.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text(
+            description,
+            style: text.bodySmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
