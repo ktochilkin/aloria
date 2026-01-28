@@ -32,74 +32,100 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'login',
         builder: (ctx, state) => const LoginPage(),
       ),
-      ShellRoute(
-        builder: (context, state, child) =>
-            _NavShell(location: state.uri.toString(), child: child),
-        routes: [
-          GoRoute(
-            path: '/learn',
-            name: 'learn',
-            builder: (ctx, state) => const LearningPage(),
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) {
+          return _ScaffoldWithNavBar(navigationShell: navigationShell);
+        },
+        branches: [
+          // Branch 1: Learn
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/learn',
+                name: 'learn',
+                builder: (ctx, state) => const LearningPage(),
+                routes: [
+                  GoRoute(
+                    path: ':sectionId',
+                    name: 'learn_section',
+                    builder: (ctx, state) {
+                      final sectionId = state.pathParameters['sectionId']!;
+                      final section = findSectionById(sectionId);
+                      if (section == null) {
+                        return const _MissingRoutePage(
+                          message: 'Раздел не найден',
+                        );
+                      }
+                      return LearningSectionPage(section: section);
+                    },
+                    routes: [
+                      GoRoute(
+                        path: ':lessonId',
+                        name: 'learn_lesson',
+                        builder: (ctx, state) {
+                          final sectionId = state.pathParameters['sectionId']!;
+                          final lessonId = state.pathParameters['lessonId']!;
+                          final section = findSectionById(sectionId);
+                          final lesson = section == null
+                              ? null
+                              : findLessonById(section, lessonId);
+                          if (section == null || lesson == null) {
+                            return const _MissingRoutePage(
+                              message: 'Урок не найден',
+                            );
+                          }
+                          return LessonPage(section: section, lesson: lesson);
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
           ),
-          GoRoute(
-            path: '/learn/:sectionId',
-            name: 'learn_section',
-            builder: (ctx, state) {
-              final sectionId = state.pathParameters['sectionId']!;
-              final section = findSectionById(sectionId);
-              if (section == null) {
-                return const _MissingRoutePage(message: 'Раздел не найден');
-              }
-              return LearningSectionPage(section: section);
-            },
+          // Branch 2: Positions
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/positions',
+                name: 'positions',
+                builder: (ctx, state) => const PositionsPage(),
+              ),
+            ],
           ),
-          GoRoute(
-            path: '/learn/:sectionId/:lessonId',
-            name: 'learn_lesson',
-            builder: (ctx, state) {
-              final sectionId = state.pathParameters['sectionId']!;
-              final lessonId = state.pathParameters['lessonId']!;
-              final section = findSectionById(sectionId);
-              final lesson = section == null
-                  ? null
-                  : findLessonById(section, lessonId);
-              if (section == null || lesson == null) {
-                return const _MissingRoutePage(message: 'Урок не найден');
-              }
-              return LessonPage(section: section, lesson: lesson);
-            },
-          ),
-          GoRoute(
-            path: '/positions',
-            name: 'positions',
-            builder: (ctx, state) => const PositionsPage(),
-          ),
-          GoRoute(
-            path: '/market',
-            name: 'market',
-            builder: (ctx, state) => const MarketPage(),
-          ),
-          GoRoute(
-            path: '/market/:symbol',
-            name: 'market_trade',
-            pageBuilder: (ctx, state) {
-              final symbol = state.pathParameters['symbol']!;
-              final security = state.extra;
-              final shortName = security is MarketSecurity
-                  ? security.shortName
-                  : symbol;
-              final exchange = security is MarketSecurity
-                  ? security.exchange
-                  : 'TEREX';
-              return NoTransitionPage(
-                key: ValueKey('trade_${exchange}_$symbol'),
-                child: TradePage(
-                  symbol: symbol,
-                  shortName: shortName,
-                  exchange: exchange,
-                ),
-              );
-            },
+          // Branch 3: Market
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/market',
+                name: 'market',
+                builder: (ctx, state) => const MarketPage(),
+                routes: [
+                  GoRoute(
+                    path: ':symbol',
+                    name: 'market_trade',
+                    pageBuilder: (ctx, state) {
+                      final symbol = state.pathParameters['symbol']!;
+                      final security = state.extra;
+                      final shortName = security is MarketSecurity
+                          ? security.shortName
+                          : symbol;
+                      final exchange = security is MarketSecurity
+                          ? security.exchange
+                          : 'TEREX';
+                      return NoTransitionPage(
+                        key: ValueKey('trade_${exchange}_$symbol'),
+                        child: TradePage(
+                          symbol: symbol,
+                          shortName: shortName,
+                          exchange: exchange,
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ],
           ),
         ],
       ),
@@ -116,38 +142,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   );
 });
 
-final lastMarketLocationProvider = StateProvider<String>((_) => '/market');
-final lastLearningLocationProvider = StateProvider<String>((_) => '/learn');
+class _ScaffoldWithNavBar extends ConsumerWidget {
+  const _ScaffoldWithNavBar({required this.navigationShell});
 
-class _NavShell extends ConsumerWidget {
-  const _NavShell({required this.child, required this.location});
+  final StatefulNavigationShell navigationShell;
 
-  final Widget child;
-  final String location;
-
-  static const _tabs = [
-    _NavTab(label: 'Обучение', icon: Icons.school, route: '/learn'),
-    _NavTab(label: 'Портфель', icon: Icons.list_alt, route: '/positions'),
-    _NavTab(label: 'Обзор рынка', icon: Icons.show_chart, route: '/market'),
-  ];
-
-  int _indexForLocation(String location) {
-    if (location.startsWith('/market')) return 2;
-    if (location.startsWith('/positions')) return 1;
-    return 0;
-  }
-
-  void _goAndRestoreStack(
-    BuildContext context, {
-    required String baseRoute,
-    required String lastRoute,
-  }) {
-    context.go(baseRoute);
-    if (lastRoute == baseRoute) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!context.mounted) return;
-      context.push(lastRoute);
-    });
+  void _goBranch(int index) {
+    navigationShell.goBranch(
+      index,
+      // A common pattern when using bottom navigation bars is to support
+      // navigating to the initial location when tapping the item that is
+      // already active. This example demonstrates how to support this behavior,
+      // using the initialLocation parameter of goBranch.
+      initialLocation: index == navigationShell.currentIndex,
+    );
   }
 
   @override
@@ -156,61 +164,20 @@ class _NavShell extends ConsumerWidget {
     ref.read(positionsBootstrapperProvider);
     ref.read(portfolioSummaryBootstrapperProvider);
     ref.read(ordersBootstrapperProvider);
-    if (location.startsWith('/learn')) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(lastLearningLocationProvider.notifier).state = location;
-      });
-    }
-    if (location.startsWith('/market')) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(lastMarketLocationProvider.notifier).state = location;
-      });
-    }
-    final index = _indexForLocation(location);
+
     return Scaffold(
-      body: child,
+      body: navigationShell,
       bottomNavigationBar: NavigationBar(
-        selectedIndex: index,
-        onDestinationSelected: (i) {
-          if (i == 0) {
-            final lastLearning = ref.read(lastLearningLocationProvider);
-            if (location.startsWith('/learn')) {
-              if (location != lastLearning) {
-                // Already inside learning; keep current location.
-                ref.read(lastLearningLocationProvider.notifier).state =
-                    location;
-              }
-              return;
-            }
-            _goAndRestoreStack(
-              context,
-              baseRoute: '/learn',
-              lastRoute: lastLearning,
-            );
-            return;
-          }
-          if (i == 2) {
-            final lastMarket = ref.read(lastMarketLocationProvider);
-            // If already on a market screen, a tab tap returns to the list.
-            if (location.startsWith('/market')) {
-              if (location != '/market') context.go('/market');
-              return;
-            }
-            _goAndRestoreStack(
-              context,
-              baseRoute: '/market',
-              lastRoute: lastMarket,
-            );
-            return;
-          }
-          final target = _tabs[i].route;
-          if (target != location) context.go(target);
-        },
-        destinations: _tabs
-            .map(
-              (t) => NavigationDestination(icon: Icon(t.icon), label: t.label),
-            )
-            .toList(),
+        selectedIndex: navigationShell.currentIndex,
+        onDestinationSelected: _goBranch,
+        destinations: const [
+          NavigationDestination(label: 'Обучение', icon: Icon(Icons.school)),
+          NavigationDestination(label: 'Портфель', icon: Icon(Icons.list_alt)),
+          NavigationDestination(
+            label: 'Обзор рынка',
+            icon: Icon(Icons.show_chart),
+          ),
+        ],
       ),
     );
   }
@@ -243,12 +210,4 @@ class GoRouterRefreshStream extends ChangeNotifier {
     _sub.cancel();
     super.dispose();
   }
-}
-
-class _NavTab {
-  const _NavTab({required this.label, required this.icon, required this.route});
-
-  final String label;
-  final IconData icon;
-  final String route;
 }

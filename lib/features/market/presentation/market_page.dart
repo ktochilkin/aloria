@@ -94,10 +94,37 @@ class MarketPage extends ConsumerWidget {
                                       style: text.bodyMedium?.copyWith(
                                         color: scheme.onSurfaceVariant,
                                       ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ],
                                 ),
                               ),
+                              if (item.lastPrice != null) ...[
+                                const SizedBox(width: 12),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      item.lastPrice!.toStringAsFixed(2),
+                                      style: text.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    if (item.changePercent != null)
+                                      Text(
+                                        '${item.changePercent! >= 0 ? '+' : ''}${item.changePercent!.toStringAsFixed(2)}%',
+                                        style: text.bodySmall?.copyWith(
+                                          color: item.changePercent! >= 0
+                                              ? Colors.green
+                                              : Colors.red,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ],
                               Icon(
                                 Icons.chevron_right,
                                 color: scheme.onSurfaceVariant,
