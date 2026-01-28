@@ -1,11 +1,11 @@
 {
-    "name": "aloria",
-    "short_name": "aloria",
+    "name": "Aloria",
+    "short_name": "Aloria",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#E9F0FF",
+    "theme_color": "#5D8CFF",
+    "description": "Инвестиции для начинающих в игровой форме.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
