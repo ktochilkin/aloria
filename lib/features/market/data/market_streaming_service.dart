@@ -227,6 +227,12 @@ class MarketStreamingService {
       );
     }
 
+    controller.onListen = () async {
+      if (subState.started) return;
+      subState.started = true;
+      await subscribe();
+    };
+
     controller.onCancel = () async {
       subState.listeners = 0;
       subState.disposed = true;
@@ -246,7 +252,6 @@ class MarketStreamingService {
       _orderBookSubs.remove(key);
     };
 
-    await subscribe();
     yield* controller.stream;
   }
 
@@ -702,6 +707,7 @@ class _OrderBookSubscription {
   StreamSubscription<Map<String, dynamic>>? sub;
   String? subId;
   bool disposed = false;
+  bool started = false;
 }
 
 class _CandleSubscription {
