@@ -127,8 +127,9 @@ class AuthController extends StateNotifier<AuthState> {
       _scheduleRefresh();
       return merged;
     } catch (e, st) {
-      appLogger.e('Refresh failed', error: e, stackTrace: st);
-      state = state.copyWith(error: e.toString());
+      appLogger.e('Refresh failed, logging out', error: e, stackTrace: st);
+      // Refresh token протух или невалиден — разлогиниваем
+      await logout();
       return null;
     }
   }

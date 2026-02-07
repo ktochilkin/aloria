@@ -63,6 +63,9 @@ final dioProvider = Provider<Dio>((ref) {
                 stackTrace: st,
               );
             }
+          } else {
+            // Refresh не удался — разлогиниваем
+            appLogger.w('Refresh returned null, user logged out');
           }
         }
         handler.next(e);
