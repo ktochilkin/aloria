@@ -3,6 +3,7 @@ import 'package:aloria/features/market/application/market_news_provider.dart';
 import 'package:aloria/features/market/data/market_repository.dart';
 import 'package:aloria/features/market/domain/market_news.dart';
 import 'package:aloria/features/market/presentation/widgets/instrument_avatar.dart';
+import 'package:aloria/features/market/presentation/widgets/news_detail_modal.dart';
 import 'package:aloria/features/market/presentation/widgets/news_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -294,43 +295,12 @@ class _MarketNewsTab extends StatelessWidget {
               margin: EdgeInsets.zero,
               child: InkWell(
                 borderRadius: BorderRadius.circular(12),
-                onTap: () => _showFullNews(context, news),
+                onTap: () => showNewsDetailModal(context, news),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: scheme.primary.withValues(alpha: 0.14),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              'Новости',
-                              style: text.labelMedium?.copyWith(
-                                color: scheme.primary,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              _formatDate(news.publishedAt),
-                              style: text.bodySmall?.copyWith(
-                                color: scheme.onSurfaceVariant,
-                              ),
-                              textAlign: TextAlign.right,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
                       Text(
                         news.title,
                         style: text.titleMedium?.copyWith(
@@ -344,6 +314,16 @@ class _MarketNewsTab extends StatelessWidget {
                         maxLines: 3,
                         overflow: TextOverflow.ellipsis,
                       ),
+                      const SizedBox(height: 12),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          formatNewsDate(news.publishedAt),
+                          style: text.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -356,86 +336,6 @@ class _MarketNewsTab extends StatelessWidget {
       error: (e, _) => Center(child: Text('Не удалось загрузить новости: $e')),
     );
   }
-
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
-
-    if (difference.inMinutes < 60) {
-      return '${difference.inMinutes} мин назад';
-    } else if (difference.inHours < 24) {
-      return '${difference.inHours} ч назад';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays} дн назад';
-    }
-    return '${date.day}.${date.month.toString().padLeft(2, '0')}.${date.year}';
-  }
-
-  void _showFullNews(BuildContext context, MarketNews news) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.7,
-        minChildSize: 0.5,
-        maxChildSize: 0.95,
-        expand: false,
-        builder: (context, scrollController) => Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(16),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      news.title,
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-            Expanded(
-              child: SingleChildScrollView(
-                controller: scrollController,
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _formatDate(news.publishedAt),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      news.content,
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class _MarketNewsSection extends StatelessWidget {
@@ -445,8 +345,6 @@ class _MarketNewsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
