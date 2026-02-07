@@ -13,7 +13,7 @@ class LearningPage extends StatelessWidget {
       body: CustomScrollView(
         slivers: [
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
             sliver: SliverList.list(
               children: [
                 _HeroCard(
@@ -61,12 +61,12 @@ class LearningSectionPage extends StatelessWidget {
         title: Text(section.title),
       ),
       body: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+        padding: const EdgeInsets.fromLTRB(4, 4, 4, 1),
         itemCount: section.lessons.length,
         itemBuilder: (context, index) {
           final lesson = section.lessons[index];
           return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.only(bottom: 2),
             child: Card(
               child: InkWell(
                 borderRadius: BorderRadius.circular(12),
@@ -83,7 +83,7 @@ class LearningSectionPage extends StatelessWidget {
                       scheme: scheme,
                     ),
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -157,7 +157,7 @@ class LessonPage extends StatelessWidget {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
         children: [
           _LessonImage(
             source: lesson.imageUrl,
@@ -301,12 +301,12 @@ class _SectionCard extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
     return Card(
-      margin: const EdgeInsets.only(bottom: 14),
+      margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () => context.push('/learn/${section.id}'),
         child: Padding(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(16),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -577,7 +577,7 @@ const learningSections = <LearningSection>[
       ),
       Lesson(
         id: 'orderbook',
-        title: 'Что такое заявка',
+        title: 'Что такое заявка?',
         description: 'Лимитная и рыночная: ждать свою цену или брать сразу.',
         academicDefinition:
             'Заявка — это распоряжение участника торгов на покупку или продажу финансового инструмента, содержащее условия сделки, включая цену и объём, и направляемое в торговую систему биржи.',
@@ -593,7 +593,7 @@ const learningSections = <LearningSection>[
       ),
       Lesson(
         id: 'margin',
-        title: 'Что такое сделка',
+        title: 'Что такое сделка?',
         description: 'Момент совпадения заявок: цена устроила обе стороны.',
         academicDefinition:
             'Сделка — это результат исполнения заявок, при котором между покупателем и продавцом возникает обязательство по передаче финансового инструмента и денежных средств на согласованных условиях.',

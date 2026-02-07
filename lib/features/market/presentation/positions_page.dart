@@ -8,6 +8,7 @@ import 'package:aloria/features/market/domain/portfolio_order.dart';
 import 'package:aloria/features/market/domain/portfolio_summary.dart';
 import 'package:aloria/features/market/domain/position.dart';
 import 'package:aloria/features/market/domain/trade_order.dart';
+import 'package:aloria/features/market/presentation/widgets/instrument_avatar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -504,13 +505,11 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
               ),
               quizzesSection,
               const SizedBox(height: 18),
-              Text('Портфель', style: text.titleMedium),
-              const SizedBox(height: 8),
               SegmentedButton<_PortfolioTab>(
                 segments: const [
                   ButtonSegment(
                     value: _PortfolioTab.positions,
-                    label: Text('Позиции'),
+                    label: Text('Мои активы'),
                   ),
                   ButtonSegment(
                     value: _PortfolioTab.orders,
@@ -1193,12 +1192,21 @@ class _PositionExpansionTile extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final text = theme.textTheme;
+    final label = position.symbol.length > 2
+        ? position.symbol.substring(0, 2)
+        : position.symbol;
 
     return Theme(
       data: theme.copyWith(dividerColor: Colors.transparent),
       child: ExpansionTile(
-        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        title: Text(position.symbol, style: text.titleMedium),
+        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
+        title: Row(
+          children: [
+            InstrumentAvatar(symbol: position.symbol, label: label, size: 36),
+            const SizedBox(width: 4),
+            Expanded(child: Text(position.symbol, style: text.titleMedium)),
+          ],
+        ),
         subtitle: Text(
           'Средняя ${position.averagePrice.toStringAsFixed(2)} ${position.currency}',
           style: text.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
