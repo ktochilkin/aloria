@@ -2,6 +2,7 @@ import 'package:aloria/core/theme/tokens.dart';
 import 'package:aloria/features/learn/domain/models.dart';
 import 'package:aloria/features/learn/domain/learning_content_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:go_router/go_router.dart';
 
 class LearningPage extends StatefulWidget {
@@ -14,7 +15,7 @@ class LearningPage extends StatefulWidget {
 class _LearningPageState extends State<LearningPage> {
   final _contentService = LearningContentService();
   late Future<List<LearningSection>> _sectionsFuture;
-  late Future<List<String>> _introFuture;
+  late Future<String> _introFuture;
 
   @override
   void initState() {
@@ -47,10 +48,10 @@ class _LearningPageState extends State<LearningPage> {
                 padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
                 sliver: SliverList.list(
                   children: [
-                    FutureBuilder<List<String>>(
+                    FutureBuilder<String>(
                       future: _introFuture,
                       builder: (context, introSnapshot) {
-                        final intro = introSnapshot.data ?? [];
+                        final intro = introSnapshot.data ?? '';
                         return _HeroCard(
                           title: 'Открой мир Aloria',
                           subtitle:
@@ -308,10 +309,10 @@ class _LessonPageState extends State<LessonPage> {
                 tint: section.tint,
               ),
               const SizedBox(height: 16),
-              ...lesson.body.map(
-                (p) => Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: Text(p, style: text.bodyMedium),
+              MarkdownBody(
+                data: lesson.body,
+                styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+                  p: text.bodyMedium,
                 ),
               ),
               const SizedBox(height: 16),
@@ -355,7 +356,7 @@ class _HeroCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final ColorScheme scheme;
-  final List<String> body;
+  final String body;
 
   @override
   Widget build(BuildContext context) {
@@ -594,7 +595,7 @@ class _LessonImage extends StatelessWidget {
 void _showIntro(
   BuildContext context,
   String title,
-  List<String> body,
+  String body,
   ColorScheme scheme,
 ) {
   final text = Theme.of(context).textTheme;
@@ -625,10 +626,10 @@ void _showIntro(
               ],
             ),
             const SizedBox(height: 10),
-            ...body.map(
-              (p) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Text(p, style: text.bodyMedium),
+            MarkdownBody(
+              data: body,
+              styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+                p: text.bodyMedium,
               ),
             ),
           ],

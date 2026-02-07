@@ -28,16 +28,13 @@ class LearningContentService {
     }
   }
 
-  Future<List<String>> loadIntro() async {
+  Future<String> loadIntro() async {
     try {
       final content = await rootBundle.loadString(_introPath);
-      return content
-          .split('\n\n')
-          .where((p) => p.trim().isNotEmpty)
-          .toList();
+      return content;
     } catch (e) {
       print('Error loading intro: $e');
-      return [];
+      return '';
     }
   }
 
@@ -115,19 +112,13 @@ class LearningContentService {
       }
     }
 
-    // Parse body into paragraphs
-    final paragraphs = body
-        .split('\n\n')
-        .where((p) => p.trim().isNotEmpty)
-        .toList();
-
     return Lesson(
       id: metadata['id'] ?? '',
       title: metadata['title'] ?? '',
       description: metadata['description'] ?? '',
       academicDefinition: metadata['academicDefinition'] ?? '',
       imageUrl: metadata['imageUrl'] ?? '',
-      body: paragraphs,
+      body: body,
     );
   }
 

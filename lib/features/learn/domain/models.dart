@@ -77,5 +77,5 @@ class Lesson {
   final String description;
   final String academicDefinition;
   final String imageUrl;
-  final List<String> body;
+  final String body;
 }
