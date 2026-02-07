@@ -169,20 +169,6 @@ class _ScaffoldWithNavBar extends ConsumerWidget {
   }
 }
 
-class _MissingRoutePage extends StatelessWidget {
-  const _MissingRoutePage({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Не найдено')),
-      body: Center(child: Text(message)),
-    );
-  }
-}
-
 /// Minimal replacement for GoRouterRefreshStream (absent in older go_router versions).
 class GoRouterRefreshStream extends ChangeNotifier {
   GoRouterRefreshStream(Stream<dynamic> stream) {

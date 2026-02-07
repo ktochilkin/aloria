@@ -33,8 +33,6 @@ class MarketPage extends ConsumerWidget {
                 final text = Theme.of(context).textTheme;
                 final controller = DefaultTabController.of(context);
 
-                if (controller == null) return const SizedBox.shrink();
-
                 return AnimatedBuilder(
                   animation: controller.animation ?? controller,
                   builder: (context, _) {

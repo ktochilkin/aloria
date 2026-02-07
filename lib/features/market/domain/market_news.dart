@@ -16,7 +16,7 @@ class MarketNews {
   factory MarketNews.fromJson(Map<String, dynamic> json) {
     final symbolsRaw = json['symbols'];
     final symbols = switch (symbolsRaw) {
-      List list =>
+      List<dynamic> list =>
         list.map((e) => e.toString()).where((e) => e.isNotEmpty).toList(),
       String str =>
         str.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList(),
