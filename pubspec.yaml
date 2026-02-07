@@ -32,7 +32,8 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/images/lesson1_exchange.jpg
-    - assets/images/lesson2_order.jpg
-    - assets/images/lesson3_trade.jpg
+    - assets/images/
     - assets/icons/
+    - assets/lessons/
+    - assets/lessons/trading-basics/
+    - assets/lessons/investing-basics/

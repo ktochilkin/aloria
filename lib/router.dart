@@ -50,13 +50,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     name: 'learn_section',
                     builder: (ctx, state) {
                       final sectionId = state.pathParameters['sectionId']!;
-                      final section = findSectionById(sectionId);
-                      if (section == null) {
-                        return const _MissingRoutePage(
-                          message: 'Раздел не найден',
-                        );
-                      }
-                      return LearningSectionPage(section: section);
+                      return LearningSectionPage(sectionId: sectionId);
                     },
                     routes: [
                       GoRoute(
@@ -65,16 +59,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                         builder: (ctx, state) {
                           final sectionId = state.pathParameters['sectionId']!;
                           final lessonId = state.pathParameters['lessonId']!;
-                          final section = findSectionById(sectionId);
-                          final lesson = section == null
-                              ? null
-                              : findLessonById(section, lessonId);
-                          if (section == null || lesson == null) {
-                            return const _MissingRoutePage(
-                              message: 'Урок не найден',
-                            );
-                          }
-                          return LessonPage(section: section, lesson: lesson);
+                          return LessonPage(
+                            sectionId: sectionId,
+                            lessonId: lessonId,
+                          );
                         },
                       ),
                     ],
