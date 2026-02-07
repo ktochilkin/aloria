@@ -314,6 +314,42 @@ class _LessonPageState extends State<LessonPage> {
                 styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
                   p: text.bodyMedium,
                 ),
+                imageBuilder: (uri, title, alt) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.asset(
+                        uri.toString(),
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        errorBuilder: (context, error, stack) {
+                          return Container(
+                            height: 200,
+                            color: scheme.surfaceContainerHighest,
+                            alignment: Alignment.center,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.image_not_supported,
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  alt ?? 'Изображение не загружено',
+                                  style: text.bodySmall?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 16),
               FilledButton.icon(
@@ -631,6 +667,30 @@ void _showIntro(
               styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
                 p: text.bodyMedium,
               ),
+              imageBuilder: (uri, title, alt) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.asset(
+                      uri.toString(),
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      errorBuilder: (context, error, stack) {
+                        return Container(
+                          height: 200,
+                          color: scheme.surfaceContainerHighest,
+                          alignment: Alignment.center,
+                          child: Icon(
+                            Icons.image_not_supported,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                );
+              },
             ),
           ],
         ),
