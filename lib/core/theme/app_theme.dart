@@ -2,6 +2,7 @@
 
 import 'package:aloria/core/theme/tokens.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class AppTheme {
   static ThemeData get light => _buildTheme();
@@ -42,6 +43,11 @@ class AppTheme {
         foregroundColor: AppColors.onSurface,
         elevation: 0,
         centerTitle: true,
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.dark,
+          statusBarBrightness: Brightness.light,
+        ),
       ),
       cardTheme: const CardThemeData(
         color: AppColors.surface,
