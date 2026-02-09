@@ -2,7 +2,7 @@
 id: candles_timeframes
 title: Японские свечи и время
 description: Как читать движение цены за выбранный период.
-imageUrl: assets/images/lesson7_candles.jpg
+imageUrl: assets/images/chartlesson.jpg
 academicDefinition: Японская свеча — это форма отображения ценового движения за заданный интервал времени, показывающая цену открытия, закрытия, максимальное и минимальное значение.
 ---
 

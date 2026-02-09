@@ -2,7 +2,7 @@
 id: market_observation
 title: Наблюдение за рынком
 description: Как действия отражаются в заявках, сделках и позиции.
-imageUrl: assets/images/lesson8_market_overview.jpg
+imageUrl: assets/images/lastlesson.png
 academicDefinition: Наблюдение рынка — это анализ текущего состояния торгов через интерфейс, включая заявки, сделки, цену и позицию, без изменения торговых условий.
 ---
 

@@ -2,7 +2,7 @@
 id: orderbook_view
 title: Что такое стакан?
 description: Где видно, по каким ценам рынок готов покупать и продавать.
-imageUrl: assets/images/lesson5_orderbook.jpg
+imageUrl: assets/images/orderbooklesson.jpg
 academicDefinition: Стакан — это отображение активных заявок на покупку и продажу финансового инструмента, сгруппированных по ценам и объёмам, показывающее текущий баланс спроса и предложения.
 ---
 

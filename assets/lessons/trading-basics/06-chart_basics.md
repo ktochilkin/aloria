@@ -2,7 +2,7 @@
 id: chart_basics
 title: Что такое график?
 description: Как рынок выглядит во времени и что на самом деле показывает цена.
-imageUrl: assets/images/lesson6_chart.jpg
+imageUrl: assets/images/chartlesson.jpg
 academicDefinition: График — это визуальное представление изменения цены финансового инструмента во времени, построенное на основе совершённых сделок.
 ---
 

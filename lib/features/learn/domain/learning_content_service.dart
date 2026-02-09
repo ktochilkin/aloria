@@ -1,6 +1,7 @@
 import 'dart:convert';
-import 'package:flutter/services.dart';
+
 import 'package:aloria/features/learn/domain/models.dart';
+import 'package:flutter/services.dart';
 
 class LearningContentService {
   static const String _sectionsPath = 'assets/lessons/sections.json';
@@ -14,9 +15,11 @@ class LearningContentService {
       final sectionsData = data['sections'] as List;
 
       final sections = <LearningSection>[];
-      
+
       for (final sectionData in sectionsData) {
-        final section = LearningSection.fromJson(sectionData as Map<String, dynamic>);
+        final section = LearningSection.fromJson(
+          sectionData as Map<String, dynamic>,
+        );
         final lessons = await _loadLessonsForSection(section.id);
         sections.add(section.copyWith(lessons: lessons));
       }
@@ -40,10 +43,10 @@ class LearningContentService {
 
   Future<List<Lesson>> _loadLessonsForSection(String sectionId) async {
     final lessons = <Lesson>[];
-    
+
     // List of lesson files for each section
     final lessonFiles = _getLessonFilesForSection(sectionId);
-    
+
     for (final file in lessonFiles) {
       try {
         final path = '$_lessonsBasePath/$sectionId/$file';
@@ -55,7 +58,7 @@ class LearningContentService {
         print('Error loading lesson $file: $e');
       }
     }
-    
+
     return lessons;
   }
 
@@ -74,9 +77,12 @@ class LearningContentService {
         ];
       case 'investing-basics':
         return [
-          '01-dividends.md',
-          '02-portfolio.md',
-          '03-etf.md',
+          '01-why_invest.md',
+          '02-stock_market.md',
+          '03-stock.md',
+          '04-stock_behavior.md',
+          '05-dividends.md',
+          '06-investment_risks.md',
         ];
       default:
         return [];

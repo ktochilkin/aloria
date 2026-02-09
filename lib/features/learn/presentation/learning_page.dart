@@ -1,6 +1,6 @@
 import 'package:aloria/core/theme/tokens.dart';
-import 'package:aloria/features/learn/domain/models.dart';
 import 'package:aloria/features/learn/domain/learning_content_service.dart';
+import 'package:aloria/features/learn/domain/models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:go_router/go_router.dart';
@@ -148,7 +148,8 @@ class _LearningSectionPageState extends State<LearningSectionPage> {
                 child: Card(
                   child: InkWell(
                     borderRadius: BorderRadius.circular(12),
-                    onTap: () => context.push('/learn/${section.id}/${lesson.id}'),
+                    onTap: () =>
+                        context.push('/learn/${section.id}/${lesson.id}'),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -159,6 +160,8 @@ class _LearningSectionPageState extends State<LearningSectionPage> {
                             top: Radius.circular(12),
                           ),
                           scheme: scheme,
+                          tint: section.tint,
+                          icon: section.icon,
                         ),
                         Padding(
                           padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
@@ -172,23 +175,6 @@ class _LearningSectionPageState extends State<LearningSectionPage> {
                                 style: text.bodyMedium?.copyWith(
                                   color: scheme.onSurfaceVariant,
                                 ),
-                              ),
-                              const SizedBox(height: 10),
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.menu_book_outlined,
-                                    size: 18,
-                                    color: section.tint,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    'Открыть урок',
-                                    style: text.labelMedium?.copyWith(
-                                      color: section.tint,
-                                    ),
-                                  ),
-                                ],
                               ),
                             ],
                           ),
@@ -276,16 +262,7 @@ class _LessonPageState extends State<LessonPage> {
         }
 
         return Scaffold(
-          appBar: AppBar(
-            title: Text(lesson.title),
-            actions: [
-              IconButton(
-                onPressed: popOrFallback,
-                icon: const Icon(Icons.close),
-                tooltip: 'Закрыть',
-              ),
-            ],
-          ),
+          appBar: AppBar(title: Text(lesson.title)),
           body: ListView(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
             children: [
@@ -294,13 +271,17 @@ class _LessonPageState extends State<LessonPage> {
                 height: 220,
                 borderRadius: BorderRadius.circular(16),
                 scheme: scheme,
+                tint: section.tint,
+                icon: section.icon,
               ),
               const SizedBox(height: 16),
               Text(lesson.title, style: text.headlineSmall),
               const SizedBox(height: 8),
               Text(
                 lesson.description,
-                style: text.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
+                style: text.bodyMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 12),
               _DefinitionBlock(
@@ -311,9 +292,9 @@ class _LessonPageState extends State<LessonPage> {
               const SizedBox(height: 16),
               MarkdownBody(
                 data: lesson.body,
-                styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-                  p: text.bodyMedium,
-                ),
+                styleSheet: MarkdownStyleSheet.fromTheme(
+                  Theme.of(context),
+                ).copyWith(p: text.bodyMedium),
                 imageBuilder: (uri, title, alt) {
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8),
@@ -352,16 +333,6 @@ class _LessonPageState extends State<LessonPage> {
                 },
               ),
               const SizedBox(height: 16),
-              FilledButton.icon(
-                onPressed: popOrFallback,
-                style: FilledButton.styleFrom(
-                  backgroundColor: section.tint,
-                  foregroundColor: AppColors.onPrimary,
-                ),
-                icon: const Icon(Icons.check_circle_outline),
-                label: const Text('Понятно!'),
-              ),
-              const SizedBox(height: 10),
               OutlinedButton.icon(
                 onPressed: popOrFallback,
                 icon: const Icon(Icons.arrow_back),
@@ -557,28 +528,12 @@ class _DefinitionBlock extends StatelessWidget {
         border: Border.all(color: tint.withValues(alpha: 0.35)),
       ),
       padding: const EdgeInsets.all(14),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            decoration: BoxDecoration(
-              color: tint.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            padding: const EdgeInsets.all(10),
-            child: Icon(Icons.school_outlined, color: tint, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: text.titleSmall?.copyWith(color: tint)),
-                const SizedBox(height: 6),
-                Text(content, style: text.bodyMedium),
-              ],
-            ),
-          ),
+          Text(title, style: text.titleSmall?.copyWith(color: tint)),
+          const SizedBox(height: 6),
+          Text(content, style: text.bodyMedium),
         ],
       ),
     );
@@ -591,40 +546,52 @@ class _LessonImage extends StatelessWidget {
     required this.height,
     required this.borderRadius,
     required this.scheme,
+    this.tint,
+    this.icon,
   });
 
   final String source;
   final double height;
   final BorderRadius borderRadius;
   final ColorScheme scheme;
+  final Color? tint;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
+    // Для статей без картинки ничего не показываем
+    if (source.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     final isRemote = source.startsWith('http');
 
     Widget fallbackContainer() => Container(
-          height: height,
-          color: scheme.surfaceContainerHighest,
-          child: const Icon(Icons.image_not_supported),
-        );
+      height: height,
+      color: scheme.surfaceContainerHighest,
+      child: const Icon(Icons.image_not_supported),
+    );
 
     final image = isRemote
         ? Image.network(
             source,
             height: height,
             width: double.infinity,
-            fit: BoxFit.cover,
+            fit: BoxFit.contain,
             errorBuilder: (context, error, stack) => fallbackContainer(),
           )
         : Image.asset(
             source,
             height: height,
             width: double.infinity,
-            fit: BoxFit.cover,
+            fit: BoxFit.contain,
             errorBuilder: (context, error, stack) => fallbackContainer(),
           );
 
-    return ClipRRect(borderRadius: borderRadius, child: image);
+    return ClipRRect(
+      borderRadius: borderRadius,
+      child: Container(height: height, color: Colors.white, child: image),
+    );
   }
 }
 
@@ -664,9 +631,9 @@ void _showIntro(
             const SizedBox(height: 10),
             MarkdownBody(
               data: body,
-              styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-                p: text.bodyMedium,
-              ),
+              styleSheet: MarkdownStyleSheet.fromTheme(
+                Theme.of(context),
+              ).copyWith(p: text.bodyMedium),
               imageBuilder: (uri, title, alt) {
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8),
