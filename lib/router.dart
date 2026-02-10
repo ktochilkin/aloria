@@ -151,21 +151,38 @@ class _ScaffoldWithNavBar extends ConsumerWidget {
     ref.read(portfolioSummaryBootstrapperProvider);
     ref.read(ordersBootstrapperProvider);
 
+    final width = MediaQuery.of(context).size.width;
+    final isMobile = width < 600;
+
     return Scaffold(
       body: SafeArea(
-        child: navigationShell,
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: navigationShell.currentIndex,
-        onDestinationSelected: _goBranch,
-        destinations: const [
-          NavigationDestination(label: 'Обучение', icon: Icon(Icons.school)),
-          NavigationDestination(label: 'Портфель', icon: Icon(Icons.list_alt)),
-          NavigationDestination(
-            label: 'Обзор рынка',
-            icon: Icon(Icons.show_chart),
+        child: Center(
+          child: Container(
+            constraints: BoxConstraints(
+              maxWidth: isMobile ? double.infinity : 430,
+            ),
+            child: navigationShell,
           ),
-        ],
+        ),
+      ),
+      bottomNavigationBar: Center(
+        child: Container(
+          constraints: BoxConstraints(
+            maxWidth: isMobile ? double.infinity : 430,
+          ),
+          child: NavigationBar(
+            selectedIndex: navigationShell.currentIndex,
+            onDestinationSelected: _goBranch,
+            destinations: const [
+              NavigationDestination(label: 'Обучение', icon: Icon(Icons.school)),
+              NavigationDestination(label: 'Портфель', icon: Icon(Icons.list_alt)),
+              NavigationDestination(
+                label: 'Обзор рынка',
+                icon: Icon(Icons.show_chart),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
