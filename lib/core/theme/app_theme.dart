@@ -126,6 +126,34 @@ class AppTheme {
           borderRadius: BorderRadius.all(Radius.circular(14)),
         ),
       ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        indicatorColor: AppColors.primary.withValues(alpha: 0.14),
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return const IconThemeData(color: AppColors.primary, size: 24);
+          }
+          return IconThemeData(
+            color: AppColors.onSurfaceVariant.withValues(alpha: 0.75),
+            size: 24,
+          );
+        }),
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return textTheme.labelMedium?.copyWith(
+              color: AppColors.primary,
+              fontWeight: FontWeight.w700,
+            );
+          }
+          return textTheme.labelMedium?.copyWith(
+            color: AppColors.onSurfaceVariant.withValues(alpha: 0.75),
+            fontWeight: FontWeight.w500,
+          );
+        }),
+        height: 72,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+      ),
       textTheme: textTheme,
       listTileTheme: const ListTileThemeData(
         tileColor: AppColors.surface,

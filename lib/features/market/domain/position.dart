@@ -6,6 +6,7 @@ class Position {
   final String currency;
   final double volume;
   final double currentVolume;
+  final double? unrealisedPl;
 
   const Position({
     required this.symbol,
@@ -15,6 +16,7 @@ class Position {
     required this.currency,
     required this.volume,
     required this.currentVolume,
+    this.unrealisedPl,
   });
 
   factory Position.fromMap(Map<String, dynamic> map) {
@@ -37,6 +39,9 @@ class Position {
       currency: asString(map['currency'] ?? 'RUB'),
       volume: asDouble(map['volume']),
       currentVolume: asDouble(map['currentVolume']),
+      unrealisedPl: map['unrealisedPl'] != null
+          ? asDouble(map['unrealisedPl'])
+          : null,
     );
   }
 }

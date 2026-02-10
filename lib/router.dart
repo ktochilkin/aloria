@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:aloria/core/env/env.dart';
 import 'package:aloria/features/auth/application/auth_controller.dart';
@@ -156,26 +157,47 @@ class _ScaffoldWithNavBar extends ConsumerWidget {
 
     // Для десктопа оборачиваем в контейнер с ограничением ширины
     final scaffold = Scaffold(
-      body: SafeArea(
-        child: navigationShell,
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: navigationShell.currentIndex,
-        onDestinationSelected: _goBranch,
-        destinations: const [
-          NavigationDestination(
-            label: 'Обучение',
-            icon: Icon(Icons.school),
+      body: navigationShell,
+      extendBody: true,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      bottomNavigationBar: ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  const Color(0xFFF8FAFF).withValues(alpha: 0.65),
+                  const Color(0xFFF0F5FF).withValues(alpha: 0.75),
+                  const Color(0xFFF5F8FF).withValues(alpha: 0.80),
+                ],
+                stops: const [0.0, 0.25, 1.0],
+              ),
+            ),
+            child: NavigationBar(
+              backgroundColor: Colors.transparent,
+              selectedIndex: navigationShell.currentIndex,
+              onDestinationSelected: _goBranch,
+              destinations: const [
+                NavigationDestination(
+                  label: 'Обучение',
+                  icon: Icon(Icons.school),
+                ),
+                NavigationDestination(
+                  label: 'Портфель',
+                  icon: Icon(Icons.list_alt),
+                ),
+                NavigationDestination(
+                  label: 'Обзор рынка',
+                  icon: Icon(Icons.show_chart),
+                ),
+              ],
+            ),
           ),
-          NavigationDestination(
-            label: 'Портфель',
-            icon: Icon(Icons.list_alt),
-          ),
-          NavigationDestination(
-            label: 'Обзор рынка',
-            icon: Icon(Icons.show_chart),
-          ),
-        ],
+        ),
       ),
     );
 
@@ -199,7 +221,8 @@ class _ScaffoldWithNavBar extends ConsumerWidget {
 /// Minimal replacement for GoRouterRefreshStream (absent in older go_router versions).
 class GoRouterRefreshStream extends ChangeNotifier {
   GoRouterRefreshStream(Stream<dynamic> stream) {
-    _sub = stream.listen((_) => notifyListeners());
+    notifyListeners();
+    _sub = stream.asBroadcastStream().listen((_) => notifyListeners());
   }
 
   late final StreamSubscription<dynamic> _sub;

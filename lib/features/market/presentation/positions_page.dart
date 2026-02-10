@@ -1219,11 +1219,18 @@ class _PositionExpansionTile extends StatelessWidget {
               '${position.quantity.toStringAsFixed(2)} шт.',
               style: text.bodyLarge,
             ),
-            const SizedBox(height: 4),
-            Text(
-              '${(position.quantity * position.averagePrice).toStringAsFixed(2)} ${position.currency}',
-              style: text.bodySmall?.copyWith(color: scheme.primary),
-            ),
+            if (position.unrealisedPl != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                '${position.unrealisedPl! >= 0 ? '+' : ''}${position.unrealisedPl!.toStringAsFixed(2)} ${position.currency}',
+                style: text.bodySmall?.copyWith(
+                  color: position.unrealisedPl! >= 0
+                      ? Colors.green
+                      : Colors.red,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ],
         ),
         children: [
@@ -1259,6 +1266,15 @@ class _PositionExpansionTile extends StatelessWidget {
                   value: '${position.currentVolume} ${position.currency}',
                   description: 'Рыночная стоимость всего пакета бумаг сейчас.',
                 ),
+                if (position.unrealisedPl != null)
+                  _buildInfoRow(
+                    context,
+                    label: 'Нереализованная П/У',
+                    value:
+                        '${position.unrealisedPl! >= 0 ? '+' : ''}${position.unrealisedPl!.toStringAsFixed(2)} ${position.currency}',
+                    description:
+                        'Текущая доходность позиции (прибыль или убыток).',
+                  ),
                 _buildInfoRow(
                   context,
                   label: 'Биржа',
