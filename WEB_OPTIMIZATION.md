@@ -1,5 +1,5 @@
 /// Оптимизации для веб-платформы
-/// 
+///
 /// Этот файл содержит рекомендации по сборке и запуску веб-версии
 /// для оптимальной производительности на iOS Safari
 
@@ -28,6 +28,7 @@ flutter build web --release --tree-shake-icons
 ## Дополнительные настройки
 
 В `web/index.html` добавлены:
+
 - `-webkit-overflow-scrolling: touch` для плавной прокрутки
 - `transform: translateZ(0)` для GPU ускорения
 - `-webkit-tap-highlight-color: transparent` для отключения подсветки
@@ -36,6 +37,7 @@ flutter build web --release --tree-shake-icons
 ## Тестирование
 
 Проверьте на реальном устройстве iOS:
+
 1. Откройте Safari DevTools на Mac
 2. Подключите iPhone через USB
 3. Проверьте производительность в Web Inspector

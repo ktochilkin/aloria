@@ -60,9 +60,8 @@ class MarketStreamingService {
       if (subState.disposed) return;
       final token = await _tokenProvider.accessToken(forceRefresh: true);
       if (token == null) {
-        controller.addError(
-          StateError('Auth token missing for realtime subscription'),
-        );
+        // Токен отсутствует, повторяем попытку через 2 секунды
+        await _handleReconnect(subscribe, subState.disposed, delayMs: 2000);
         return;
       }
 
@@ -178,9 +177,8 @@ class MarketStreamingService {
       if (subState.disposed) return;
       final token = await _tokenProvider.accessToken(forceRefresh: true);
       if (token == null) {
-        controller.addError(
-          StateError('Auth token missing for order book subscription'),
-        );
+        // Токен отсутствует, повторяем попытку через 2 секунды
+        await _handleReconnect(subscribe, subState.disposed, delayMs: 2000);
         return;
       }
 
@@ -279,9 +277,8 @@ class MarketStreamingService {
       if (subState.disposed) return;
       final token = await _tokenProvider.accessToken(forceRefresh: true);
       if (token == null) {
-        controller.addError(
-          StateError('Auth token missing for candles subscription'),
-        );
+        // Токен отсутствует, повторяем попытку через 2 секунды
+        await _handleReconnect(subscribe, subState.disposed, delayMs: 2000);
         return;
       }
 
@@ -387,9 +384,8 @@ class MarketStreamingService {
       if (subState.disposed) return;
       final token = await _tokenProvider.accessToken(forceRefresh: true);
       if (token == null) {
-        controller.addError(
-          StateError('Auth token missing for positions subscription'),
-        );
+        // Токен отсутствует, повторяем попытку через 2 секунды
+        await _handleReconnect(subscribe, subState.disposed, delayMs: 2000);
         return;
       }
 
@@ -482,9 +478,8 @@ class MarketStreamingService {
       if (subState.disposed) return;
       final token = await _tokenProvider.accessToken(forceRefresh: true);
       if (token == null) {
-        controller.addError(
-          StateError('Auth token missing for summary subscription'),
-        );
+        // Токен отсутствует, повторяем попытку через 2 секунды
+        await _handleReconnect(subscribe, subState.disposed, delayMs: 2000);
         return;
       }
 
@@ -572,9 +567,8 @@ class MarketStreamingService {
       if (subState.disposed) return;
       final token = await _tokenProvider.accessToken(forceRefresh: true);
       if (token == null) {
-        controller.addError(
-          StateError('Auth token missing for orders subscription'),
-        );
+        // Токен отсутствует, повторяем попытку через 2 секунды
+        await _handleReconnect(subscribe, subState.disposed, delayMs: 2000);
         return;
       }
 

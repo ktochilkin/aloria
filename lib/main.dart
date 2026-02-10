@@ -22,7 +22,7 @@ void main() {
           statusBarBrightness: Brightness.light,
         ),
       );
-      
+
       // Оптимизации для веб-платформы
       if (kIsWeb) {
         // Отключение контекстного меню на веб
