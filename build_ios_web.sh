@@ -13,11 +13,8 @@ fi
 echo "📦 Getting packages..."
 flutter pub get
 
-echo "🔨 Building web with CanvasKit renderer..."
-flutter build web \
-  --release \
-  --web-renderer canvaskit \
-  --dart-define=FLUTTER_WEB_USE_SKIA=true
+echo "🔨 Building web (Flutter auto-selects optimal renderer)..."
+flutter build web --release
 
 echo "✅ Build complete!"
 echo "📂 Output: build/web/"

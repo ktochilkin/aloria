@@ -14,7 +14,6 @@ echo "Getting packages..."
 flutter pub get
 
 echo "Building Web..."
-# Используем CanvasKit рендерер для лучшей производительности на iOS Safari
-# --release для оптимизации
-# --web-renderer canvaskit для плавной работы на iOS
-flutter build web --release --web-renderer canvaskit
+# --release для оптимизации продакшена
+# Flutter автоматически выбирает оптимальный рендерер для веба
+flutter build web --release
