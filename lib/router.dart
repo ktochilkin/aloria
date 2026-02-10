@@ -154,40 +154,42 @@ class _ScaffoldWithNavBar extends ConsumerWidget {
     final width = MediaQuery.of(context).size.width;
     final isMobile = width < 600;
 
-    return Scaffold(
+    // Для десктопа оборачиваем в контейнер с ограничением ширины
+    final scaffold = Scaffold(
       body: SafeArea(
-        child: Center(
-          child: Container(
-            constraints: BoxConstraints(
-              maxWidth: isMobile ? double.infinity : 430,
-            ),
-            child: navigationShell,
-          ),
-        ),
+        child: navigationShell,
       ),
-      bottomNavigationBar: Center(
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: navigationShell.currentIndex,
+        onDestinationSelected: _goBranch,
+        destinations: const [
+          NavigationDestination(
+            label: 'Обучение',
+            icon: Icon(Icons.school),
+          ),
+          NavigationDestination(
+            label: 'Портфель',
+            icon: Icon(Icons.list_alt),
+          ),
+          NavigationDestination(
+            label: 'Обзор рынка',
+            icon: Icon(Icons.show_chart),
+          ),
+        ],
+      ),
+    );
+
+    if (isMobile) {
+      return scaffold;
+    }
+
+    // На десктопе центрируем и ограничиваем ширину
+    return Container(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: Center(
         child: Container(
-          constraints: BoxConstraints(
-            maxWidth: isMobile ? double.infinity : 430,
-          ),
-          child: NavigationBar(
-            selectedIndex: navigationShell.currentIndex,
-            onDestinationSelected: _goBranch,
-            destinations: const [
-              NavigationDestination(
-                label: 'Обучение',
-                icon: Icon(Icons.school),
-              ),
-              NavigationDestination(
-                label: 'Портфель',
-                icon: Icon(Icons.list_alt),
-              ),
-              NavigationDestination(
-                label: 'Обзор рынка',
-                icon: Icon(Icons.show_chart),
-              ),
-            ],
-          ),
+          constraints: const BoxConstraints(maxWidth: 430),
+          child: scaffold,
         ),
       ),
     );
