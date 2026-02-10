@@ -139,13 +139,14 @@ class _LearningSectionPageState extends State<LearningSectionPage> {
             title: Text(section.title),
           ),
           body: ListView.builder(
-            padding: const EdgeInsets.fromLTRB(4, 4, 4, 1),
+            padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
             itemCount: section.lessons.length,
             itemBuilder: (context, index) {
               final lesson = section.lessons[index];
               return Padding(
-                padding: const EdgeInsets.only(bottom: 2),
+                padding: const EdgeInsets.only(bottom: 8),
                 child: Card(
+                  margin: EdgeInsets.zero,
                   child: InkWell(
                     borderRadius: BorderRadius.circular(12),
                     onTap: () =>

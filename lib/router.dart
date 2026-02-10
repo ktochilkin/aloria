@@ -152,7 +152,9 @@ class _ScaffoldWithNavBar extends ConsumerWidget {
     ref.read(ordersBootstrapperProvider);
 
     return Scaffold(
-      body: navigationShell,
+      body: SafeArea(
+        child: navigationShell,
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: navigationShell.currentIndex,
         onDestinationSelected: _goBranch,
