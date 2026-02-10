@@ -174,8 +174,14 @@ class _ScaffoldWithNavBar extends ConsumerWidget {
             selectedIndex: navigationShell.currentIndex,
             onDestinationSelected: _goBranch,
             destinations: const [
-              NavigationDestination(label: 'Обучение', icon: Icon(Icons.school)),
-              NavigationDestination(label: 'Портфель', icon: Icon(Icons.list_alt)),
+              NavigationDestination(
+                label: 'Обучение',
+                icon: Icon(Icons.school),
+              ),
+              NavigationDestination(
+                label: 'Портфель',
+                icon: Icon(Icons.list_alt),
+              ),
               NavigationDestination(
                 label: 'Обзор рынка',
                 icon: Icon(Icons.show_chart),
