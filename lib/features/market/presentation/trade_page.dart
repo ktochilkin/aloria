@@ -1,4 +1,5 @@
 import 'package:aloria/core/theme/tokens.dart';
+import 'package:aloria/core/utils/layout_utils.dart';
 import 'package:aloria/core/widgets/top_notification.dart';
 import 'package:aloria/features/market/application/market_news_provider.dart';
 import 'package:aloria/features/market/application/order_book_notifier.dart';
@@ -254,285 +255,287 @@ class _TradeBody extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
-      child: SingleChildScrollView(
-        controller: scrollController,
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Card(
-              margin: EdgeInsets.zero,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    InstrumentAvatar(
-                      symbol: symbol,
-                      label: symbol.length > 2
-                          ? symbol.substring(0, 2)
-                          : symbol,
-                      size: 56,
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Последняя цена',
-                            style: text.labelMedium?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            latest != null
-                                ? '${latest.price.toStringAsFixed(2)} ₽'
-                                : '--',
-                            style: text.headlineMedium?.copyWith(
-                              color: scheme.onSurface,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          if (latest != null) ...[
-                            const SizedBox(height: 4),
+      child: Builder(
+        builder: (context) => SingleChildScrollView(
+          controller: scrollController,
+          padding: EdgeInsets.fromLTRB(16, 16, 16, context.bottomNavBarPadding),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Card(
+                margin: EdgeInsets.zero,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      InstrumentAvatar(
+                        symbol: symbol,
+                        label: symbol.length > 2
+                            ? symbol.substring(0, 2)
+                            : symbol,
+                        size: 56,
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Text(
-                              _formatTime(latest.ts.toLocal()),
-                              style: text.bodySmall?.copyWith(
+                              'Последняя цена',
+                              style: text.labelMedium?.copyWith(
                                 color: scheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
+                            const SizedBox(height: 4),
+                            Text(
+                              latest != null
+                                  ? '${latest.price.toStringAsFixed(2)} ₽'
+                                  : '--',
+                              style: text.headlineMedium?.copyWith(
+                                color: scheme.onSurface,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            if (latest != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                _formatTime(latest.ts.toLocal()),
+                                style: text.bodySmall?.copyWith(
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
                           ],
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Card(
-              margin: EdgeInsets.zero,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: candles.isEmpty
-                    ? const SizedBox(
-                        height: 200,
-                        child: Center(child: Text('Нет данных для графика')),
-                      )
-                    : _CandleChart(data: candles, scheme: scheme),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Text('Пульс рынка', style: text.titleMedium),
-                Text(
-                  feedTab == _FeedTab.news
-                      ? 'Новости и события по инструменту'
-                      : feedTab == _FeedTab.tape
-                      ? 'Лента последних сделок'
-                      : 'Биржевой стакан в реальном времени',
-                  style: text.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 10),
-                Center(
-                  child: SegmentedButton<_FeedTab>(
-                    segments: const [
-                      ButtonSegment(
-                        value: _FeedTab.news,
-                        icon: Icon(Icons.article),
-                        label: Text('Новости'),
-                      ),
-                      ButtonSegment(
-                        value: _FeedTab.tape,
-                        icon: Icon(Icons.bolt),
-                        label: Text('Лента'),
-                      ),
-                      ButtonSegment(
-                        value: _FeedTab.orderBook,
-                        icon: Icon(Icons.stacked_bar_chart),
-                        label: Text('Стакан'),
+                        ),
                       ),
                     ],
-                    selected: {feedTab},
-                    onSelectionChanged: (value) {
-                      if (value.isNotEmpty) onFeedTabChanged(value.first);
-                    },
-                    showSelectedIcon: false,
-                    style: ButtonStyle(
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      visualDensity: VisualDensity.compact,
-                      backgroundColor: WidgetStateProperty.resolveWith(
-                        (states) => states.contains(WidgetState.selected)
-                            ? scheme.primary.withValues(alpha: 0.14)
-                            : scheme.surfaceContainerHighest,
-                      ),
-                      foregroundColor: WidgetStateProperty.resolveWith(
-                        (states) => states.contains(WidgetState.selected)
-                            ? scheme.primary
-                            : scheme.onSurface,
-                      ),
-                      side: WidgetStatePropertyAll(
-                        BorderSide(
-                          color: scheme.outline.withValues(alpha: 0.7),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Card(
+                margin: EdgeInsets.zero,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: candles.isEmpty
+                      ? const SizedBox(
+                          height: 200,
+                          child: Center(child: Text('Нет данных для графика')),
+                        )
+                      : _CandleChart(data: candles, scheme: scheme),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text('Пульс рынка', style: text.titleMedium),
+                  Text(
+                    feedTab == _FeedTab.news
+                        ? 'Новости и события по инструменту'
+                        : feedTab == _FeedTab.tape
+                        ? 'Лента последних сделок'
+                        : 'Биржевой стакан в реальном времени',
+                    style: text.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 10),
+                  Center(
+                    child: SegmentedButton<_FeedTab>(
+                      segments: const [
+                        ButtonSegment(
+                          value: _FeedTab.news,
+                          icon: Icon(Icons.article),
+                          label: Text('Новости'),
+                        ),
+                        ButtonSegment(
+                          value: _FeedTab.tape,
+                          icon: Icon(Icons.bolt),
+                          label: Text('Лента'),
+                        ),
+                        ButtonSegment(
+                          value: _FeedTab.orderBook,
+                          icon: Icon(Icons.stacked_bar_chart),
+                          label: Text('Стакан'),
+                        ),
+                      ],
+                      selected: {feedTab},
+                      onSelectionChanged: (value) {
+                        if (value.isNotEmpty) onFeedTabChanged(value.first);
+                      },
+                      showSelectedIcon: false,
+                      style: ButtonStyle(
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                        backgroundColor: WidgetStateProperty.resolveWith(
+                          (states) => states.contains(WidgetState.selected)
+                              ? scheme.primary.withValues(alpha: 0.14)
+                              : scheme.surfaceContainerHighest,
+                        ),
+                        foregroundColor: WidgetStateProperty.resolveWith(
+                          (states) => states.contains(WidgetState.selected)
+                              ? scheme.primary
+                              : scheme.onSurface,
+                        ),
+                        side: WidgetStatePropertyAll(
+                          BorderSide(
+                            color: scheme.outline.withValues(alpha: 0.7),
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            if (feedTab == _FeedTab.news)
-              news.when(
-                data: (items) => NewsWidget(news: items),
-                loading: () => const Card(
-                  margin: EdgeInsets.zero,
-                  child: Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Center(child: CircularProgressIndicator()),
-                  ),
-                ),
-                error: (e, _) => Card(
-                  margin: EdgeInsets.zero,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Text('Не удалось загрузить новости: $e'),
-                  ),
-                ),
+                ],
               ),
-            if (feedTab == _FeedTab.tape) QuotesList(history: history),
-            if (feedTab == _FeedTab.orderBook)
-              orderBook.when(
-                data: (book) =>
-                    OrderBookWidget(book: book, onSelectPrice: onSelectPrice),
-                loading: () => const OrderBookSkeleton(),
-                error: (e, _) => OrderBookError(message: '$e'),
-              ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Text('Новая заявка', style: text.titleMedium),
-                const SizedBox(width: 6),
-                IconButton(
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  icon: const Icon(Icons.help_outline, size: 20),
-                  tooltip: 'Что такое заявка?',
-                  onPressed: () =>
-                      context.push('/learn/trading-basics/orderbook'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                ChoiceChip(
-                  label: const Text('Рыночная'),
-                  selected: !isLimit,
-                  selectedColor: scheme.primary.withValues(alpha: 0.18),
-                  backgroundColor: scheme.surfaceContainerHighest,
-                  labelStyle: text.bodyMedium?.copyWith(
-                    color: !isLimit ? scheme.primary : scheme.onSurface,
-                  ),
-                  side: BorderSide(
-                    color: scheme.outline.withValues(alpha: 0.6),
-                  ),
-                  onSelected: (v) => onToggleType(false),
-                ),
-                const SizedBox(width: 8),
-                ChoiceChip(
-                  label: const Text('Лимитная'),
-                  selected: isLimit,
-                  selectedColor: scheme.primary.withValues(alpha: 0.18),
-                  backgroundColor: scheme.surfaceContainerHighest,
-                  labelStyle: text.bodyMedium?.copyWith(
-                    color: isLimit ? scheme.primary : scheme.onSurface,
-                  ),
-                  side: BorderSide(
-                    color: scheme.outline.withValues(alpha: 0.6),
-                  ),
-                  onSelected: (v) => onToggleType(true),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: qtyController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              textInputAction: TextInputAction.next,
-              onSubmitted: (_) {
-                if (isLimit) {
-                  FocusScope.of(context).nextFocus();
-                } else {
-                  FocusScope.of(context).unfocus();
-                }
-              },
-              decoration: const InputDecoration(
-                labelText: 'Количество',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: priceController,
-              enabled: isLimit,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) => FocusScope.of(context).unfocus(),
-              decoration: const InputDecoration(
-                labelText: 'Цена (для лимитной)',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: submitting
-                        ? null
-                        : () => onSubmit(OrderSide.buy),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.success,
-                      foregroundColor: Colors.white,
+              const SizedBox(height: 8),
+              if (feedTab == _FeedTab.news)
+                news.when(
+                  data: (items) => NewsWidget(news: items),
+                  loading: () => const Card(
+                    margin: EdgeInsets.zero,
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Center(child: CircularProgressIndicator()),
                     ),
-                    icon: const Icon(Icons.shopping_cart_checkout),
-                    label: submitting
-                        ? const Text('Отправка...')
-                        : const Text('Купить'),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: FilledButton.tonalIcon(
-                    onPressed: submitting
-                        ? null
-                        : () => onSubmit(OrderSide.sell),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.error,
-                      foregroundColor: Colors.white,
+                  error: (e, _) => Card(
+                    margin: EdgeInsets.zero,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text('Не удалось загрузить новости: $e'),
                     ),
-                    icon: const Icon(Icons.sell),
-                    label: submitting
-                        ? const Text('Отправка...')
-                        : const Text('Продать'),
                   ),
                 ),
-              ],
-            ),
-          ],
+              if (feedTab == _FeedTab.tape) QuotesList(history: history),
+              if (feedTab == _FeedTab.orderBook)
+                orderBook.when(
+                  data: (book) =>
+                      OrderBookWidget(book: book, onSelectPrice: onSelectPrice),
+                  loading: () => const OrderBookSkeleton(),
+                  error: (e, _) => OrderBookError(message: '$e'),
+                ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Text('Новая заявка', style: text.titleMedium),
+                  const SizedBox(width: 6),
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    icon: const Icon(Icons.help_outline, size: 20),
+                    tooltip: 'Что такое заявка?',
+                    onPressed: () =>
+                        context.push('/learn/trading-basics/orderbook'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  ChoiceChip(
+                    label: const Text('Рыночная'),
+                    selected: !isLimit,
+                    selectedColor: scheme.primary.withValues(alpha: 0.18),
+                    backgroundColor: scheme.surfaceContainerHighest,
+                    labelStyle: text.bodyMedium?.copyWith(
+                      color: !isLimit ? scheme.primary : scheme.onSurface,
+                    ),
+                    side: BorderSide(
+                      color: scheme.outline.withValues(alpha: 0.6),
+                    ),
+                    onSelected: (v) => onToggleType(false),
+                  ),
+                  const SizedBox(width: 8),
+                  ChoiceChip(
+                    label: const Text('Лимитная'),
+                    selected: isLimit,
+                    selectedColor: scheme.primary.withValues(alpha: 0.18),
+                    backgroundColor: scheme.surfaceContainerHighest,
+                    labelStyle: text.bodyMedium?.copyWith(
+                      color: isLimit ? scheme.primary : scheme.onSurface,
+                    ),
+                    side: BorderSide(
+                      color: scheme.outline.withValues(alpha: 0.6),
+                    ),
+                    onSelected: (v) => onToggleType(true),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: qtyController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                textInputAction: TextInputAction.next,
+                onSubmitted: (_) {
+                  if (isLimit) {
+                    FocusScope.of(context).nextFocus();
+                  } else {
+                    FocusScope.of(context).unfocus();
+                  }
+                },
+                decoration: const InputDecoration(
+                  labelText: 'Количество',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: priceController,
+                enabled: isLimit,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => FocusScope.of(context).unfocus(),
+                decoration: const InputDecoration(
+                  labelText: 'Цена (для лимитной)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: submitting
+                          ? null
+                          : () => onSubmit(OrderSide.buy),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.success,
+                        foregroundColor: Colors.white,
+                      ),
+                      icon: const Icon(Icons.shopping_cart_checkout),
+                      label: submitting
+                          ? const Text('Отправка...')
+                          : const Text('Купить'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: FilledButton.tonalIcon(
+                      onPressed: submitting
+                          ? null
+                          : () => onSubmit(OrderSide.sell),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.error,
+                        foregroundColor: Colors.white,
+                      ),
+                      icon: const Icon(Icons.sell),
+                      label: submitting
+                          ? const Text('Отправка...')
+                          : const Text('Продать'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

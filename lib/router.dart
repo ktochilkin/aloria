@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:aloria/core/env/env.dart';
 import 'package:aloria/features/auth/application/auth_controller.dart';
@@ -158,44 +157,43 @@ class _ScaffoldWithNavBar extends ConsumerWidget {
     // Для десктопа оборачиваем в контейнер с ограничением ширины
     final scaffold = Scaffold(
       body: navigationShell,
-      extendBody: true,
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      bottomNavigationBar: ClipRRect(
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  const Color(0xFFF8FAFF).withValues(alpha: 0.65),
-                  const Color(0xFFF0F5FF).withValues(alpha: 0.75),
-                  const Color(0xFFF5F8FF).withValues(alpha: 0.80),
-                ],
-                stops: const [0.0, 0.25, 1.0],
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [const Color(0xFFF8FAFF), const Color(0xFFF0F4FF)],
+          ),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          child: NavigationBar(
+            backgroundColor: Colors.transparent,
+            selectedIndex: navigationShell.currentIndex,
+            onDestinationSelected: _goBranch,
+            destinations: const [
+              NavigationDestination(
+                label: 'Обучение',
+                icon: Icon(Icons.school),
               ),
-            ),
-            child: NavigationBar(
-              backgroundColor: Colors.transparent,
-              selectedIndex: navigationShell.currentIndex,
-              onDestinationSelected: _goBranch,
-              destinations: const [
-                NavigationDestination(
-                  label: 'Обучение',
-                  icon: Icon(Icons.school),
-                ),
-                NavigationDestination(
-                  label: 'Портфель',
-                  icon: Icon(Icons.list_alt),
-                ),
-                NavigationDestination(
-                  label: 'Обзор рынка',
-                  icon: Icon(Icons.show_chart),
-                ),
-              ],
-            ),
+              NavigationDestination(
+                label: 'Портфель',
+                icon: Icon(Icons.list_alt),
+              ),
+              NavigationDestination(
+                label: 'Обзор рынка',
+                icon: Icon(Icons.show_chart),
+              ),
+            ],
           ),
         ),
       ),

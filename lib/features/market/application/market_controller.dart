@@ -75,3 +75,33 @@ final marketSecuritiesProvider =
       final repo = ref.watch(marketRepositoryProvider);
       return MarketSecuritiesNotifier(repo);
     });
+
+/// Провайдер для получения информации об отдельном инструменте с котировками
+final marketSecurityBySymbolProvider = FutureProvider.family
+    .autoDispose<MarketSecurity?, String>((ref, symbol) async {
+      final repo = ref.watch(marketRepositoryProvider);
+
+      try {
+        // Получаем базовую информацию об инструменте
+        final securities = await repo.fetchSecurities(limit: 100);
+        final security = securities.firstWhere(
+          (s) => s.symbol == symbol,
+          orElse: () => MarketSecurity(symbol: symbol, shortName: symbol),
+        );
+
+        // Получаем актуальную котировку
+        final quotes = await repo.fetchQuotes([symbol]);
+        if (quotes.isNotEmpty) {
+          final quote = quotes.first;
+          return security.copyWith(
+            lastPrice: (quote['last_price'] as num?)?.toDouble(),
+            changePercent: (quote['change_percent'] as num?)?.toDouble(),
+          );
+        }
+
+        return security;
+      } catch (e) {
+        // Возвращаем минимальную информацию при ошибке
+        return MarketSecurity(symbol: symbol, shortName: symbol);
+      }
+    });

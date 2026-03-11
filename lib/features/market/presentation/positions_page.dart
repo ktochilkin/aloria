@@ -1,4 +1,5 @@
 import 'package:aloria/core/theme/components/list_items.dart';
+import 'package:aloria/core/utils/layout_utils.dart';
 import 'package:aloria/core/widgets/top_notification.dart';
 import 'package:aloria/features/auth/application/auth_controller.dart';
 import 'package:aloria/features/market/application/orders_provider.dart';
@@ -412,7 +413,7 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
     return CustomScrollView(
       slivers: [
         SliverPadding(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.fromLTRB(16, 16, 16, context.bottomNavBarPadding),
           sliver: SliverList(
             delegate: SliverChildListDelegate([
               _BuyingPowerCard(summary: widget.summary),

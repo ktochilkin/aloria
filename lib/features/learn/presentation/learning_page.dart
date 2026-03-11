@@ -1,4 +1,5 @@
 import 'package:aloria/core/theme/tokens.dart';
+import 'package:aloria/core/utils/layout_utils.dart';
 import 'package:aloria/features/learn/domain/learning_content_service.dart';
 import 'package:aloria/features/learn/domain/models.dart';
 import 'package:flutter/material.dart';
@@ -45,7 +46,12 @@ class _LearningPageState extends State<LearningPage> {
           return CustomScrollView(
             slivers: [
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
+                padding: EdgeInsets.fromLTRB(
+                  12,
+                  12,
+                  12,
+                  context.bottomNavBarPadding,
+                ),
                 sliver: SliverList.list(
                   children: [
                     FutureBuilder<String>(
@@ -138,54 +144,61 @@ class _LearningSectionPageState extends State<LearningSectionPage> {
             ),
             title: Text(section.title),
           ),
-          body: ListView.builder(
-            padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
-            itemCount: section.lessons.length,
-            itemBuilder: (context, index) {
-              final lesson = section.lessons[index];
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Card(
-                  margin: EdgeInsets.zero,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(12),
-                    onTap: () =>
-                        context.push('/learn/${section.id}/${lesson.id}'),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _LessonImage(
-                          source: lesson.imageUrl,
-                          height: 180,
-                          borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(12),
+          body: Builder(
+            builder: (context) => ListView.builder(
+              padding: EdgeInsets.fromLTRB(
+                8,
+                8,
+                8,
+                context.bottomNavBarPadding,
+              ),
+              itemCount: section.lessons.length,
+              itemBuilder: (context, index) {
+                final lesson = section.lessons[index];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Card(
+                    margin: EdgeInsets.zero,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () =>
+                          context.push('/learn/${section.id}/${lesson.id}'),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _LessonImage(
+                            source: lesson.imageUrl,
+                            height: 180,
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(12),
+                            ),
+                            scheme: scheme,
+                            tint: section.tint,
+                            icon: section.icon,
                           ),
-                          scheme: scheme,
-                          tint: section.tint,
-                          icon: section.icon,
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(lesson.title, style: text.titleMedium),
-                              const SizedBox(height: 6),
-                              Text(
-                                lesson.description,
-                                style: text.bodyMedium?.copyWith(
-                                  color: scheme.onSurfaceVariant,
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(lesson.title, style: text.titleMedium),
+                                const SizedBox(height: 6),
+                                Text(
+                                  lesson.description,
+                                  style: text.bodyMedium?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
         );
       },
@@ -264,82 +277,89 @@ class _LessonPageState extends State<LessonPage> {
 
         return Scaffold(
           appBar: AppBar(title: Text(lesson.title)),
-          body: ListView(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
-            children: [
-              _LessonImage(
-                source: lesson.imageUrl,
-                height: 220,
-                borderRadius: BorderRadius.circular(16),
-                scheme: scheme,
-                tint: section.tint,
-                icon: section.icon,
+          body: Builder(
+            builder: (context) => ListView(
+              padding: EdgeInsets.fromLTRB(
+                12,
+                12,
+                12,
+                context.bottomNavBarPadding,
               ),
-              const SizedBox(height: 16),
-              Text(lesson.title, style: text.headlineSmall),
-              const SizedBox(height: 8),
-              Text(
-                lesson.description,
-                style: text.bodyMedium?.copyWith(
-                  color: scheme.onSurfaceVariant,
+              children: [
+                _LessonImage(
+                  source: lesson.imageUrl,
+                  height: 220,
+                  borderRadius: BorderRadius.circular(16),
+                  scheme: scheme,
+                  tint: section.tint,
+                  icon: section.icon,
                 ),
-              ),
-              const SizedBox(height: 12),
-              _DefinitionBlock(
-                title: 'Академическое определение',
-                content: lesson.academicDefinition,
-                tint: section.tint,
-              ),
-              const SizedBox(height: 16),
-              MarkdownBody(
-                data: lesson.body,
-                styleSheet: MarkdownStyleSheet.fromTheme(
-                  Theme.of(context),
-                ).copyWith(p: text.bodyMedium),
-                imageBuilder: (uri, title, alt) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.asset(
-                        uri.toString(),
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        errorBuilder: (context, error, stack) {
-                          return Container(
-                            height: 200,
-                            color: scheme.surfaceContainerHighest,
-                            alignment: Alignment.center,
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.image_not_supported,
-                                  color: scheme.onSurfaceVariant,
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  alt ?? 'Изображение не загружено',
-                                  style: text.bodySmall?.copyWith(
+                const SizedBox(height: 16),
+                Text(lesson.title, style: text.headlineSmall),
+                const SizedBox(height: 8),
+                Text(
+                  lesson.description,
+                  style: text.bodyMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _DefinitionBlock(
+                  title: 'Академическое определение',
+                  content: lesson.academicDefinition,
+                  tint: section.tint,
+                ),
+                const SizedBox(height: 16),
+                MarkdownBody(
+                  data: lesson.body,
+                  styleSheet: MarkdownStyleSheet.fromTheme(
+                    Theme.of(context),
+                  ).copyWith(p: text.bodyMedium),
+                  imageBuilder: (uri, title, alt) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.asset(
+                          uri.toString(),
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          errorBuilder: (context, error, stack) {
+                            return Container(
+                              height: 200,
+                              color: scheme.surfaceContainerHighest,
+                              alignment: Alignment.center,
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.image_not_supported,
                                     color: scheme.onSurfaceVariant,
                                   ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    alt ?? 'Изображение не загружено',
+                                    style: text.bodySmall?.copyWith(
+                                      color: scheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
                       ),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 16),
-              OutlinedButton.icon(
-                onPressed: popOrFallback,
-                icon: const Icon(Icons.arrow_back),
-                label: const Text('Вернуться к списку'),
-              ),
-            ],
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+                OutlinedButton.icon(
+                  onPressed: popOrFallback,
+                  icon: const Icon(Icons.arrow_back),
+                  label: const Text('Вернуться к списку'),
+                ),
+              ],
+            ),
           ),
         );
       },

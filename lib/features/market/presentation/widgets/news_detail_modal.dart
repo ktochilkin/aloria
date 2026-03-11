@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:aloria/features/market/domain/market_news.dart';
+import 'package:aloria/features/market/presentation/widgets/news_instrument_card.dart';
 import 'package:flutter/material.dart';
 
 /// Показать полную новость в модальном окне
@@ -38,7 +39,7 @@ void showNewsDetailModal(BuildContext context, MarketNews news) {
                   children: [
                     // Индикатор перетаскивания и кнопка закрытия
                     SizedBox(
-                      height: 56,
+                      height: 40,
                       child: Stack(
                         clipBehavior: Clip.none,
                         children: [
@@ -76,7 +77,7 @@ void showNewsDetailModal(BuildContext context, MarketNews news) {
                         children: [
                           // Заголовок
                           Container(
-                            padding: const EdgeInsets.fromLTRB(24, 4, 24, 20),
+                            padding: const EdgeInsets.fromLTRB(12, 2, 12, 4),
                             child: Text(
                               news.title,
                               style: Theme.of(context).textTheme.titleMedium
@@ -85,7 +86,7 @@ void showNewsDetailModal(BuildContext context, MarketNews news) {
                           ),
                           // Метаданные новости
                           Container(
-                            padding: const EdgeInsets.all(20),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
                               color: Theme.of(context)
                                   .colorScheme
@@ -119,52 +120,20 @@ void showNewsDetailModal(BuildContext context, MarketNews news) {
                                         fontWeight: FontWeight.w500,
                                       ),
                                 ),
-                                if (news.symbols.isNotEmpty) ...[
-                                  const SizedBox(width: 16),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primaryContainer,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.show_chart_rounded,
-                                          size: 14,
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.onPrimaryContainer,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          news.symbols.first,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .labelSmall
-                                              ?.copyWith(
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .onPrimaryContainer,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
                               ],
                             ),
                           ),
+                          // Карточка инструмента с котировками
+                          if (news.symbols.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.all(8),
+                              child: NewsInstrumentCard(
+                                symbol: news.symbols.first,
+                              ),
+                            ),
                           // Основной текст
                           Padding(
-                            padding: const EdgeInsets.all(24),
+                            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -176,68 +145,11 @@ void showNewsDetailModal(BuildContext context, MarketNews news) {
                                         letterSpacing: 0.2,
                                       ),
                                 ),
-                                const SizedBox(height: 32),
-                                // Футер с источником
-                                Container(
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .surfaceContainerHighest
-                                        .withValues(alpha: 0.5),
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .outlineVariant
-                                          .withValues(alpha: 0.5),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        Icons.article_outlined,
-                                        size: 20,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.primary,
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              'Источник новости',
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .labelSmall
-                                                  ?.copyWith(
-                                                    color: Theme.of(context)
-                                                        .colorScheme
-                                                        .onSurfaceVariant,
-                                                  ),
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              'Рыночные данные',
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .bodyMedium
-                                                  ?.copyWith(
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
                               ],
                             ),
                           ),
+                          // Нижний отступ
+                          const SizedBox(height: 8),
                         ],
                       ),
                     ),

@@ -1,3 +1,4 @@
+import 'package:aloria/core/utils/layout_utils.dart';
 import 'package:aloria/features/market/application/market_controller.dart';
 import 'package:aloria/features/market/application/market_news_provider.dart';
 import 'package:aloria/features/market/data/market_repository.dart';
@@ -254,7 +255,12 @@ class _MarketOverviewTab extends StatelessWidget {
               ),
             ),
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+              padding: EdgeInsets.fromLTRB(
+                16,
+                0,
+                16,
+                context.bottomNavBarPadding,
+              ),
               sliver: const SliverToBoxAdapter(child: SizedBox.shrink()),
             ),
           ],
@@ -282,52 +288,59 @@ class _MarketNewsTab extends StatelessWidget {
           return const Center(child: Text('Новости отсутствуют'));
         }
 
-        return ListView.separated(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-          itemCount: items.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 12),
-          itemBuilder: (context, index) {
-            final news = items[index];
+        return Builder(
+          builder: (context) => ListView.separated(
+            padding: EdgeInsets.fromLTRB(
+              16,
+              12,
+              16,
+              context.bottomNavBarPadding,
+            ),
+            itemCount: items.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              final news = items[index];
 
-            return Card(
-              margin: EdgeInsets.zero,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: () => showNewsDetailModal(context, news),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        news.title,
-                        style: text.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        news.content,
-                        style: text.bodyMedium,
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 12),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: Text(
-                          formatNewsDate(news.publishedAt),
-                          style: text.bodySmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
+              return Card(
+                margin: EdgeInsets.zero,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () => showNewsDetailModal(context, news),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          news.title,
+                          style: text.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 8),
+                        Text(
+                          news.content,
+                          style: text.bodyMedium,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 12),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            formatNewsDate(news.publishedAt),
+                            style: text.bodySmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
