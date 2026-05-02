@@ -1,4 +1,5 @@
 import 'package:aloria/core/theme/components/list_items.dart';
+import 'package:aloria/core/theme/tokens.dart';
 import 'package:aloria/core/utils/layout_utils.dart';
 import 'package:aloria/core/widgets/top_notification.dart';
 import 'package:aloria/features/auth/application/auth_controller.dart';
@@ -12,6 +13,7 @@ import 'package:aloria/features/market/domain/trade_order.dart';
 import 'package:aloria/features/market/presentation/widgets/instrument_avatar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 enum _PortfolioTab { positions, orders }
 
@@ -29,22 +31,14 @@ class PositionsPage extends ConsumerWidget {
     final orders = ref.watch(ordersProvider);
     final auth = ref.read(authControllerProvider.notifier);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Портфель'),
-        actions: [
-          IconButton(
-            tooltip: 'Выйти',
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await auth.logout();
-            },
-          ),
-        ],
-      ),
-      body: _PositionsBlock(
-        positions: positions,
-        summary: summary,
-        orders: orders,
+      body: SafeArea(
+        bottom: false,
+        child: _PositionsBlock(
+          positions: positions,
+          summary: summary,
+          orders: orders,
+          onLogout: auth.logout,
+        ),
       ),
     );
   }
@@ -55,10 +49,12 @@ class _PositionsBlock extends ConsumerStatefulWidget {
     required this.positions,
     required this.summary,
     required this.orders,
+    required this.onLogout,
   });
   final AsyncValue<List<Position>> positions;
   final AsyncValue<PortfolioSummary> summary;
   final AsyncValue<List<ClientOrder>> orders;
+  final Future<void> Function() onLogout;
 
   @override
   ConsumerState<_PositionsBlock> createState() => _PositionsBlockState();
@@ -66,8 +62,6 @@ class _PositionsBlock extends ConsumerStatefulWidget {
 
 class _PositionsBlockState extends ConsumerState<_PositionsBlock>
     with TickerProviderStateMixin {
-  bool _showTopUpSection = false;
-
   String _sideLabel(OrderSide side) =>
       side == OrderSide.buy ? 'Покупка' : 'Продажа';
 
@@ -171,6 +165,15 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
     if (result == true && mounted) {
       await _showSuccessDialog(quiz);
     }
+  }
+
+  Future<void> _openTopUp() async {
+    await Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => _TopUpPage(onQuizTap: _handleQuizStart),
+      ),
+    );
   }
 
   Future<void> _showSuccessDialog(_PortfolioQuiz quiz) async {
@@ -397,123 +400,27 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
       error: (e, _) => Center(child: Text('Ошибка заявок: $e')),
     );
 
-    final quizzesSection = AnimatedSize(
-      duration: const Duration(milliseconds: 240),
-      curve: Curves.easeInOut,
-      child: !_showTopUpSection
-          ? const SizedBox.shrink()
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 12),
-                Text('Пополните счёт тестами', style: text.titleMedium),
-                const SizedBox(height: 8),
-                ..._portfolioQuizzes.map(
-                  (quiz) => _QuizCard(
-                    quiz: quiz,
-                    onTap: () => _handleQuizStart(quiz),
-                  ),
-                ),
-                const SizedBox(height: 12),
-              ],
-            ),
+    final positionsList = widget.positions.maybeWhen(
+      data: (l) => l.where((p) => p.quantity != 0).toList(),
+      orElse: () => const <Position>[],
     );
 
     return CustomScrollView(
       slivers: [
         SliverPadding(
-          padding: EdgeInsets.fromLTRB(16, 16, 16, context.bottomNavBarPadding),
+          padding: EdgeInsets.fromLTRB(16, 12, 16, context.bottomNavBarPadding),
           sliver: SliverList(
             delegate: SliverChildListDelegate([
-              _BuyingPowerCard(summary: widget.summary),
-              const SizedBox(height: 12),
-              GestureDetector(
-                onTap: () => setState(() {
-                  _showTopUpSection = !_showTopUpSection;
-                }),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 220),
-                  curve: Curves.easeInOut,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: _showTopUpSection
-                          ? [
-                              scheme.secondary.withValues(alpha: 0.18),
-                              scheme.primary.withValues(alpha: 0.12),
-                            ]
-                          : [
-                              scheme.primary.withValues(alpha: 0.16),
-                              scheme.secondary.withValues(alpha: 0.12),
-                            ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(
-                      color: scheme.outline.withValues(alpha: 0.6),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: scheme.primary.withValues(alpha: 0.12),
-                        blurRadius: 18,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 20,
-                        backgroundColor: scheme.onPrimary.withValues(
-                          alpha: 0.08,
-                        ),
-                        child: Icon(
-                          _showTopUpSection
-                              ? Icons.check_circle_outline
-                              : Icons.account_balance_wallet_outlined,
-                          color: scheme.primary,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _showTopUpSection
-                                  ? 'Скрыть тестовые задания'
-                                  : 'Пополнить счёт тестами',
-                              style: text.titleMedium,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              _showTopUpSection
-                                  ? 'Свернуть подборку тестов'
-                                  : 'Пройдите мини-тесты и получите вирт. ₽',
-                              style: text.bodySmall?.copyWith(
-                                color: scheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      AnimatedRotation(
-                        // Closed: points right; open: points down.
-                        turns: _showTopUpSection ? 0 : -0.25,
-                        duration: const Duration(milliseconds: 220),
-                        curve: Curves.easeInOut,
-                        child: Icon(Icons.expand_more, color: scheme.primary),
-                      ),
-                    ],
-                  ),
-                ),
+              _PortfolioBalanceCard(
+                summary: widget.summary,
+                onLogout: widget.onLogout,
               ),
-              quizzesSection,
+              const SizedBox(height: 12),
+              _PortfolioTilesGrid(
+                positions: positionsList,
+                onTopUp: _openTopUp,
+                onMarket: () => context.go('/market'),
+              ),
               const SizedBox(height: 18),
               _PortfolioTabsHeader(
                 selected: tab,
@@ -536,10 +443,14 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
   }
 }
 
-class _BuyingPowerCard extends StatelessWidget {
-  const _BuyingPowerCard({required this.summary});
+class _PortfolioBalanceCard extends StatelessWidget {
+  const _PortfolioBalanceCard({
+    required this.summary,
+    required this.onLogout,
+  });
 
   final AsyncValue<PortfolioSummary> summary;
+  final Future<void> Function() onLogout;
 
   @override
   Widget build(BuildContext context) {
@@ -547,46 +458,399 @@ class _BuyingPowerCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(20, 14, 8, 16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            scheme.surface.withValues(alpha: 0.96),
-            scheme.surfaceContainerHighest.withValues(alpha: 0.9),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outline.withValues(alpha: 0.6)),
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: scheme.outline.withValues(alpha: 0.5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Доступно средств для покупки',
-            style: text.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 8),
-          summary.when(
-            data: (value) => Text(
-              '${value.buyingPower.toStringAsFixed(2)} ${value.currency}',
-              style: text.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
-            ),
-            loading: () => Row(
-              children: [
-                const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Покупательная способность',
+                  style: text.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    letterSpacing: 0.4,
+                  ),
                 ),
-                const SizedBox(width: 12),
-                Text('Загружаем...', style: text.bodyMedium),
+              ),
+              SizedBox(
+                width: 32,
+                height: 32,
+                child: IconButton(
+                  tooltip: 'Выйти',
+                  padding: EdgeInsets.zero,
+                  iconSize: 18,
+                  visualDensity: VisualDensity.compact,
+                  color: scheme.onSurfaceVariant,
+                  icon: const Icon(Icons.logout),
+                  onPressed: () => onLogout(),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: summary.when(
+              data: (value) => RichText(
+                text: TextSpan(
+                  style: text.headlineMedium?.copyWith(
+                    color: scheme.onSurface,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 30,
+                    height: 1.05,
+                    letterSpacing: -0.3,
+                  ),
+                  children: [
+                    TextSpan(text: _formatMoney(value.buyingPower)),
+                    TextSpan(
+                      text: value.currency == 'RUB' ? ' ₽' : ' ${value.currency}',
+                      style: text.titleMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              loading: () => SizedBox(
+                height: 30,
+                child: Row(
+                  children: [
+                    const SizedBox(
+                      height: 18,
+                      width: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Загружаем…',
+                      style: text.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              error: (e, _) => Text(
+                'Нет данных',
+                style: text.bodyLarge?.copyWith(color: scheme.error),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String _formatMoney(double v) {
+  final fixed = v.toStringAsFixed(2);
+  final parts = fixed.split('.');
+  final intPart = parts[0];
+  final neg = intPart.startsWith('-');
+  final abs = neg ? intPart.substring(1) : intPart;
+  final buf = StringBuffer();
+  for (var i = 0; i < abs.length; i++) {
+    if (i > 0 && (abs.length - i) % 3 == 0) buf.write(' ');
+    buf.write(abs[i]);
+  }
+  return '${neg ? '-' : ''}$buf.${parts[1]}';
+}
+
+class _PortfolioTilesGrid extends StatelessWidget {
+  const _PortfolioTilesGrid({
+    required this.positions,
+    required this.onTopUp,
+    required this.onMarket,
+  });
+
+  final List<Position> positions;
+  final VoidCallback onTopUp;
+  final VoidCallback onMarket;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    Position? leader;
+    Position? laggard;
+    for (final p in positions) {
+      final pl = p.unrealisedPl;
+      if (pl == null) continue;
+      if (pl > 0) {
+        if (leader == null || (leader.unrealisedPl ?? 0) < pl) leader = p;
+      } else if (pl < 0) {
+        if (laggard == null || (laggard.unrealisedPl ?? 0) > pl) laggard = p;
+      }
+    }
+
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _PortfolioTile(
+                icon: Icons.add_rounded,
+                title: 'Пополнить',
+                subtitle: '${_portfolioQuizzes.length} тестов',
+                tint: scheme.primary,
+                background: scheme.primary.withValues(alpha: 0.10),
+                onTap: onTopUp,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _PortfolioTile(
+                icon: Icons.show_chart_rounded,
+                title: 'Рынок',
+                subtitle: 'Найти инструмент',
+                tint: scheme.secondary,
+                background: scheme.secondary.withValues(alpha: 0.10),
+                onTap: onMarket,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: _MoverTile(
+                title: 'Лидер',
+                position: leader,
+                positive: true,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _MoverTile(
+                title: 'Аутсайдер',
+                position: laggard,
+                positive: false,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _PortfolioTile extends StatelessWidget {
+  const _PortfolioTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.tint,
+    required this.background,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color tint;
+  final Color background;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: background,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: tint.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: tint, size: 22),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                title,
+                style: text.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: scheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: text.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MoverTile extends StatelessWidget {
+  const _MoverTile({
+    required this.title,
+    required this.position,
+    required this.positive,
+  });
+
+  final String title;
+  final Position? position;
+  final bool positive;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    final color = positive ? AppColors.success : AppColors.error;
+    final hasData = position != null && position!.unrealisedPl != null;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: scheme.outline.withValues(alpha: 0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Icon(
+                positive ? Icons.trending_up : Icons.trending_down,
+                color: color,
+                size: 18,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                title,
+                style: text.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (hasData) ...[
+            Text(
+              position!.symbol,
+              style: text.bodyLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              '${positive ? '+' : ''}${_formatMoney(position!.unrealisedPl!)} ₽',
+              style: text.bodySmall?.copyWith(
+                color: color,
+                fontWeight: FontWeight.w700,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ] else ...[
+            Text(
+              '—',
+              style: text.bodyLarge?.copyWith(
+                color: scheme.onSurfaceVariant,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              'нет позиций',
+              style: text.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _TopUpPage extends StatelessWidget {
+  const _TopUpPage({required this.onQuizTap});
+
+  final Future<void> Function(_PortfolioQuiz quiz) onQuizTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Расширить доступ'),
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: scheme.primary.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: scheme.primary.withValues(alpha: 0.2)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Подтвердите знания',
+                  style: text.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Каждый пройденный тест увеличивает покупательную способность. '
+                  'Это мера допуска: чем уверенней понимаете рынок — тем больше операций открыто.',
+                  style: text.bodyMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
               ],
             ),
-            error: (e, _) => Text(
-              'Нет данных',
-              style: text.bodyLarge?.copyWith(color: scheme.error),
+          ),
+          const SizedBox(height: 16),
+          ..._portfolioQuizzes.map(
+            (quiz) => _QuizCard(
+              quiz: quiz,
+              onTap: () async {
+                Navigator.of(context).pop();
+                await onQuizTap(quiz);
+              },
             ),
           ),
         ],
