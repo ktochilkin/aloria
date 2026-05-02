@@ -1,4 +1,5 @@
 import 'package:aloria/core/theme/components/list_items.dart';
+import 'package:aloria/core/theme/tokens.dart';
 import 'package:aloria/core/utils/layout_utils.dart';
 import 'package:aloria/core/widgets/top_notification.dart';
 import 'package:aloria/features/auth/application/auth_controller.dart';
@@ -29,22 +30,14 @@ class PositionsPage extends ConsumerWidget {
     final orders = ref.watch(ordersProvider);
     final auth = ref.read(authControllerProvider.notifier);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Портфель'),
-        actions: [
-          IconButton(
-            tooltip: 'Выйти',
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await auth.logout();
-            },
-          ),
-        ],
-      ),
-      body: _PositionsBlock(
-        positions: positions,
-        summary: summary,
-        orders: orders,
+      body: SafeArea(
+        bottom: false,
+        child: _PositionsBlock(
+          positions: positions,
+          summary: summary,
+          orders: orders,
+          onLogout: auth.logout,
+        ),
       ),
     );
   }
@@ -55,10 +48,12 @@ class _PositionsBlock extends ConsumerStatefulWidget {
     required this.positions,
     required this.summary,
     required this.orders,
+    required this.onLogout,
   });
   final AsyncValue<List<Position>> positions;
   final AsyncValue<PortfolioSummary> summary;
   final AsyncValue<List<ClientOrder>> orders;
+  final Future<void> Function() onLogout;
 
   @override
   ConsumerState<_PositionsBlock> createState() => _PositionsBlockState();
@@ -66,8 +61,6 @@ class _PositionsBlock extends ConsumerStatefulWidget {
 
 class _PositionsBlockState extends ConsumerState<_PositionsBlock>
     with TickerProviderStateMixin {
-  bool _showTopUpSection = false;
-
   String _sideLabel(OrderSide side) =>
       side == OrderSide.buy ? 'Покупка' : 'Продажа';
 
@@ -171,6 +164,15 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
     if (result == true && mounted) {
       await _showSuccessDialog(quiz);
     }
+  }
+
+  Future<void> _openTopUp() async {
+    await Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => _TopUpPage(onQuizTap: _handleQuizStart),
+      ),
+    );
   }
 
   Future<void> _showSuccessDialog(_PortfolioQuiz quiz) async {
@@ -397,123 +399,18 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
       error: (e, _) => Center(child: Text('Ошибка заявок: $e')),
     );
 
-    final quizzesSection = AnimatedSize(
-      duration: const Duration(milliseconds: 240),
-      curve: Curves.easeInOut,
-      child: !_showTopUpSection
-          ? const SizedBox.shrink()
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 12),
-                Text('Пополните счёт тестами', style: text.titleMedium),
-                const SizedBox(height: 8),
-                ..._portfolioQuizzes.map(
-                  (quiz) => _QuizCard(
-                    quiz: quiz,
-                    onTap: () => _handleQuizStart(quiz),
-                  ),
-                ),
-                const SizedBox(height: 12),
-              ],
-            ),
-    );
-
     return CustomScrollView(
       slivers: [
         SliverPadding(
-          padding: EdgeInsets.fromLTRB(16, 16, 16, context.bottomNavBarPadding),
+          padding: EdgeInsets.fromLTRB(16, 12, 16, context.bottomNavBarPadding),
           sliver: SliverList(
             delegate: SliverChildListDelegate([
-              _BuyingPowerCard(summary: widget.summary),
-              const SizedBox(height: 12),
-              GestureDetector(
-                onTap: () => setState(() {
-                  _showTopUpSection = !_showTopUpSection;
-                }),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 220),
-                  curve: Curves.easeInOut,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: _showTopUpSection
-                          ? [
-                              scheme.secondary.withValues(alpha: 0.18),
-                              scheme.primary.withValues(alpha: 0.12),
-                            ]
-                          : [
-                              scheme.primary.withValues(alpha: 0.16),
-                              scheme.secondary.withValues(alpha: 0.12),
-                            ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(
-                      color: scheme.outline.withValues(alpha: 0.6),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: scheme.primary.withValues(alpha: 0.12),
-                        blurRadius: 18,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 20,
-                        backgroundColor: scheme.onPrimary.withValues(
-                          alpha: 0.08,
-                        ),
-                        child: Icon(
-                          _showTopUpSection
-                              ? Icons.check_circle_outline
-                              : Icons.account_balance_wallet_outlined,
-                          color: scheme.primary,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _showTopUpSection
-                                  ? 'Скрыть тестовые задания'
-                                  : 'Пополнить счёт тестами',
-                              style: text.titleMedium,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              _showTopUpSection
-                                  ? 'Свернуть подборку тестов'
-                                  : 'Пройдите мини-тесты и получите вирт. ₽',
-                              style: text.bodySmall?.copyWith(
-                                color: scheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      AnimatedRotation(
-                        // Closed: points right; open: points down.
-                        turns: _showTopUpSection ? 0 : -0.25,
-                        duration: const Duration(milliseconds: 220),
-                        curve: Curves.easeInOut,
-                        child: Icon(Icons.expand_more, color: scheme.primary),
-                      ),
-                    ],
-                  ),
-                ),
+              _PortfolioHero(
+                summary: widget.summary,
+                positions: widget.positions,
+                onTopUp: _openTopUp,
+                onLogout: widget.onLogout,
               ),
-              quizzesSection,
               const SizedBox(height: 18),
               _PortfolioTabsHeader(
                 selected: tab,
@@ -536,57 +433,451 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
   }
 }
 
-class _BuyingPowerCard extends StatelessWidget {
-  const _BuyingPowerCard({required this.summary});
+class _PortfolioHero extends StatelessWidget {
+  const _PortfolioHero({
+    required this.summary,
+    required this.positions,
+    required this.onTopUp,
+    required this.onLogout,
+  });
 
   final AsyncValue<PortfolioSummary> summary;
+  final AsyncValue<List<Position>> positions;
+  final VoidCallback onTopUp;
+  final Future<void> Function() onLogout;
 
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            scheme.surface.withValues(alpha: 0.96),
-            scheme.surfaceContainerHighest.withValues(alpha: 0.9),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outline.withValues(alpha: 0.6)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Доступно средств для покупки',
-            style: text.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 8),
-          summary.when(
-            data: (value) => Text(
-              '${value.buyingPower.toStringAsFixed(2)} ${value.currency}',
-              style: text.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
-            ),
-            loading: () => Row(
-              children: [
-                const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+    final positionsList = positions.maybeWhen(
+      data: (l) => l.where((p) => p.quantity != 0).toList(),
+      orElse: () => const <Position>[],
+    );
+    final totalPl = positionsList.fold<double>(
+      0,
+      (s, p) => s + (p.unrealisedPl ?? 0),
+    );
+    final invested = positionsList.fold<double>(
+      0,
+      (s, p) => s + (p.currentVolume - (p.unrealisedPl ?? 0)).abs(),
+    );
+    final hasPl = positionsList.any((p) => p.unrealisedPl != null);
+    final plPercent = invested > 0 ? (totalPl / invested) * 100 : 0.0;
+    final plPositive = totalPl >= 0;
+    final plColor = plPositive ? AppColors.success : AppColors.error;
+    final currencySymbol = summary.maybeWhen(
+      data: (s) => s.currency == 'RUB' ? '₽' : s.currency,
+      orElse: () => '₽',
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Верхняя строка: маленький caption + logout
+        Padding(
+          padding: const EdgeInsets.only(left: 4, top: 4, bottom: 6),
+          child: Row(
+            children: [
+              Text(
+                'Покупательная способность',
+                style: text.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                  letterSpacing: 0.4,
                 ),
-                const SizedBox(width: 12),
-                Text('Загружаем...', style: text.bodyMedium),
-              ],
+              ),
+              const Spacer(),
+              SizedBox(
+                width: 36,
+                height: 36,
+                child: IconButton(
+                  tooltip: 'Выйти',
+                  padding: EdgeInsets.zero,
+                  iconSize: 20,
+                  visualDensity: VisualDensity.compact,
+                  color: scheme.onSurfaceVariant,
+                  icon: const Icon(Icons.logout),
+                  onPressed: () => onLogout(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Большая сумма
+        Padding(
+          padding: const EdgeInsets.only(left: 4),
+          child: summary.when(
+            data: (value) => RichText(
+              text: TextSpan(
+                style: text.headlineLarge?.copyWith(
+                  color: scheme.onSurface,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 40,
+                  height: 1,
+                  letterSpacing: -0.5,
+                ),
+                children: [
+                  TextSpan(text: _formatMoney(value.buyingPower)),
+                  TextSpan(
+                    text: ' $currencySymbol',
+                    style: text.titleMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            loading: () => SizedBox(
+              height: 40,
+              child: Row(
+                children: [
+                  const SizedBox(
+                    height: 18,
+                    width: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Загружаем…',
+                    style: text.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
             ),
             error: (e, _) => Text(
               'Нет данных',
               style: text.bodyLarge?.copyWith(color: scheme.error),
+            ),
+          ),
+        ),
+        // P/L строка
+        if (hasPl) ...[
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.only(left: 4),
+            child: Row(
+              children: [
+                Icon(
+                  plPositive ? Icons.arrow_upward : Icons.arrow_downward,
+                  size: 16,
+                  color: plColor,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '${plPositive ? '+' : ''}${_formatMoney(totalPl)} $currencySymbol',
+                  style: text.bodyLarge?.copyWith(
+                    color: plColor,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 7,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: plColor.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    '${plPositive ? '+' : ''}${plPercent.toStringAsFixed(2)}%',
+                    style: text.labelMedium?.copyWith(
+                      color: plColor,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'нереализованная П/У',
+                  style: text.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+        // Стек-бар структуры портфеля
+        if (positionsList.isNotEmpty) ...[
+          const SizedBox(height: 18),
+          _PortfolioStackBar(positions: positionsList),
+        ],
+        const SizedBox(height: 18),
+        _ActionPill(
+          icon: Icons.add_rounded,
+          label: 'Пополнить',
+          primary: true,
+          onTap: onTopUp,
+        ),
+      ],
+    );
+  }
+}
+
+String _formatMoney(double v) {
+  final fixed = v.toStringAsFixed(2);
+  final parts = fixed.split('.');
+  final intPart = parts[0];
+  final neg = intPart.startsWith('-');
+  final abs = neg ? intPart.substring(1) : intPart;
+  final buf = StringBuffer();
+  for (var i = 0; i < abs.length; i++) {
+    if (i > 0 && (abs.length - i) % 3 == 0) buf.write(' ');
+    buf.write(abs[i]);
+  }
+  return '${neg ? '-' : ''}$buf.${parts[1]}';
+}
+
+class _PortfolioStackBar extends StatelessWidget {
+  const _PortfolioStackBar({required this.positions});
+
+  final List<Position> positions;
+
+  static const _palette = [
+    Color(0xFF5D8CFF),
+    Color(0xFF7BB7E3),
+    Color(0xFFFF9E7C),
+    Color(0xFFB497E8),
+    Color(0xFF6FD4B8),
+    Color(0xFFF5C24D),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+
+    final sorted = [...positions]
+      ..sort((a, b) => b.currentVolume.abs().compareTo(a.currentVolume.abs()));
+    final total = sorted.fold<double>(0, (s, p) => s + p.currentVolume.abs());
+    if (total <= 0) return const SizedBox.shrink();
+
+    final topItems = <(Position pos, Color color, double share)>[];
+    for (var i = 0; i < sorted.length && i < _palette.length - 1; i++) {
+      final share = sorted[i].currentVolume.abs() / total;
+      topItems.add((sorted[i], _palette[i], share));
+    }
+    final restShare = sorted
+        .skip(_palette.length - 1)
+        .fold<double>(0, (s, p) => s + p.currentVolume.abs() / total);
+    final hasRest = restShare > 0.001;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4),
+          child: Text(
+            'Структура портфеля',
+            style: text.bodySmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: SizedBox(
+            height: 10,
+            child: Row(
+              children: [
+                for (final item in topItems)
+                  Expanded(
+                    flex: (item.$3 * 1000).round().clamp(1, 1000),
+                    child: Container(
+                      color: item.$2,
+                      margin: const EdgeInsets.symmetric(horizontal: 1),
+                    ),
+                  ),
+                if (hasRest)
+                  Expanded(
+                    flex: (restShare * 1000).round().clamp(1, 1000),
+                    child: Container(
+                      color: _palette.last,
+                      margin: const EdgeInsets.symmetric(horizontal: 1),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Padding(
+          padding: const EdgeInsets.only(left: 4),
+          child: Wrap(
+            spacing: 14,
+            runSpacing: 6,
+            children: [
+              for (final item in topItems.take(3))
+                _LegendItem(
+                  color: item.$2,
+                  symbol: item.$1.symbol,
+                  share: item.$3,
+                ),
+              if (hasRest)
+                _LegendItem(
+                  color: _palette.last,
+                  symbol: 'другие',
+                  share: restShare,
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LegendItem extends StatelessWidget {
+  const _LegendItem({
+    required this.color,
+    required this.symbol,
+    required this.share,
+  });
+
+  final Color color;
+  final String symbol;
+  final double share;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          symbol,
+          style: text.bodySmall?.copyWith(
+            color: scheme.onSurface,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          '${(share * 100).toStringAsFixed(0)}%',
+          style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+        ),
+      ],
+    );
+  }
+}
+
+class _ActionPill extends StatelessWidget {
+  const _ActionPill({
+    required this.icon,
+    required this.label,
+    required this.primary,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool primary;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    final fg = primary ? scheme.onPrimary : scheme.primary;
+    final bg = primary
+        ? scheme.primary
+        : scheme.primary.withValues(alpha: 0.10);
+    return Material(
+      color: bg,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 20, color: fg),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: text.bodyLarge?.copyWith(
+                  color: fg,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TopUpPage extends StatelessWidget {
+  const _TopUpPage({required this.onQuizTap});
+
+  final Future<void> Function(_PortfolioQuiz quiz) onQuizTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Расширить доступ'),
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: scheme.primary.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: scheme.primary.withValues(alpha: 0.2)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Подтвердите знания',
+                  style: text.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Каждый пройденный тест увеличивает покупательную способность. '
+                  'Это мера допуска: чем уверенней понимаете рынок — тем больше операций открыто.',
+                  style: text.bodyMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          ..._portfolioQuizzes.map(
+            (quiz) => _QuizCard(
+              quiz: quiz,
+              onTap: () async {
+                Navigator.of(context).pop();
+                await onQuizTap(quiz);
+              },
             ),
           ),
         ],
