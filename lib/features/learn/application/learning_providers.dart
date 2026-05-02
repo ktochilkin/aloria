@@ -1,0 +1,202 @@
+import 'package:aloria/features/learn/data/learning_progress_repository.dart';
+import 'package:aloria/features/learn/domain/learning_content_service.dart';
+import 'package:aloria/features/learn/domain/models.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+// ---------------------------------------------------------------------------
+// Контент.
+// ---------------------------------------------------------------------------
+
+/// Singleton-сервис парсинга markdown-уроков.
+final learningContentServiceProvider = Provider<LearningContentService>(
+  (_) => LearningContentService(),
+);
+
+/// Кэшированный список разделов с уроками.
+///
+/// Парсинг markdown-файлов выполняется ровно один раз за время жизни
+/// провайдера. Все экраны обучения подписаны на этот же провайдер,
+/// поэтому переход между списком и уроком не вызывает повторных загрузок.
+final learningSectionsProvider = FutureProvider<List<LearningSection>>(
+  (ref) async {
+    final service = ref.watch(learningContentServiceProvider);
+    return service.loadSections();
+  },
+);
+
+final learningIntroProvider = FutureProvider<String>((ref) async {
+  final service = ref.watch(learningContentServiceProvider);
+  return service.loadIntro();
+});
+
+// ---------------------------------------------------------------------------
+// Прогресс.
+// ---------------------------------------------------------------------------
+
+/// SharedPreferences для прогресса. Создаётся один раз при первом обращении.
+final _sharedPreferencesProvider = FutureProvider<SharedPreferences>(
+  (_) => SharedPreferences.getInstance(),
+);
+
+/// Репозиторий прогресса обучения.
+final learningProgressRepositoryProvider =
+    FutureProvider<LearningProgressRepository>((ref) async {
+  final prefs = await ref.watch(_sharedPreferencesProvider.future);
+  return LearningProgressRepository(prefs);
+});
+
+/// Снимок текущего состояния прогресса по урокам.
+class LearningProgressState {
+  const LearningProgressState({
+    this.entries = const {},
+    this.lastVisited,
+  });
+
+  /// Ключ — composite "sectionId/lessonId".
+  final Map<String, LessonProgressEntry> entries;
+  final ({String sectionId, String lessonId})? lastVisited;
+
+  bool isLessonRead(String sectionId, String lessonId) {
+    final key = LearningProgressRepository.compositeId(sectionId, lessonId);
+    return entries[key]?.read ?? false;
+  }
+
+  LessonProgressEntry? entryFor(String sectionId, String lessonId) {
+    final key = LearningProgressRepository.compositeId(sectionId, lessonId);
+    return entries[key];
+  }
+
+  /// Сколько уроков из раздела помечены прочитанными.
+  int readCountInSection(LearningSection section) {
+    var count = 0;
+    for (final lesson in section.lessons) {
+      if (isLessonRead(section.id, lesson.id)) count++;
+    }
+    return count;
+  }
+}
+
+class LearningProgressNotifier extends StateNotifier<LearningProgressState> {
+  /// Основной конструктор: создаёт состояние из репозитория.
+  LearningProgressNotifier(LearningProgressRepository repository)
+      : _repository = repository,
+        super(LearningProgressState(
+          entries: repository.loadAll(),
+          lastVisited: repository.lastVisited(),
+        ));
+
+  /// Заглушка на время инициализации SharedPreferences.
+  /// Все мутирующие методы становятся no-op до момента появления репозитория.
+  LearningProgressNotifier.uninitialized()
+      : _repository = null,
+        super(const LearningProgressState());
+
+  final LearningProgressRepository? _repository;
+
+  Future<void> markRead(String sectionId, String lessonId) async {
+    final repo = _repository;
+    if (repo == null) return;
+    final updated = await repo.markRead(sectionId, lessonId);
+    state = LearningProgressState(
+      entries: updated,
+      lastVisited: (sectionId: sectionId, lessonId: lessonId),
+    );
+  }
+
+  Future<void> saveQuizResult({
+    required String sectionId,
+    required String lessonId,
+    required int score,
+    required int total,
+  }) async {
+    final repo = _repository;
+    if (repo == null) return;
+    final updated = await repo.saveQuizResult(
+      sectionId,
+      lessonId,
+      score: score,
+      total: total,
+    );
+    state = LearningProgressState(
+      entries: updated,
+      lastVisited: (sectionId: sectionId, lessonId: lessonId),
+    );
+  }
+
+  Future<void> reset() async {
+    await _repository?.reset();
+    state = const LearningProgressState();
+  }
+}
+
+/// Состояние прогресса. Пока репозиторий грузится — отдаёт пустое состояние,
+/// чтобы UI не приходилось ловить отдельный loading на каждом экране.
+final learningProgressProvider =
+    StateNotifierProvider<LearningProgressNotifier, LearningProgressState>(
+  (ref) {
+    final repoAsync = ref.watch(learningProgressRepositoryProvider);
+    return repoAsync.maybeWhen(
+      data: LearningProgressNotifier.new,
+      orElse: () => LearningProgressNotifier.uninitialized(),
+    );
+  },
+);
+
+// ---------------------------------------------------------------------------
+// Удобные derived-провайдеры.
+// ---------------------------------------------------------------------------
+
+/// Последний открытый урок (если он всё ещё есть в загруженном контенте).
+final lastVisitedLessonProvider = Provider<({
+  LearningSection section,
+  Lesson lesson,
+})?>((ref) {
+  final sectionsAsync = ref.watch(learningSectionsProvider);
+  final progress = ref.watch(learningProgressProvider);
+  final last = progress.lastVisited;
+  if (last == null) return null;
+  return sectionsAsync.maybeWhen(
+    data: (sections) => _pickPair(sections, last.sectionId, last.lessonId),
+    orElse: () => null,
+  );
+});
+
+/// Первый непрочитанный урок — используется как «начать обучение»,
+/// когда ещё не было ни одного открытого урока.
+final nextLessonHintProvider = Provider<({
+  LearningSection section,
+  Lesson lesson,
+})?>((ref) {
+  final sectionsAsync = ref.watch(learningSectionsProvider);
+  final progress = ref.watch(learningProgressProvider);
+  return sectionsAsync.maybeWhen(
+    data: (sections) {
+      for (final section in sections) {
+        for (final lesson in section.lessons) {
+          if (!progress.isLessonRead(section.id, lesson.id)) {
+            return (section: section, lesson: lesson);
+          }
+        }
+      }
+      return null;
+    },
+    orElse: () => null,
+  );
+});
+
+({LearningSection section, Lesson lesson})? _pickPair(
+  List<LearningSection> sections,
+  String sectionId,
+  String lessonId,
+) {
+  for (final section in sections) {
+    if (section.id != sectionId) continue;
+    for (final lesson in section.lessons) {
+      if (lesson.id == lessonId) {
+        return (section: section, lesson: lesson);
+      }
+    }
+  }
+  return null;
+}
