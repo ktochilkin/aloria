@@ -6,7 +6,6 @@ const double kNavigationBarHeight = 72.0;
 /// Возвращает безопасный отступ снизу с учетом высоты навигационной панели
 /// Использовать для padding в ScrollView и ListView
 double getBottomPaddingWithNavBar(BuildContext context) {
-  // Теперь используем обычный отступ везде, т.к. extendBody отключен
   return 16.0;
 }
 

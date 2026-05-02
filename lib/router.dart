@@ -174,26 +174,29 @@ class _ScaffoldWithNavBar extends ConsumerWidget {
             ),
           ],
         ),
-        child: ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          child: NavigationBar(
-            backgroundColor: Colors.transparent,
-            selectedIndex: navigationShell.currentIndex,
-            onDestinationSelected: _goBranch,
-            destinations: const [
-              NavigationDestination(
-                label: 'Обучение',
-                icon: Icon(Icons.school),
-              ),
-              NavigationDestination(
-                label: 'Портфель',
-                icon: Icon(Icons.list_alt),
-              ),
-              NavigationDestination(
-                label: 'Обзор рынка',
-                icon: Icon(Icons.show_chart),
-              ),
-            ],
+        child: SafeArea(
+          top: false,
+          child: ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            child: NavigationBar(
+              backgroundColor: Colors.transparent,
+              selectedIndex: navigationShell.currentIndex,
+              onDestinationSelected: _goBranch,
+              destinations: const [
+                NavigationDestination(
+                  label: 'Обучение',
+                  icon: Icon(Icons.school),
+                ),
+                NavigationDestination(
+                  label: 'Портфель',
+                  icon: Icon(Icons.list_alt),
+                ),
+                NavigationDestination(
+                  label: 'Обзор рынка',
+                  icon: Icon(Icons.show_chart),
+                ),
+              ],
+            ),
           ),
         ),
       ),

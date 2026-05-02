@@ -18,4 +18,4 @@ Map<String, dynamic> _$$ExampleItemImplToJson(_$ExampleItemImpl instance) =>
       'id': instance.id,
       'title': instance.title,
       'description': instance.description,
-    };
+  };
