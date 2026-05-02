@@ -212,6 +212,15 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
     final scheme = Theme.of(context).colorScheme;
     final tab = ref.watch(portfolioTabProvider);
 
+    final positionsCount = widget.positions.maybeWhen(
+      data: (l) => l.where((p) => p.quantity != 0).length,
+      orElse: () => 0,
+    );
+    final activeOrdersCount = widget.orders.maybeWhen(
+      data: (l) => l.where((o) => o.isActive).length,
+      orElse: () => 0,
+    );
+
     final positionsWidget = widget.positions.when(
       data: (list) {
         final items = list.where((p) => p.quantity != 0).take(50).toList();
@@ -506,36 +515,19 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
               ),
               quizzesSection,
               const SizedBox(height: 18),
-              SegmentedButton<_PortfolioTab>(
-                segments: const [
-                  ButtonSegment(
-                    value: _PortfolioTab.positions,
-                    label: Text('Мои активы'),
-                  ),
-                  ButtonSegment(
-                    value: _PortfolioTab.orders,
-                    label: Text('Заявки'),
-                  ),
-                ],
-                selected: {tab},
-                onSelectionChanged: (selection) {
-                  if (selection.isEmpty) return;
-                  ref.read(portfolioTabProvider.notifier).state =
-                      selection.first;
+              _PortfolioTabsHeader(
+                selected: tab,
+                positionsCount: positionsCount,
+                ordersCount: activeOrdersCount,
+                onSelected: (next) {
+                  ref.read(portfolioTabProvider.notifier).state = next;
                 },
               ),
               const SizedBox(height: 12),
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 220),
-                transitionBuilder: (child, animation) =>
-                    FadeTransition(opacity: animation, child: child),
-                child: KeyedSubtree(
-                  key: ValueKey(tab),
-                  child: tab == _PortfolioTab.positions
-                      ? positionsWidget
-                      : ordersWidget,
-                ),
-              ),
+              if (tab == _PortfolioTab.positions)
+                positionsWidget
+              else
+                ordersWidget,
             ]),
           ),
         ),
@@ -1182,6 +1174,121 @@ const List<_PortfolioQuiz> _portfolioQuizzes = [
     ],
   ),
 ];
+
+class _PortfolioTabsHeader extends StatelessWidget {
+  const _PortfolioTabsHeader({
+    required this.selected,
+    required this.positionsCount,
+    required this.ordersCount,
+    required this.onSelected,
+  });
+
+  final _PortfolioTab selected;
+  final int positionsCount;
+  final int ordersCount;
+  final ValueChanged<_PortfolioTab> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: scheme.outline.withValues(alpha: 0.4)),
+        ),
+      ),
+      child: Row(
+        children: [
+          _TabButton(
+            label: 'Активы',
+            count: positionsCount,
+            selected: selected == _PortfolioTab.positions,
+            onTap: () => onSelected(_PortfolioTab.positions),
+          ),
+          const SizedBox(width: 8),
+          _TabButton(
+            label: 'Заявки',
+            count: ordersCount,
+            selected: selected == _PortfolioTab.orders,
+            onTap: () => onSelected(_PortfolioTab.orders),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TabButton extends StatelessWidget {
+  const _TabButton({
+    required this.label,
+    required this.count,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final int count;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    final color = selected ? scheme.primary : scheme.onSurfaceVariant;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(
+              color: selected ? scheme.primary : Colors.transparent,
+              width: 2,
+            ),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: text.bodyLarge?.copyWith(
+                color: color,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+              ),
+            ),
+            if (count > 0) ...[
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 7,
+                  vertical: 2,
+                ),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? scheme.primary.withValues(alpha: 0.16)
+                      : scheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '$count',
+                  style: text.labelMedium?.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class _PositionExpansionTile extends StatelessWidget {
   const _PositionExpansionTile({required this.position});
