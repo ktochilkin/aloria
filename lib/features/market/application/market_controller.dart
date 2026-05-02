@@ -39,7 +39,7 @@ class MarketSecuritiesNotifier
 
       // Map quotes to a map for O(1) lookup
       // Key: symbol, Value: quote map
-      final quotesMap = {for (var q in quotes) q['symbol'] as String: q};
+      final quotesMap = {for (final q in quotes) q['symbol'] as String: q};
 
       final updatedList = currentList.map((security) {
         final quote = quotesMap[security.symbol];

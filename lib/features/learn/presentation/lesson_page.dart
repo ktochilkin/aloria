@@ -216,9 +216,9 @@ class _LessonViewState extends ConsumerState<_LessonView> {
               ),
               listBullet: text.bodyMedium,
             ),
-            imageBuilder: (uri, title, alt) => _MarkdownImage(
-              uri: uri,
-              alt: alt,
+            sizedImageBuilder: (config) => _MarkdownImage(
+              uri: config.uri,
+              alt: config.alt,
               fallbackTint: widget.section.tint,
             ),
           ),
@@ -514,14 +514,14 @@ class _LessonImage extends StatelessWidget {
             height: 200,
             width: double.infinity,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => fallback(),
+            errorBuilder: (_, _, _) => fallback(),
           )
         : Image.asset(
             source,
             height: 200,
             width: double.infinity,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => fallback(),
+            errorBuilder: (_, _, _) => fallback(),
           );
 
     return ClipRRect(
@@ -558,7 +558,7 @@ class _MarkdownImage extends StatelessWidget {
           uri.toString(),
           fit: BoxFit.cover,
           width: double.infinity,
-          errorBuilder: (_, __, ___) => Container(
+          errorBuilder: (_, _, _) => Container(
             height: 160,
             alignment: Alignment.center,
             color: scheme.surfaceContainerHighest,

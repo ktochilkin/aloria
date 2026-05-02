@@ -100,7 +100,7 @@ class NewsInstrumentCard extends ConsumerWidget {
           );
         },
         loading: () => _buildLoading(context, symbol),
-        error: (_, __) => _buildPlaceholder(context, symbol),
+        error: (_, _) => _buildPlaceholder(context, symbol),
       ),
     );
   }

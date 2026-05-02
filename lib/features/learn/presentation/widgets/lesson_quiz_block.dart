@@ -347,7 +347,7 @@ class _OptionTile extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           decoration: BoxDecoration(
-            border: Border.all(color: border, width: 1),
+            border: Border.all(color: border),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(

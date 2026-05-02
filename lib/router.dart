@@ -160,10 +160,10 @@ class _ScaffoldWithNavBar extends ConsumerWidget {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
+          gradient: const LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [const Color(0xFFF8FAFF), const Color(0xFFF0F4FF)],
+            colors: [Color(0xFFF8FAFF), Color(0xFFF0F4FF)],
           ),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           boxShadow: [
@@ -207,7 +207,7 @@ class _ScaffoldWithNavBar extends ConsumerWidget {
     }
 
     // На десктопе центрируем и ограничиваем ширину
-    return Container(
+    return ColoredBox(
       color: Theme.of(context).scaffoldBackgroundColor,
       child: Center(
         child: Container(

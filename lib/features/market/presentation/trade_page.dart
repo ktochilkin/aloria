@@ -328,7 +328,6 @@ class _TradeBody extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Text('Пульс рынка', style: text.titleMedium),
                   Text(

@@ -29,7 +29,7 @@ class OrderBookWidget extends StatelessWidget {
       ...asks.map((e) => e.volume.abs()),
       ...bids.map((e) => e.volume.abs()),
     ].fold<double>(0, (p, v) => v > p ? v : p);
-    final time = book == null ? null : book!.ts;
+    final time = book?.ts;
     final label = time == null
         ? 'ждём первую пачку...'
         : 'обновлено в ${time.hour}:${time.minute.toString().padLeft(2, '0')}:${time.second.toString().padLeft(2, '0')}';

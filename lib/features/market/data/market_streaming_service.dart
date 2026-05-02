@@ -131,7 +131,7 @@ class MarketStreamingService {
       subState.listeners = 0;
       subState.disposed = true;
       if (subState.subId != null) {
-        final token = await _tokenProvider.accessToken(forceRefresh: false);
+        final token = await _tokenProvider.accessToken();
         if (token != null) {
           _tradingRealtime.send({
             'opcode': 'Unsubscribe',
@@ -235,7 +235,7 @@ class MarketStreamingService {
       subState.listeners = 0;
       subState.disposed = true;
       if (subState.subId != null) {
-        final token = await _tokenProvider.accessToken(forceRefresh: false);
+        final token = await _tokenProvider.accessToken();
         if (token != null) {
           _tradingRealtime.send({
             'opcode': 'Unsubscribe',
@@ -342,7 +342,7 @@ class MarketStreamingService {
       subState.listeners = 0;
       subState.disposed = true;
       if (subState.subId != null) {
-        final token = await _tokenProvider.accessToken(forceRefresh: false);
+        final token = await _tokenProvider.accessToken();
         if (token != null) {
           _tradingRealtime.send({
             'opcode': 'Unsubscribe',
@@ -687,6 +687,7 @@ class _PriceSubscription {
 
   final StreamController<MarketPrice> controller;
   int listeners;
+  // ignore: cancel_subscriptions
   StreamSubscription<Map<String, dynamic>>? sub;
   String? subId;
   bool disposed = false;
@@ -698,6 +699,7 @@ class _OrderBookSubscription {
 
   final StreamController<OrderBook> controller;
   int listeners;
+  // ignore: cancel_subscriptions
   StreamSubscription<Map<String, dynamic>>? sub;
   String? subId;
   bool disposed = false;
@@ -709,6 +711,7 @@ class _CandleSubscription {
 
   final StreamController<Candle> controller;
   int listeners;
+  // ignore: cancel_subscriptions
   StreamSubscription<Map<String, dynamic>>? sub;
   String? subId;
   bool disposed = false;
@@ -719,6 +722,7 @@ class _SharedSubscription<T> {
 
   final StreamController<T> controller;
   int listeners;
+  // ignore: cancel_subscriptions
   StreamSubscription<Map<String, dynamic>>? sub;
   String? subId;
   bool disposed = false;

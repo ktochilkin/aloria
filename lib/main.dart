@@ -26,7 +26,7 @@ void main() {
       // Оптимизации для веб-платформы
       if (kIsWeb) {
         // Отключение контекстного меню на веб
-        BrowserContextMenu.disableContextMenu();
+        _disableBrowserContextMenu();
       }
 
       final config = AppConfig.fromEnv();
@@ -52,11 +52,9 @@ void main() {
   );
 }
 
-/// Helper для отключения контекстного меню на веб
-class BrowserContextMenu {
-  static void disableContextMenu() {
-    if (kIsWeb) {
-      // Отключаем долгое нажатие и контекстное меню для лучшей производительности на iOS
-    }
+/// Helper для отключения контекстного меню на веб.
+void _disableBrowserContextMenu() {
+  if (kIsWeb) {
+    // Отключаем долгое нажатие и контекстное меню для лучшей производительности на iOS
   }
 }

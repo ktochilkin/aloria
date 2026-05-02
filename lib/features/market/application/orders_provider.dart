@@ -34,7 +34,6 @@ final cancelOrderProvider =
           orderId: orderId,
           portfolio: portfolio,
           exchange: exchange,
-          stop: false,
         );
       };
     });

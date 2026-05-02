@@ -8,7 +8,7 @@ import 'package:flutter/services.dart';
 /// Структура ассетов:
 ///   assets/lessons/sections.json     — список разделов и метаданные intro
 ///   assets/lessons/intro.md          — текст вступительной модалки
-///   assets/lessons/<sectionId>/*.md  — markdown-файлы уроков по разделу
+///   `assets/lessons/<sectionId>/*.md`  — markdown-файлы уроков по разделу
 ///
 /// Формат урока (markdown):
 ///   ---

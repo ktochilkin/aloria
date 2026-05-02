@@ -13,7 +13,7 @@ class LessonProgressEntry {
     this.lastQuizTotal,
   });
 
-  /// Идентификатор в формате "<sectionId>/<lessonId>".
+  /// Идентификатор в формате `"<sectionId>/<lessonId>"`.
   final String lessonId;
   final bool read;
   final DateTime? lastViewedAt;

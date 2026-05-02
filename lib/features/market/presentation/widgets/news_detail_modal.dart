@@ -98,7 +98,6 @@ void showNewsDetailModal(BuildContext context, MarketNews news) {
                                       .colorScheme
                                       .outlineVariant
                                       .withValues(alpha: 0.5),
-                                  width: 1,
                                 ),
                               ),
                             ),

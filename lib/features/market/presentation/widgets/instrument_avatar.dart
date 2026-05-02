@@ -24,7 +24,7 @@ class InstrumentAvatar extends StatelessWidget {
         child: Image.asset(
           path,
           fit: BoxFit.cover,
-          errorBuilder: (context, _, __) => Container(
+          errorBuilder: (context, _, _) => Container(
             color: scheme.primary.withValues(alpha: 0.16),
             alignment: Alignment.center,
             child: Text(

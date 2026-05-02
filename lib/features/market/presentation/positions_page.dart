@@ -360,7 +360,7 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
                           ),
                           minimumSize: Size.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          side: BorderSide(color: Colors.orange, width: 1.5),
+                          side: const BorderSide(color: Colors.orange, width: 1.5),
                           foregroundColor: Colors.orange,
                         ),
                         child: const Text(

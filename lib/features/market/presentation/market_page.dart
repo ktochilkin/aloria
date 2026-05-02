@@ -24,7 +24,6 @@ class MarketPage extends ConsumerWidget {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: null,
           toolbarHeight: 0,
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(76),
@@ -197,7 +196,6 @@ class _MarketOverviewTab extends StatelessWidget {
                             InstrumentAvatar(
                               symbol: item.symbol,
                               label: label,
-                              size: 44,
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -297,7 +295,7 @@ class _MarketNewsTab extends StatelessWidget {
               context.bottomNavBarPadding,
             ),
             itemCount: items.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            separatorBuilder: (_, _) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final news = items[index];
 

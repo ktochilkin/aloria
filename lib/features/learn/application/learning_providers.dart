@@ -19,13 +19,13 @@ final learningContentServiceProvider = Provider<LearningContentService>(
 /// провайдера. Все экраны обучения подписаны на этот же провайдер,
 /// поэтому переход между списком и уроком не вызывает повторных загрузок.
 final learningSectionsProvider = FutureProvider<List<LearningSection>>(
-  (ref) async {
+  (ref) {
     final service = ref.watch(learningContentServiceProvider);
     return service.loadSections();
   },
 );
 
-final learningIntroProvider = FutureProvider<String>((ref) async {
+final learningIntroProvider = FutureProvider<String>((ref) {
   final service = ref.watch(learningContentServiceProvider);
   return service.loadIntro();
 });

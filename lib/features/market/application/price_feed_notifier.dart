@@ -103,7 +103,6 @@ class PriceFeedNotifier
     final history = await repo.fetchHistoryPrices(
       symbol: params.symbol,
       exchange: params.exchange,
-      tfMinutes: 60,
     );
     if (history.isNotEmpty) {
       // Фильтруем только данные текущего инструмента перед merge
@@ -167,7 +166,6 @@ class PriceFeedNotifier
         .watchCandles(
           symbol: params.symbol,
           exchange: params.exchange,
-          instrumentGroup: null,
           timeframe: '60', // 1 час
           fromTime: fromTime,
         )
