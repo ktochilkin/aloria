@@ -2,10 +2,21 @@ class PortfolioSummary {
   final double buyingPower;
   final String currency;
 
-  const PortfolioSummary({required this.buyingPower, required this.currency});
+  /// Оценка всего портфеля по текущим ценам (cash + позиции).
+  /// `null`, если бэк не вернул значение — в этом случае UI считает
+  /// фолбэком `buyingPower + Σ position.currentVolume`.
+  final double? liquidationValue;
+
+  const PortfolioSummary({
+    required this.buyingPower,
+    required this.currency,
+    this.liquidationValue,
+  });
 
   static PortfolioSummary? tryParse(Map<String, dynamic> map) {
     double asDouble(dynamic v) => v is num ? v.toDouble() : 0;
+    double? asNullableDouble(dynamic v) => v is num ? v.toDouble() : null;
+
     final byCurrency = map['buyingPowerByCurrency'];
     final hasPower = map.containsKey('buyingPower') ||
         (byCurrency is List && byCurrency.isNotEmpty);
@@ -28,6 +39,16 @@ class PortfolioSummary {
       currency = map['currency'] as String;
     }
 
-    return PortfolioSummary(buyingPower: buyingPower, currency: currency);
+    final liquidation = asNullableDouble(
+      map['portfolioLiquidationValue'] ??
+          map['portfolioEvaluation'] ??
+          map['liquidationValue'],
+    );
+
+    return PortfolioSummary(
+      buyingPower: buyingPower,
+      currency: currency,
+      liquidationValue: liquidation,
+    );
   }
 }
