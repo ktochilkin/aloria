@@ -3,6 +3,7 @@ import 'package:aloria/features/settings/application/settings_controller.dart';
 import 'package:aloria/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
@@ -25,6 +26,16 @@ class SettingsPage extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
+          ListTile(
+            leading: const Icon(Icons.emoji_events_outlined),
+            title: const Text('Достижения и прогресс'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.of(context).pop();
+              context.push('/progress');
+            },
+          ),
+          const Divider(height: 24),
           _SectionHeader(title: l.settingsTheme),
           _ThemeOption(
             label: l.settingsThemeSystem,

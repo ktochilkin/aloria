@@ -47,7 +47,7 @@ class SectionProgressRing extends StatelessWidget {
               : Text(
                   '$completed/$total',
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: AppColors.onSurface,
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontWeight: FontWeight.w800,
                       ),
                 ),
@@ -250,7 +250,7 @@ class _RoadmapRail extends StatelessWidget {
             : scheme.outline;
     final dotForeground = isCompleted || isCurrent
         ? Colors.white
-        : AppColors.onSurfaceVariant;
+        : scheme.onSurfaceVariant;
 
     return SizedBox(
       width: 36,
@@ -303,10 +303,11 @@ class _StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final (label, color) = switch (status) {
       RoadmapNodeStatus.completed => ('Пройдено', AppColors.success),
       RoadmapNodeStatus.current => ('Сейчас', tint),
-      RoadmapNodeStatus.available => ('Доступно', AppColors.onSurfaceVariant),
+      RoadmapNodeStatus.available => ('Доступно', scheme.onSurfaceVariant),
     };
     final text = Theme.of(context).textTheme;
     return Container(

@@ -224,7 +224,7 @@ class _ServerQuizBlockState extends ConsumerState<ServerQuizBlock> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              if (quiz.rewardXp > 0 || quiz.rewardBuyingPower > 0) ...[
+              if (quiz.rewardBuyingPower > 0) ...[
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -233,11 +233,7 @@ class _ServerQuizBlockState extends ConsumerState<ServerQuizBlock> {
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
-                    [
-                      if (quiz.rewardXp > 0) '+${quiz.rewardXp} XP',
-                      if (quiz.rewardBuyingPower > 0)
-                        '+${quiz.rewardBuyingPower.toStringAsFixed(0)} ₽',
-                    ].join(' · '),
+                    '+${quiz.rewardBuyingPower.toStringAsFixed(0)} ₽',
                     style: text.labelMedium?.copyWith(
                       color: widget.tint,
                       fontWeight: FontWeight.w800,
@@ -341,18 +337,11 @@ class _ServerQuizBlockState extends ConsumerState<ServerQuizBlock> {
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                        if (result.isPassed &&
-                            (result.awardedXp > 0 ||
-                                result.awardedBuyingPower > 0))
+                        if (result.isPassed && result.awardedBuyingPower > 0)
                           Padding(
                             padding: const EdgeInsets.only(top: 4),
                             child: Text(
-                              [
-                                if (result.awardedXp > 0)
-                                  '+${result.awardedXp} XP',
-                                if (result.awardedBuyingPower > 0)
-                                  'покупательная способность +${result.awardedBuyingPower.toStringAsFixed(0)} ₽',
-                              ].join(' · '),
+                              'покупательная способность +${result.awardedBuyingPower.toStringAsFixed(0)} ₽',
                               style: text.bodySmall?.copyWith(
                                 color: AppColors.success,
                                 fontWeight: FontWeight.w700,
@@ -523,7 +512,7 @@ class _OptionTile extends StatelessWidget {
 
     Color background = scheme.surface;
     Color border = scheme.outline;
-    Color textColor = AppColors.onSurface;
+    Color textColor = scheme.onSurface;
     IconData? trailing;
     Color trailingColor = scheme.onSurfaceVariant;
 

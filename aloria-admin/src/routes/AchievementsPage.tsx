@@ -40,7 +40,6 @@ export function AchievementsPage() {
                   <div className="text-xs text-(--color-fg-muted) mt-0.5">{a.description}</div>
                   <div className="flex items-center gap-2 mt-2 flex-wrap">
                     <Badge tone="primary">{cond?.label ?? `cond ${a.condition}`}{cond?.usesThreshold ? ` ≥ ${a.conditionThreshold}` : ''}</Badge>
-                    {a.rewardXp > 0 && <Badge tone="success">+{a.rewardXp} XP</Badge>}
                     {a.rewardBuyingPower > 0 && <Badge tone="warning">+{a.rewardBuyingPower} ₽</Badge>}
                   </div>
                 </div>
@@ -104,7 +103,6 @@ function AchievementEditor({ initial, onClose, onSaved }: { initial: AdminAchiev
               <Input type="number" value={form.conditionThreshold} onChange={(e) => setForm({ ...form, conditionThreshold: parseInt(e.target.value) || 0 })} />
             </Field>
           )}
-          <Field label="Награда XP"><Input type="number" value={form.rewardXp} onChange={(e) => setForm({ ...form, rewardXp: parseInt(e.target.value) || 0 })} /></Field>
           <Field label="Бонус покупательной способности (₽)"><Input type="number" value={form.rewardBuyingPower} onChange={(e) => setForm({ ...form, rewardBuyingPower: parseFloat(e.target.value) || 0 })} /></Field>
         </div>
         <div className="flex justify-end gap-2 mt-6">

@@ -99,7 +99,7 @@ class _LearningIndexBody extends ConsumerWidget {
           child: Text(
             'Разделы',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppColors.onSurfaceVariant,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 0.4,
                 ),

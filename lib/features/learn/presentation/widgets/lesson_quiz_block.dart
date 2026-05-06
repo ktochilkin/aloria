@@ -314,7 +314,7 @@ class _OptionTile extends StatelessWidget {
 
     Color background = scheme.surface;
     Color border = scheme.outline;
-    Color textColor = AppColors.onSurface;
+    Color textColor = scheme.onSurface;
     IconData? trailing;
     Color trailingColor = scheme.onSurfaceVariant;
 
@@ -322,13 +322,13 @@ class _OptionTile extends StatelessWidget {
       if (isCorrect) {
         background = AppColors.success.withValues(alpha: 0.10);
         border = AppColors.success;
-        textColor = AppColors.onSurface;
+        textColor = scheme.onSurface;
         trailing = Icons.check_circle;
         trailingColor = AppColors.success;
       } else if (isSelected) {
         background = AppColors.error.withValues(alpha: 0.10);
         border = AppColors.error;
-        textColor = AppColors.onSurface;
+        textColor = scheme.onSurface;
         trailing = Icons.cancel;
         trailingColor = AppColors.error;
       } else {

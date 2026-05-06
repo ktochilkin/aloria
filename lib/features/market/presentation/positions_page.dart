@@ -3,6 +3,7 @@ import 'package:aloria/core/theme/tokens.dart';
 import 'package:aloria/core/utils/layout_utils.dart';
 import 'package:aloria/core/widgets/top_notification.dart';
 import 'package:aloria/features/auth/application/auth_controller.dart';
+import 'package:aloria/features/learning_mode/presentation/explainable.dart';
 import 'package:aloria/features/market/application/orders_provider.dart';
 import 'package:aloria/features/market/application/portfolio_summary_provider.dart';
 import 'package:aloria/features/market/application/positions_provider.dart';
@@ -416,29 +417,40 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
             delegate: SliverChildListDelegate([
               const _PortfolioTitleBar(),
               const SizedBox(height: 12),
-              _PortfolioHero(
-                summary: widget.summary,
-                positions: widget.positions,
-                onTopUp: _openTopUp,
+              Explainable(
+                slug: 'portfolio.hero',
+                borderRadius: BorderRadius.circular(20),
+                child: _PortfolioHero(
+                  summary: widget.summary,
+                  positions: widget.positions,
+                  onTopUp: _openTopUp,
+                ),
               ),
               if (activeOrdersCount > 0) ...[
                 const SizedBox(height: 14),
-                _ActiveOrdersBanner(
-                  count: activeOrdersCount,
-                  onTap: () {
-                    ref.read(portfolioTabProvider.notifier).state =
-                        _PortfolioTab.orders;
-                  },
+                Explainable(
+                  slug: 'portfolio.active-orders',
+                  child: _ActiveOrdersBanner(
+                    count: activeOrdersCount,
+                    onTap: () {
+                      ref.read(portfolioTabProvider.notifier).state =
+                          _PortfolioTab.orders;
+                    },
+                  ),
                 ),
               ],
               const SizedBox(height: 18),
-              _PortfolioTabsHeader(
-                selected: tab,
-                positionsCount: positionsCount,
-                ordersCount: activeOrdersCount,
-                onSelected: (next) {
-                  ref.read(portfolioTabProvider.notifier).state = next;
-                },
+              Explainable(
+                slug: 'portfolio.tabs',
+                borderRadius: BorderRadius.circular(8),
+                child: _PortfolioTabsHeader(
+                  selected: tab,
+                  positionsCount: positionsCount,
+                  ordersCount: activeOrdersCount,
+                  onSelected: (next) {
+                    ref.read(portfolioTabProvider.notifier).state = next;
+                  },
+                ),
               ),
               const SizedBox(height: 12),
               if (tab == _PortfolioTab.positions)
@@ -472,6 +484,19 @@ class _PortfolioTitleBar extends StatelessWidget {
           ),
         ),
         const Spacer(),
+        SizedBox(
+          width: 40,
+          height: 40,
+          child: IconButton(
+            tooltip: 'Прогресс',
+            padding: EdgeInsets.zero,
+            iconSize: 22,
+            visualDensity: VisualDensity.compact,
+            color: scheme.onSurfaceVariant,
+            icon: const Icon(Icons.emoji_events_outlined),
+            onPressed: () => context.push('/progress'),
+          ),
+        ),
         SizedBox(
           width: 40,
           height: 40,
@@ -511,16 +536,16 @@ class _ActiveOrdersBanner extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0x12141C20)),
-            boxShadow: const [
+            border: Border.all(color: context.palette.heroBorder),
+            boxShadow: [
               BoxShadow(
-                color: Color(0x0A14161C),
-                offset: Offset(0, 1),
+                color: context.palette.heroShadow,
+                offset: const Offset(0, 1),
                 blurRadius: 2,
               ),
               BoxShadow(
-                color: Color(0x0A14161C),
-                offset: Offset(0, 6),
+                color: context.palette.heroShadow,
+                offset: const Offset(0, 6),
                 blurRadius: 20,
               ),
             ],
@@ -631,16 +656,16 @@ class _PortfolioHero extends StatelessWidget {
       decoration: BoxDecoration(
         color: scheme.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0x12141C20)),
-        boxShadow: const [
+        border: Border.all(color: context.palette.heroBorder),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x0A14161C),
-            offset: Offset(0, 1),
+            color: context.palette.heroShadow,
+            offset: const Offset(0, 1),
             blurRadius: 2,
           ),
           BoxShadow(
-            color: Color(0x0A14161C),
-            offset: Offset(0, 6),
+            color: context.palette.heroShadow,
+            offset: const Offset(0, 6),
             blurRadius: 20,
           ),
         ],
@@ -763,7 +788,7 @@ class _HeroDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(height: 1, color: const Color(0x12141C20));
+    return Container(height: 1, color: context.palette.heroBorder);
   }
 }
 
@@ -925,7 +950,7 @@ class _ColumnDivider extends StatelessWidget {
     return Container(
       width: 1,
       margin: const EdgeInsets.symmetric(horizontal: 8),
-      color: const Color(0x12141C20),
+      color: context.palette.heroBorder,
     );
   }
 }

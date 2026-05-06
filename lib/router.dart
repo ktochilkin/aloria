@@ -4,6 +4,7 @@ import 'package:aloria/core/env/env.dart';
 import 'package:aloria/features/auth/application/auth_controller.dart';
 import 'package:aloria/features/auth/presentation/login_page.dart';
 import 'package:aloria/features/learn/presentation/learning_page.dart';
+import 'package:aloria/features/learning_mode/presentation/learning_mode_banner.dart';
 import 'package:aloria/features/market/application/orders_provider.dart';
 import 'package:aloria/features/market/application/portfolio_summary_provider.dart';
 import 'package:aloria/features/market/application/positions_provider.dart';
@@ -11,6 +12,7 @@ import 'package:aloria/features/market/data/market_repository.dart';
 import 'package:aloria/features/market/presentation/market_page.dart';
 import 'package:aloria/features/market/presentation/positions_page.dart';
 import 'package:aloria/features/market/presentation/trade_page.dart';
+import 'package:aloria/features/profile/presentation/progress_page.dart';
 import 'package:aloria/features/settings/presentation/settings_page.dart';
 import 'package:aloria/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -42,6 +44,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'settings',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (ctx, state) => const SettingsPage(),
+      ),
+      GoRoute(
+        path: '/progress',
+        name: 'progress',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (ctx, state) => const ProgressPage(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
@@ -168,20 +176,22 @@ class _ScaffoldWithNavBar extends ConsumerWidget {
     final isMobile = width < 600;
 
     // Для десктопа оборачиваем в контейнер с ограничением ширины
+    final scheme = Theme.of(context).colorScheme;
     final scaffold = Scaffold(
-      body: navigationShell,
+      body: Column(
+        children: [
+          const LearningModeBanner(),
+          Expanded(child: navigationShell),
+        ],
+      ),
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFF8FAFF), Color(0xFFF0F4FF)],
-          ),
+          color: scheme.surface,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: Colors.black.withValues(alpha: 0.10),
               blurRadius: 10,
               offset: const Offset(0, -2),
             ),

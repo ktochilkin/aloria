@@ -50,7 +50,6 @@ export function QuizzesPage() {
                 <th className="px-4 py-3 font-semibold">Slug</th>
                 <th className="px-4 py-3 font-semibold">Название</th>
                 <th className="px-4 py-3 font-semibold text-center">Вопросов</th>
-                <th className="px-4 py-3 font-semibold text-center">XP</th>
                 <th className="px-4 py-3 font-semibold text-center">Бонус ₽</th>
                 <th className="px-4 py-3 font-semibold text-right">Действия</th>
               </tr>
@@ -61,7 +60,6 @@ export function QuizzesPage() {
                   <td className="px-4 py-3 font-mono text-xs">{q.slug}</td>
                   <td className="px-4 py-3 font-semibold">{q.title}</td>
                   <td className="px-4 py-3 text-center"><Badge tone="primary">{q.questionCount}</Badge></td>
-                  <td className="px-4 py-3 text-center font-mono">{q.rewardXp}</td>
                   <td className="px-4 py-3 text-center font-mono">{q.rewardBuyingPower}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1 justify-end">
@@ -141,10 +139,7 @@ function QuizEditorDialog({ quizId, onClose, onSaved }: { quizId: string | null;
           <Field label="Slug"><Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} /></Field>
           <Field label="Название"><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></Field>
           <Field label="Описание"><Textarea rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></Field>
-          <div className="grid grid-cols-2 gap-2">
-            <Field label="XP"><Input type="number" value={form.rewardXp} onChange={(e) => setForm({ ...form, rewardXp: parseInt(e.target.value) || 0 })} /></Field>
-            <Field label="Бонус ₽"><Input type="number" value={form.rewardBuyingPower} onChange={(e) => setForm({ ...form, rewardBuyingPower: parseFloat(e.target.value) || 0 })} /></Field>
-          </div>
+          <Field label="Бонус ₽"><Input type="number" value={form.rewardBuyingPower} onChange={(e) => setForm({ ...form, rewardBuyingPower: parseFloat(e.target.value) || 0 })} /></Field>
         </div>
 
         <div className="border-t border-(--color-border) pt-4 flex-1 overflow-y-auto space-y-4">
