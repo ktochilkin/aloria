@@ -11,8 +11,10 @@ import 'package:aloria/features/market/domain/portfolio_summary.dart';
 import 'package:aloria/features/market/domain/position.dart';
 import 'package:aloria/features/market/domain/trade_order.dart';
 import 'package:aloria/features/market/presentation/widgets/instrument_avatar.dart';
+import 'package:aloria/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 enum _PortfolioTab { positions, orders }
@@ -243,7 +245,10 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: scheme.outline.withValues(alpha: 0.6)),
             ),
-            child: Text('Нет открытых позиций', style: text.bodyMedium),
+            child: Text(
+              AppLocalizations.of(context)!.portfolioEmptyPositions,
+              style: text.bodyMedium,
+            ),
           );
         }
 
@@ -292,7 +297,10 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: scheme.outline.withValues(alpha: 0.6)),
             ),
-            child: Text('Заявок нет', style: text.bodyMedium),
+            child: Text(
+              AppLocalizations.of(context)!.portfolioEmptyOrders,
+              style: text.bodyMedium,
+            ),
           );
         }
 
@@ -406,7 +414,7 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
           padding: EdgeInsets.fromLTRB(16, 12, 16, context.bottomNavBarPadding),
           sliver: SliverList(
             delegate: SliverChildListDelegate([
-              _PortfolioTitleBar(onLogout: widget.onLogout),
+              const _PortfolioTitleBar(),
               const SizedBox(height: 12),
               _PortfolioHero(
                 summary: widget.summary,
@@ -446,17 +454,16 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
 }
 
 class _PortfolioTitleBar extends StatelessWidget {
-  const _PortfolioTitleBar({required this.onLogout});
-
-  final Future<void> Function() onLogout;
+  const _PortfolioTitleBar();
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l = AppLocalizations.of(context)!;
     return Row(
       children: [
         Text(
-          'Портфель',
+          l.portfolioTitle,
           style: GoogleFonts.caveat(
             fontSize: 38,
             fontWeight: FontWeight.w700,
@@ -469,13 +476,13 @@ class _PortfolioTitleBar extends StatelessWidget {
           width: 40,
           height: 40,
           child: IconButton(
-            tooltip: 'Выйти',
+            tooltip: l.settingsTitle,
             padding: EdgeInsets.zero,
             iconSize: 22,
             visualDensity: VisualDensity.compact,
             color: scheme.onSurfaceVariant,
-            icon: const Icon(Icons.logout),
-            onPressed: () => onLogout(),
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => context.push('/settings'),
           ),
         ),
       ],
@@ -493,6 +500,7 @@ class _ActiveOrdersBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
+    final l = AppLocalizations.of(context)!;
     return Material(
       color: scheme.surface,
       borderRadius: BorderRadius.circular(16),
@@ -539,7 +547,7 @@ class _ActiveOrdersBanner extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Активные заявки · $count',
+                      l.portfolioActiveOrders(count),
                       style: text.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w800,
                         color: scheme.onSurface,
@@ -547,7 +555,7 @@ class _ActiveOrdersBanner extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Ожидают исполнения',
+                      l.portfolioActiveOrdersHint,
                       style: text.bodySmall?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
@@ -642,7 +650,7 @@ class _PortfolioHero extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Оценка портфеля',
+            AppLocalizations.of(context)!.portfolioEvaluationCaption,
             style: text.bodySmall?.copyWith(
               fontSize: 13,
               color: scheme.onSurfaceVariant,
@@ -791,7 +799,7 @@ class _TopUpPill extends StatelessWidget {
               const Icon(Icons.add_rounded, size: 18, color: Colors.white),
               const SizedBox(width: 4),
               Text(
-                'Пополнить',
+                AppLocalizations.of(context)!.portfolioTopUp,
                 style: GoogleFonts.nunito(
                   color: Colors.white,
                   fontSize: 14,
@@ -830,13 +838,14 @@ class _PortfolioSummaryRow extends StatelessWidget {
         ? '—'
         : '${plPositive ? '+' : '−'}${plPercent!.abs().toStringAsFixed(2)}%';
 
+    final l = AppLocalizations.of(context)!;
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(
             child: _SummaryColumn(
-              caption: 'В ПОЗИЦИЯХ',
+              caption: l.portfolioInPositions,
               value: '${_formatMoneyCompact(inPositions)} $currencySymbol',
               valueColor: scheme.onSurface,
             ),
@@ -844,7 +853,7 @@ class _PortfolioSummaryRow extends StatelessWidget {
           const _ColumnDivider(),
           Expanded(
             child: _SummaryColumn(
-              caption: 'НА ПОКУПКУ',
+              caption: l.portfolioBuyingPower,
               value: '${_formatMoneyCompact(buyingPower)} $currencySymbol',
               valueColor: AppColors.primary,
             ),
@@ -852,7 +861,7 @@ class _PortfolioSummaryRow extends StatelessWidget {
           const _ColumnDivider(),
           Expanded(
             child: _SummaryColumn(
-              caption: 'P/U',
+              caption: l.portfolioPnl,
               value: plText,
               valueColor: plPercent == null ? scheme.onSurface : plColor,
             ),
@@ -986,13 +995,14 @@ class _PortfolioStackBar extends StatelessWidget {
         : 0.0;
     final hasRest = restShare > 0.001;
 
+    final l = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
             Text(
-              'РАСПРЕДЕЛЕНИЕ ПОЗИЦИЙ',
+              l.portfolioDistribution,
               style: GoogleFonts.nunito(
                 fontSize: 10,
                 color: scheme.onSurfaceVariant,
@@ -1002,7 +1012,7 @@ class _PortfolioStackBar extends StatelessWidget {
             ),
             const Spacer(),
             Text(
-              '${sorted.length} ШТ',
+              l.portfolioCount(sorted.length),
               style: GoogleFonts.nunito(
                 fontSize: 10,
                 color: scheme.onSurfaceVariant,
@@ -1769,6 +1779,7 @@ class _PortfolioTabsHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l = AppLocalizations.of(context)!;
     return Container(
       decoration: BoxDecoration(
         border: Border(
@@ -1778,14 +1789,14 @@ class _PortfolioTabsHeader extends StatelessWidget {
       child: Row(
         children: [
           _TabButton(
-            label: 'Активы',
+            label: l.portfolioTabPositions,
             count: positionsCount,
             selected: selected == _PortfolioTab.positions,
             onTap: () => onSelected(_PortfolioTab.positions),
           ),
           const SizedBox(width: 8),
           _TabButton(
-            label: 'Заявки',
+            label: l.portfolioTabOrders,
             count: ordersCount,
             selected: selected == _PortfolioTab.orders,
             onTap: () => onSelected(_PortfolioTab.orders),

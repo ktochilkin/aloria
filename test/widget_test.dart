@@ -34,6 +34,7 @@ void main() {
       authBaseUrl: 'https://example.com',
       authApiBaseUrl: 'https://example.com',
       authRedirectUrl: '//example.com/auth/callback/',
+      aloriaApiBaseUrl: 'https://example.com',
       enableLogging: false,
     );
 

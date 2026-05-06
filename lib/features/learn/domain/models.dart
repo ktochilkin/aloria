@@ -72,9 +72,11 @@ class LearningSection {
 
 /// Урок раздела обучения.
 ///
-/// `quiz` — необязательный список вопросов для самопроверки в конце урока.
-/// Тест не блокирует прохождение: пользователь может пропустить его.
-/// `estimatedMinutes` — приблизительное время чтения, отображается в шапке урока.
+/// `quiz` — необязательный список вопросов из markdown-frontmatter (legacy путь,
+/// валидация локальная по `correctIndex`).
+/// `serverQuizId` — ID теста на бэке. Если задан, валидация уходит на сервер
+/// и результаты возвращаются им же. См. [ServerQuiz].
+/// `serverId` — ID самого урока на бэке. Нужен для отметки прохождения.
 class Lesson {
   const Lesson({
     required this.id,
@@ -85,6 +87,8 @@ class Lesson {
     required this.body,
     this.estimatedMinutes,
     this.quiz = const [],
+    this.serverId,
+    this.serverQuizId,
   });
 
   final String id;
@@ -95,8 +99,11 @@ class Lesson {
   final String body;
   final int? estimatedMinutes;
   final List<QuizQuestion> quiz;
+  final String? serverId;
+  final String? serverQuizId;
 
-  bool get hasQuiz => quiz.isNotEmpty;
+  bool get hasQuiz => quiz.isNotEmpty || serverQuizId != null;
+  bool get hasServerQuiz => serverQuizId != null;
 }
 
 /// Один вопрос мини-теста с одиночным выбором.

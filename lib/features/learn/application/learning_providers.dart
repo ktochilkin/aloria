@@ -1,6 +1,8 @@
+import 'package:aloria/features/learn/data/learning_api_client.dart';
 import 'package:aloria/features/learn/data/learning_progress_repository.dart';
 import 'package:aloria/features/learn/domain/learning_content_service.dart';
 import 'package:aloria/features/learn/domain/models.dart';
+import 'package:aloria/features/market/domain/trade_order.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -8,20 +10,24 @@ import 'package:shared_preferences/shared_preferences.dart';
 // Контент.
 // ---------------------------------------------------------------------------
 
-/// Singleton-сервис парсинга markdown-уроков.
+/// portfolioId, под которым обращаемся к aloria-api.
+/// Когда появится полноценная авторизация — берём из auth-контроллера.
+final aloriaPortfolioIdProvider =
+    Provider<String>((_) => TradeOrder.defaultPortfolio);
+
+/// Сервис учебного контента, ходящий в aloria-api.
 final learningContentServiceProvider = Provider<LearningContentService>(
-  (_) => LearningContentService(),
+  (ref) => LearningContentService(ref.watch(learningApiClientProvider)),
 );
 
 /// Кэшированный список разделов с уроками.
 ///
-/// Парсинг markdown-файлов выполняется ровно один раз за время жизни
-/// провайдера. Все экраны обучения подписаны на этот же провайдер,
-/// поэтому переход между списком и уроком не вызывает повторных загрузок.
+/// Список загружается один раз и переиспользуется всеми экранами обучения.
 final learningSectionsProvider = FutureProvider<List<LearningSection>>(
   (ref) {
     final service = ref.watch(learningContentServiceProvider);
-    return service.loadSections();
+    final portfolioId = ref.watch(aloriaPortfolioIdProvider);
+    return service.loadSections(portfolioId: portfolioId);
   },
 );
 

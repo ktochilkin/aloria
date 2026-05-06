@@ -1,0 +1,80 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "Aloria",
+
+  "navLearn": "Learn",
+  "navPortfolio": "Portfolio",
+  "navMarket": "Market",
+
+  "commonCancel": "Cancel",
+  "commonSave": "Save",
+  "commonClose": "Close",
+  "commonRetry": "Retry",
+  "commonContinue": "Continue",
+  "commonBack": "Back",
+  "commonError": "Something went wrong",
+  "commonLoading": "Loading…",
+
+  "settingsTitle": "Settings",
+  "settingsTheme": "Theme",
+  "settingsThemeSystem": "System",
+  "settingsThemeLight": "Light",
+  "settingsThemeDark": "Dark",
+  "settingsLanguage": "Language",
+  "settingsLanguageSystem": "System",
+  "settingsLanguageRu": "Russian",
+  "settingsLanguageEn": "English",
+  "settingsLearningMode": "Interactive learning mode",
+  "settingsLearningModeHint": "Highlights interface elements and shows explanations on tap. Trading is disabled in this mode.",
+  "settingsAbout": "About",
+  "settingsLogout": "Log out",
+
+  "portfolioTitle": "Portfolio",
+  "portfolioEvaluationCaption": "Portfolio value",
+  "portfolioInPositions": "INVESTED",
+  "portfolioBuyingPower": "BUYING POWER",
+  "portfolioPnl": "P/L",
+  "portfolioDistribution": "POSITION BREAKDOWN",
+  "portfolioCount": "{count}",
+  "@portfolioCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "portfolioTopUp": "Top up",
+  "portfolioActiveOrders": "Active orders · {count}",
+  "@portfolioActiveOrders": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "portfolioActiveOrdersHint": "Pending execution",
+  "portfolioTabPositions": "Positions",
+  "portfolioTabOrders": "Orders",
+  "portfolioEmptyPositions": "No open positions",
+  "portfolioEmptyOrders": "No orders",
+
+  "learningTitle": "Learn",
+  "learningContinue": "Continue",
+  "learningStart": "Start learning",
+  "learningSectionLabel": "Section",
+  "learningLessonOf": "Lesson {current} of {total}",
+  "@learningLessonOf": {
+    "placeholders": {
+      "current": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "learningMarkRead": "Mark as read",
+  "learningNextLesson": "Next lesson",
+  "learningFinishSection": "Finish section",
+  "learningCheckYourself": "Check yourself",
+  "learningCheckAnswers": "Check answers",
+  "learningAnswerAll": "Answer all questions",
+  "learningAllCorrect": "All answers correct.",
+  "learningCorrectOf": "Correct: {correct} of {total}.",
+  "@learningCorrectOf": {
+    "placeholders": {
+      "correct": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "learningTryAgain": "Try again"
+}

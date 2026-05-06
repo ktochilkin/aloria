@@ -1,9 +1,11 @@
 import 'package:aloria/core/theme/tokens.dart';
 import 'package:aloria/core/utils/layout_utils.dart';
 import 'package:aloria/features/learn/application/learning_providers.dart';
+import 'package:aloria/features/learn/data/learning_api_client.dart';
 import 'package:aloria/features/learn/domain/models.dart';
 import 'package:aloria/features/learn/presentation/widgets/learning_widgets.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_quiz_block.dart';
+import 'package:aloria/features/learn/presentation/widgets/server_quiz_block.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -123,6 +125,21 @@ class _LessonViewState extends ConsumerState<_LessonView> {
           );
       if (!mounted) return;
       setState(() => _markedThisOpen = true);
+
+      // Параллельно отмечаем прохождение на сервере (без блокировки UI).
+      final serverId = widget.lesson.serverId;
+      if (serverId != null) {
+        try {
+          final client = ref.read(learningApiClientProvider);
+          final portfolioId = ref.read(aloriaPortfolioIdProvider);
+          await client.markLessonComplete(
+            lessonId: serverId,
+            portfolioId: portfolioId,
+          );
+        } catch (_) {
+          // Прогресс на сервере — best-effort; локальная отметка уже стоит.
+        }
+      }
     });
   }
 
@@ -222,7 +239,21 @@ class _LessonViewState extends ConsumerState<_LessonView> {
               fallbackTint: widget.section.tint,
             ),
           ),
-          if (widget.lesson.hasQuiz) ...[
+          if (widget.lesson.hasServerQuiz) ...[
+            const SizedBox(height: 22),
+            ServerQuizBlock(
+              quizId: widget.lesson.serverQuizId!,
+              tint: widget.section.tint,
+              onPassed: (result) {
+                ref.read(learningProgressProvider.notifier).saveQuizResult(
+                      sectionId: widget.section.id,
+                      lessonId: widget.lesson.id,
+                      score: result.correctCount,
+                      total: result.totalQuestions,
+                    );
+              },
+            ),
+          ] else if (widget.lesson.quiz.isNotEmpty) ...[
             const SizedBox(height: 22),
             LessonQuizBlock(
               questions: widget.lesson.quiz,

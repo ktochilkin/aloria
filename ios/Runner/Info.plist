@@ -49,5 +49,24 @@
 	<false/>
 	<key>UIStatusBarStyle</key>
 	<string>UIStatusBarStyleDarkContent</string>
+	<!-- Разрешаем HTTP-вызовы к локальному aloria-api в dev-сборках -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>192.168.1.21</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+				<key>NSIncludesSubdomains</key>
+				<true/>
+			</dict>
+		</dict>
+	</dict>
+	<!-- Локальная сеть: для подключения к 192.168.x.x на iOS 14+ -->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Aloria подключается к учебному серверу в вашей локальной сети.</string>
 </dict>
 </plist>

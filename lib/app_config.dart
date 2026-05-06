@@ -7,6 +7,7 @@ class AppConfig {
   final String authBaseUrl;
   final String authApiBaseUrl;
   final String authRedirectUrl;
+  final String aloriaApiBaseUrl;
   final bool enableLogging;
 
   const AppConfig({
@@ -16,6 +17,7 @@ class AppConfig {
     required this.authBaseUrl,
     required this.authApiBaseUrl,
     required this.authRedirectUrl,
+    required this.aloriaApiBaseUrl,
     required this.enableLogging,
   });
 
@@ -45,6 +47,10 @@ class AppConfig {
       'AUTH_REDIRECT_URL',
       defaultValue: '//astras.alor.dev/auth/callback/',
     );
+    const aloriaApiBaseUrl = String.fromEnvironment(
+      'ALORIA_API_URL',
+      defaultValue: 'http://192.168.1.21:5050',
+    );
     const logging = bool.fromEnvironment('ENABLE_LOGGING', defaultValue: true);
     return AppConfig(
       env: env,
@@ -53,6 +59,7 @@ class AppConfig {
       authBaseUrl: authBaseUrl,
       authApiBaseUrl: authApiBaseUrl,
       authRedirectUrl: authRedirectUrl,
+      aloriaApiBaseUrl: aloriaApiBaseUrl,
       enableLogging: logging,
     );
   }

@@ -1,0 +1,80 @@
+{
+  "@@locale": "ru",
+
+  "appTitle": "Aloria",
+
+  "navLearn": "Обучение",
+  "navPortfolio": "Портфель",
+  "navMarket": "Обзор рынка",
+
+  "commonCancel": "Отмена",
+  "commonSave": "Сохранить",
+  "commonClose": "Закрыть",
+  "commonRetry": "Повторить",
+  "commonContinue": "Продолжить",
+  "commonBack": "Назад",
+  "commonError": "Что-то пошло не так",
+  "commonLoading": "Загружаем…",
+
+  "settingsTitle": "Настройки",
+  "settingsTheme": "Тема",
+  "settingsThemeSystem": "Как в системе",
+  "settingsThemeLight": "Светлая",
+  "settingsThemeDark": "Тёмная",
+  "settingsLanguage": "Язык",
+  "settingsLanguageSystem": "Как в системе",
+  "settingsLanguageRu": "Русский",
+  "settingsLanguageEn": "English",
+  "settingsLearningMode": "Режим обучения интерфейсу",
+  "settingsLearningModeHint": "Подсветить элементы и показывать пояснения по тапу. Сделки в этом режиме не выполняются.",
+  "settingsAbout": "О приложении",
+  "settingsLogout": "Выйти",
+
+  "portfolioTitle": "Портфель",
+  "portfolioEvaluationCaption": "Оценка портфеля",
+  "portfolioInPositions": "В ПОЗИЦИЯХ",
+  "portfolioBuyingPower": "НА ПОКУПКУ",
+  "portfolioPnl": "P/U",
+  "portfolioDistribution": "РАСПРЕДЕЛЕНИЕ ПОЗИЦИЙ",
+  "portfolioCount": "{count} ШТ",
+  "@portfolioCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "portfolioTopUp": "Пополнить",
+  "portfolioActiveOrders": "Активные заявки · {count}",
+  "@portfolioActiveOrders": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "portfolioActiveOrdersHint": "Ожидают исполнения",
+  "portfolioTabPositions": "Позиции",
+  "portfolioTabOrders": "Заявки",
+  "portfolioEmptyPositions": "Нет открытых позиций",
+  "portfolioEmptyOrders": "Заявок нет",
+
+  "learningTitle": "Обучение",
+  "learningContinue": "Продолжить",
+  "learningStart": "Начать обучение",
+  "learningSectionLabel": "Раздел",
+  "learningLessonOf": "Урок {current} из {total}",
+  "@learningLessonOf": {
+    "placeholders": {
+      "current": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "learningMarkRead": "Отметить пройденным",
+  "learningNextLesson": "Следующий урок",
+  "learningFinishSection": "Завершить раздел",
+  "learningCheckYourself": "Проверь себя",
+  "learningCheckAnswers": "Проверить ответы",
+  "learningAnswerAll": "Ответьте на все вопросы",
+  "learningAllCorrect": "Все ответы верные.",
+  "learningCorrectOf": "Правильных: {correct} из {total}.",
+  "@learningCorrectOf": {
+    "placeholders": {
+      "correct": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "learningTryAgain": "Заново"
+}

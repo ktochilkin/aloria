@@ -1,6 +1,8 @@
 import 'package:aloria/app_config.dart';
 import 'package:aloria/core/platform/web_scroll_behavior.dart';
 import 'package:aloria/core/theme/app_theme.dart';
+import 'package:aloria/features/settings/application/settings_controller.dart';
+import 'package:aloria/l10n/generated/app_localizations.dart';
 import 'package:aloria/router.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -13,10 +15,15 @@ class AloriaApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
+    final settings = ref.watch(settingsControllerProvider);
     return MaterialApp.router(
       title: 'Aloria (${config.env.name})',
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
+      themeMode: settings.themeMode,
+      locale: settings.toLocale(),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       routerConfig: router,
       // Оптимизация скроллинга для веб-платформ
       scrollBehavior: kIsWeb ? const WebScrollBehavior() : null,

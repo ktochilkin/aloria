@@ -11,9 +11,13 @@ import 'package:aloria/features/market/data/market_repository.dart';
 import 'package:aloria/features/market/presentation/market_page.dart';
 import 'package:aloria/features/market/presentation/positions_page.dart';
 import 'package:aloria/features/market/presentation/trade_page.dart';
+import 'package:aloria/features/settings/presentation/settings_page.dart';
+import 'package:aloria/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final config = ref.watch(appConfigProvider);
@@ -24,6 +28,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   ref.onDispose(refreshListenable.dispose);
 
   return GoRouter(
+    navigatorKey: _rootNavigatorKey,
     initialLocation: '/login',
     refreshListenable: refreshListenable,
     routes: [
@@ -31,6 +36,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/login',
         name: 'login',
         builder: (ctx, state) => const LoginPage(),
+      ),
+      GoRoute(
+        path: '/settings',
+        name: 'settings',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (ctx, state) => const SettingsPage(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
@@ -124,6 +135,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (loggedIn && loggingIn) return '/positions';
       return null;
     },
+    // Подсказываем редиректу не пускать /settings без логина:
+    // он сам срабатывает по логике выше, дополнительной обработки не нужно.
     debugLogDiagnostics: config.enableLogging,
   );
 });
@@ -182,18 +195,18 @@ class _ScaffoldWithNavBar extends ConsumerWidget {
               backgroundColor: Colors.transparent,
               selectedIndex: navigationShell.currentIndex,
               onDestinationSelected: _goBranch,
-              destinations: const [
+              destinations: [
                 NavigationDestination(
-                  label: 'Обучение',
-                  icon: Icon(Icons.school),
+                  label: AppLocalizations.of(context)!.navLearn,
+                  icon: const Icon(Icons.school),
                 ),
                 NavigationDestination(
-                  label: 'Портфель',
-                  icon: Icon(Icons.list_alt),
+                  label: AppLocalizations.of(context)!.navPortfolio,
+                  icon: const Icon(Icons.list_alt),
                 ),
                 NavigationDestination(
-                  label: 'Обзор рынка',
-                  icon: Icon(Icons.show_chart),
+                  label: AppLocalizations.of(context)!.navMarket,
+                  icon: const Icon(Icons.show_chart),
                 ),
               ],
             ),
