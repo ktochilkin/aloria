@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #f6f7fb;
+  --color-surface: #ffffff;
+  --color-border: #e5e7ef;
+  --color-fg: #14161c;
+  --color-fg-muted: #5b6173;
+  --color-primary: #5d8cff;
+  --color-primary-50: rgba(93, 140, 255, 0.08);
+  --color-primary-100: rgba(93, 140, 255, 0.16);
+  --color-success: #37b38a;
+  --color-error: #f16b82;
+  --color-warning: #f5c24d;
+
+  --font-sans: ui-sans-serif, "Inter", "SF Pro Text", system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, "JetBrains Mono", "SF Mono", monospace;
+
+  --shadow-card: 0 1px 2px rgba(20, 22, 28, 0.04), 0 6px 20px rgba(20, 22, 28, 0.04);
+  --shadow-elev: 0 8px 24px rgba(20, 22, 28, 0.10);
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "tnum" on, "ss01" on;
+}
+
+button {
+  cursor: pointer;
+}
+
+/* MD editor light tweak */
+.w-md-editor {
+  --color-fg-default: var(--color-fg);
+  --color-canvas-default: var(--color-surface);
+  border-radius: 12px !important;
+  box-shadow: var(--shadow-card) !important;
+  border: 1px solid var(--color-border) !important;
+}

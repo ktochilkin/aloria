@@ -1,0 +1,5 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Aloria.Api/Aloria.Api.csproj" />
+  </Folder>
+</Solution>

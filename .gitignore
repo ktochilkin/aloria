@@ -1,3 +1,20 @@
+# Claude Code локальные настройки
+.claude/
+
+# Aloria API артефакты сборки + локальная БД и загрузки
+aloria-api/**/bin/
+aloria-api/**/obj/
+aloria-api/**/*.user
+aloria-api/**/aloria.db
+aloria-api/**/aloria.db-shm
+aloria-api/**/aloria.db-wal
+aloria-api/**/uploads/
+
+# Aloria admin
+aloria-admin/node_modules/
+aloria-admin/dist/
+aloria-admin/.vite/
+
 # Miscellaneous
 *.class
 *.log
