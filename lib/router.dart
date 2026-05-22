@@ -13,6 +13,7 @@ import 'package:aloria/features/market/presentation/market_page.dart';
 import 'package:aloria/features/market/presentation/positions_page.dart';
 import 'package:aloria/features/market/presentation/trade_page.dart';
 import 'package:aloria/features/profile/presentation/progress_page.dart';
+import 'package:aloria/features/settings/application/settings_controller.dart';
 import 'package:aloria/features/settings/presentation/settings_page.dart';
 import 'package:aloria/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -177,11 +178,23 @@ class _ScaffoldWithNavBar extends ConsumerWidget {
 
     // Для десктопа оборачиваем в контейнер с ограничением ширины
     final scheme = Theme.of(context).colorScheme;
+    final learningOn = ref.watch(
+      settingsControllerProvider.select((s) => s.learningMode),
+    );
     final scaffold = Scaffold(
       body: Column(
         children: [
           const LearningModeBanner(),
-          Expanded(child: navigationShell),
+          Expanded(
+            // Когда показана плашка обучения, она уже сдвигает контент вниз
+            // (внутри есть SafeArea для статус-бара). Отключаем «второй»
+            // SafeArea внутри самих страниц, чтобы не было двойного отступа.
+            child: MediaQuery.removePadding(
+              context: context,
+              removeTop: learningOn,
+              child: navigationShell,
+            ),
+          ),
         ],
       ),
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,

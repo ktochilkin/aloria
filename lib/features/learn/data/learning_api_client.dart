@@ -86,6 +86,14 @@ class LearningApiClient {
     return res.data ?? const {};
   }
 
+  /// Список standalone-тестов для экрана «Пополнить».
+  Future<List<Map<String, dynamic>>> fetchTopUpQuizzes() async {
+    final res = await _dio.get<List<dynamic>>('/api/v1/topup/quizzes');
+    return (res.data ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .toList(growable: false);
+  }
+
   /// Отправляет ответы на проверку. Один и тот же [idempotencyKey]
   /// гарантирует, что повторный вызов вернёт уже выданный результат.
   Future<Map<String, dynamic>> submitQuizAttempt({
@@ -109,6 +117,15 @@ class LearningApiClient {
       queryParameters: {'portfolioId': portfolioId},
     );
     return res.data ?? const {};
+  }
+
+  /// Идемпотентно регистрирует факт открытия первой позиции у пользователя.
+  /// Бэкенд сам проверит, что событие ещё не было записано.
+  Future<void> reportFirstPosition(String portfolioId) async {
+    await _dio.post<void>(
+      '/api/v1/me/events/first-position',
+      queryParameters: {'portfolioId': portfolioId},
+    );
   }
 
   Future<List<Map<String, dynamic>>> fetchAchievements(String portfolioId) async {

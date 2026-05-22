@@ -89,6 +89,7 @@ class Lesson {
     this.quiz = const [],
     this.serverId,
     this.serverQuizId,
+    this.serverCompleted = false,
   });
 
   final String id;
@@ -101,6 +102,10 @@ class Lesson {
   final List<QuizQuestion> quiz;
   final String? serverId;
   final String? serverQuizId;
+
+  /// Урок отмечен пройденным на бэке (`/me/lessons/...`). Используется
+  /// для синхронизации локального прогресса с сервером при загрузке.
+  final bool serverCompleted;
 
   bool get hasQuiz => quiz.isNotEmpty || serverQuizId != null;
   bool get hasServerQuiz => serverQuizId != null;

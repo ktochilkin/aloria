@@ -65,9 +65,20 @@ export function UsersPage() {
   );
 }
 
+type LessonProgressItem = {
+  id: string;
+  slug: string;
+  title: string;
+  order: number;
+  sectionSlug: string;
+  sectionTitle: string;
+  completed: boolean;
+};
+
 function UserDetailDialog({ userId, onClose }: { userId: string; onClose: () => void }) {
   const qc = useQueryClient();
   const detail = useQuery({ queryKey: ['user', userId], queryFn: () => api.get<AdminUserDetail>(`/api/admin/users/${userId}`) });
+  const lessons = useQuery({ queryKey: ['user-lessons', userId], queryFn: () => api.get<LessonProgressItem[]>(`/api/admin/users/${userId}/lessons`) });
   const [grantAmount, setGrantAmount] = useState('');
   const [grantReason, setGrantReason] = useState('');
 
@@ -78,6 +89,28 @@ function UserDetailDialog({ userId, onClose }: { userId: string; onClose: () => 
       qc.invalidateQueries({ queryKey: ['users'] });
       setGrantAmount('');
       setGrantReason('');
+    },
+  });
+
+  const toggleLesson = useMutation({
+    mutationFn: async ({ lessonId, completed }: { lessonId: string; completed: boolean }) => {
+      await api.put<void>(`/api/admin/users/${userId}/lessons/${lessonId}`, { completed });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['user', userId] });
+      qc.invalidateQueries({ queryKey: ['user-lessons', userId] });
+      qc.invalidateQueries({ queryKey: ['users'] });
+    },
+  });
+
+  const reset = useMutation({
+    mutationFn: async () => {
+      await api.post<void>(`/api/admin/users/${userId}/reset`);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['user', userId] });
+      qc.invalidateQueries({ queryKey: ['user-lessons', userId] });
+      qc.invalidateQueries({ queryKey: ['users'] });
     },
   });
 
@@ -151,6 +184,62 @@ function UserDetailDialog({ userId, onClose }: { userId: string; onClose: () => 
                     ))}
                   </tbody>
                 </table>
+              )}
+            </Card>
+
+            <Card className="p-4 mb-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-xs uppercase tracking-wider text-(--color-fg-muted) font-semibold">Прогресс по урокам</div>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    if (confirm('Сбросить весь прогресс пользователя? Уроки, тесты, ачивки и начисления будут стёрты, XP и стрик обнулены.')) {
+                      reset.mutate();
+                    }
+                  }}
+                  disabled={reset.isPending}
+                  className="text-(--color-error) hover:bg-[rgba(241,107,130,0.08)]"
+                >
+                  Сбросить весь прогресс
+                </Button>
+              </div>
+              {lessons.isLoading && <Spinner />}
+              {lessons.data && (
+                <div className="space-y-3">
+                  {Object.entries(
+                    lessons.data.reduce((acc: Record<string, LessonProgressItem[]>, l) => {
+                      (acc[l.sectionTitle] ??= []).push(l);
+                      return acc;
+                    }, {})
+                  ).map(([sectionTitle, items]) => (
+                    <div key={sectionTitle}>
+                      <div className="text-xs font-semibold text-(--color-fg-muted) mb-1.5">{sectionTitle}</div>
+                      <div className="space-y-0.5">
+                        {items.map((l) => (
+                          <label
+                            key={l.id}
+                            className="flex items-center gap-3 px-2 py-1.5 rounded hover:bg-(--color-bg) cursor-pointer text-sm"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={l.completed}
+                              disabled={toggleLesson.isPending}
+                              onChange={(e) => toggleLesson.mutate({ lessonId: l.id, completed: e.target.checked })}
+                              className="size-4"
+                            />
+                            <span className="font-mono text-xs text-(--color-fg-muted) w-6">{l.order}</span>
+                            <span className={l.completed ? '' : 'text-(--color-fg-muted)'}>{l.title}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {(reset.error || toggleLesson.error) && (
+                <div className="text-sm text-(--color-error) mt-2">
+                  {(reset.error as Error || toggleLesson.error as Error)?.message}
+                </div>
               )}
             </Card>
 

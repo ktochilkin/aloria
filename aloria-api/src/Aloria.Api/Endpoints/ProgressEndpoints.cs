@@ -77,6 +77,33 @@ public static class ProgressEndpoints
             return Results.Ok(dto);
         });
 
+        group.MapPost("/events/first-position", async (
+            string portfolioId,
+            AloriaDbContext db,
+            UserService users,
+            AchievementEvaluator achievements,
+            CancellationToken ct) =>
+        {
+            if (string.IsNullOrWhiteSpace(portfolioId))
+                return Results.BadRequest("portfolioId required");
+            var user = await users.EnsureUserAsync(portfolioId, ct);
+            var existing = await db.UserEvents.AnyAsync(
+                e => e.UserId == user.Id && e.Code == "first_position", ct);
+            if (!existing)
+            {
+                db.UserEvents.Add(new Domain.UserEvent
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = user.Id,
+                    Code = "first_position",
+                    OccurredAt = DateTime.UtcNow,
+                });
+                await db.SaveChangesAsync(ct);
+                await achievements.EvaluateAsync(user, ct);
+            }
+            return Results.Ok(new { recorded = !existing });
+        });
+
         group.MapGet("/grants", async (
             string portfolioId,
             AloriaDbContext db,

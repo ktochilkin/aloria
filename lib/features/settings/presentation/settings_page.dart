@@ -1,3 +1,4 @@
+import 'package:aloria/core/theme/tokens.dart';
 import 'package:aloria/features/auth/application/auth_controller.dart';
 import 'package:aloria/features/settings/application/settings_controller.dart';
 import 'package:aloria/l10n/generated/app_localizations.dart';
@@ -11,12 +12,15 @@ class SettingsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
     final settings = ref.watch(settingsControllerProvider);
     final controller = ref.read(settingsControllerProvider.notifier);
     final auth = ref.read(authControllerProvider.notifier);
 
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         title: Text(l.settingsTitle),
         leading: IconButton(
           icon: const Icon(Icons.close),
@@ -24,74 +28,76 @@ class SettingsPage extends ConsumerWidget {
         ),
       ),
       body: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
-          ListTile(
-            leading: const Icon(Icons.emoji_events_outlined),
-            title: const Text('Достижения и прогресс'),
-            trailing: const Icon(Icons.chevron_right),
+          _ProgressLink(
             onTap: () {
               Navigator.of(context).pop();
               context.push('/progress');
             },
           ),
-          const Divider(height: 24),
-          _SectionHeader(title: l.settingsTheme),
-          _ThemeOption(
-            label: l.settingsThemeSystem,
-            mode: ThemeMode.system,
-            selected: settings.themeMode,
-            onTap: controller.setThemeMode,
-          ),
-          _ThemeOption(
-            label: l.settingsThemeLight,
-            mode: ThemeMode.light,
-            selected: settings.themeMode,
-            onTap: controller.setThemeMode,
-          ),
-          _ThemeOption(
-            label: l.settingsThemeDark,
-            mode: ThemeMode.dark,
-            selected: settings.themeMode,
-            onTap: controller.setThemeMode,
+          const SizedBox(height: 20),
+
+          const _SectionLabel(text: 'Внешний вид'),
+          _Card(
+            children: [
+              _ChoiceRow<ThemeMode>(
+                icon: Icons.brightness_4_outlined,
+                title: l.settingsTheme,
+                value: settings.themeMode,
+                options: [
+                  (ThemeMode.system, l.settingsThemeSystem),
+                  (ThemeMode.light, l.settingsThemeLight),
+                  (ThemeMode.dark, l.settingsThemeDark),
+                ],
+                onChanged: controller.setThemeMode,
+              ),
+              const _Sep(),
+              _ChoiceRow<String?>(
+                icon: Icons.translate,
+                title: l.settingsLanguage,
+                value: settings.localeTag,
+                options: [
+                  (null, l.settingsLanguageSystem),
+                  ('ru', 'Рус'),
+                  ('en', 'Eng'),
+                ],
+                onChanged: controller.setLocaleTag,
+              ),
+            ],
           ),
 
-          const Divider(height: 32),
-          _SectionHeader(title: l.settingsLanguage),
-          _LocaleOption(
-            label: l.settingsLanguageSystem,
-            tag: null,
-            selected: settings.localeTag,
-            onTap: controller.setLocaleTag,
-          ),
-          _LocaleOption(
-            label: l.settingsLanguageRu,
-            tag: 'ru',
-            selected: settings.localeTag,
-            onTap: controller.setLocaleTag,
-          ),
-          _LocaleOption(
-            label: l.settingsLanguageEn,
-            tag: 'en',
-            selected: settings.localeTag,
-            onTap: controller.setLocaleTag,
-          ),
-
-          const Divider(height: 32),
-          SwitchListTile(
-            title: Text(l.settingsLearningMode),
-            subtitle: Text(l.settingsLearningModeHint),
-            value: settings.learningMode,
-            onChanged: controller.setLearningMode,
-          ),
-
-          const Divider(height: 32),
-          ListTile(
-            leading: const Icon(Icons.logout),
-            title: Text(l.settingsLogout),
-            onTap: () async {
-              await auth.logout();
-            },
+          const SizedBox(height: 24),
+          Center(
+            child: TextButton.icon(
+              onPressed: () async {
+                final ok = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: Text(l.settingsLogout),
+                    content: const Text(
+                      'Точно выйти? Локальный прогресс останется.',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(false),
+                        child: Text(l.commonCancel),
+                      ),
+                      FilledButton.tonal(
+                        onPressed: () => Navigator.of(ctx).pop(true),
+                        child: Text(l.settingsLogout),
+                      ),
+                    ],
+                  ),
+                );
+                if (ok == true) await auth.logout();
+              },
+              icon: Icon(Icons.logout, color: scheme.onSurfaceVariant),
+              label: Text(
+                l.settingsLogout,
+                style: TextStyle(color: scheme.onSurfaceVariant),
+              ),
+            ),
           ),
         ],
       ),
@@ -99,75 +105,261 @@ class SettingsPage extends ConsumerWidget {
   }
 }
 
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title});
-  final String title;
+class _ProgressLink extends StatelessWidget {
+  const _ProgressLink({required this.onTap});
+
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 6),
-      child: Text(
-        title.toUpperCase(),
-        style: text.labelMedium?.copyWith(
-          color: scheme.onSurfaceVariant,
-          letterSpacing: 0.6,
+    return Material(
+      color: scheme.surface,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: context.palette.heroBorder),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.primary.withValues(alpha: 0.18),
+                      AppColors.secondary.withValues(alpha: 0.18),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.emoji_events_rounded,
+                  color: AppColors.primary,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Достижения и прогресс',
+                      style: text.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Стрик, ачивки, история начислений',
+                      style: text.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _ThemeOption extends StatelessWidget {
-  const _ThemeOption({
-    required this.label,
-    required this.mode,
-    required this.selected,
-    required this.onTap,
-  });
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel({required this.text});
 
-  final String label;
-  final ThemeMode mode;
-  final ThemeMode selected;
-  final ValueChanged<ThemeMode> onTap;
+  final String text;
 
   @override
   Widget build(BuildContext context) {
-    final isSelected = selected == mode;
-    return ListTile(
-      title: Text(label),
-      trailing: isSelected
-          ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary)
-          : null,
-      onTap: () => onTap(mode),
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+      child: Text(
+        text.toUpperCase(),
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: scheme.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
+              fontSize: 11,
+            ),
+      ),
     );
   }
 }
 
-class _LocaleOption extends StatelessWidget {
-  const _LocaleOption({
+class _Card extends StatelessWidget {
+  const _Card({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: context.palette.heroBorder),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(children: children),
+    );
+  }
+}
+
+class _Sep extends StatelessWidget {
+  const _Sep();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 60),
+      child: Container(height: 1, color: context.palette.heroBorder),
+    );
+  }
+}
+
+class _ChoiceRow<T> extends StatelessWidget {
+  const _ChoiceRow({
+    required this.icon,
+    required this.title,
+    required this.value,
+    required this.options,
+    required this.onChanged,
+  });
+
+  final IconData icon;
+  final String title;
+  final T value;
+  final List<(T, String)> options;
+  final ValueChanged<T> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _LeadingIcon(icon: icon),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: text.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              children: [
+                for (final opt in options)
+                  Expanded(
+                    child: _SegmentChip(
+                      label: opt.$2,
+                      selected: opt.$1 == value,
+                      onTap: () => onChanged(opt.$1),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SegmentChip extends StatelessWidget {
+  const _SegmentChip({
     required this.label,
-    required this.tag,
     required this.selected,
     required this.onTap,
   });
 
   final String label;
-  final String? tag;
-  final String? selected;
-  final ValueChanged<String?> onTap;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final isSelected = selected == tag;
-    return ListTile(
-      title: Text(label),
-      trailing: isSelected
-          ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary)
-          : null,
-      onTap: () => onTap(tag),
+    final scheme = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        height: 36,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: selected ? scheme.surface : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    offset: const Offset(0, 1),
+                    blurRadius: 2,
+                  ),
+                ]
+              : null,
+        ),
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+          style: text.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: selected ? scheme.onSurface : scheme.onSurfaceVariant,
+            fontSize: 13,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LeadingIcon extends StatelessWidget {
+  const _LeadingIcon({required this.icon});
+
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 32,
+      height: 32,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Icon(icon, color: AppColors.primary, size: 18),
     );
   }
 }

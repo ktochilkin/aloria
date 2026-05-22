@@ -23,6 +23,8 @@ public class AchievementEvaluator(AloriaDbContext db, GrantService grants)
 
         var lessonsCompleted = await db.LessonCompletions.CountAsync(x => x.UserId == user.Id, ct);
         var quizzesPassed = await db.QuizAttempts.CountAsync(x => x.UserId == user.Id && x.IsPassed, ct);
+        var hasFirstPosition = await db.UserEvents.AnyAsync(
+            e => e.UserId == user.Id && e.Code == "first_position", ct);
 
         foreach (var a in achievements)
         {
@@ -34,7 +36,7 @@ public class AchievementEvaluator(AloriaDbContext db, GrantService grants)
                 AchievementCondition.QuizzesPassed => quizzesPassed >= a.ConditionThreshold,
                 AchievementCondition.StreakDays => user.StreakDays >= a.ConditionThreshold,
                 AchievementCondition.TotalXp => user.Xp >= a.ConditionThreshold,
-                AchievementCondition.FirstPositionOpened => false, // дёрнем позже из торгового события
+                AchievementCondition.FirstPositionOpened => hasFirstPosition,
                 _ => false
             };
 

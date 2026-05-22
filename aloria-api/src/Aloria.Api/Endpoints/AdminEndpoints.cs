@@ -540,6 +540,116 @@ public static class AdminEndpoints
             await audit.LogAsync("create", "Grant", grant.Id, $"manual: {input.Amount} {input.Reason}", ct);
             return Results.Ok(grant.Id);
         });
+
+        group.MapGet("/users/{id:guid}/lessons", async (
+            Guid id,
+            AloriaDbContext db,
+            CancellationToken ct) =>
+        {
+            var user = await db.Users.FindAsync([id], ct);
+            if (user == null) return Results.NotFound();
+
+            var lessons = await db.Lessons
+                .Include(l => l.Section)
+                .OrderBy(l => l.Section!.Order)
+                .ThenBy(l => l.Order)
+                .Select(l => new
+                {
+                    l.Id, l.Slug, l.Title, l.Order,
+                    SectionSlug = l.Section!.Slug,
+                    SectionTitle = l.Section!.Title,
+                })
+                .ToListAsync(ct);
+
+            var completed = await db.LessonCompletions
+                .Where(c => c.UserId == id)
+                .Select(c => c.LessonId)
+                .ToHashSetAsync(ct);
+
+            return Results.Ok(lessons.Select(l => new
+            {
+                l.Id,
+                l.Slug,
+                l.Title,
+                l.Order,
+                l.SectionSlug,
+                l.SectionTitle,
+                Completed = completed.Contains(l.Id),
+            }));
+        });
+
+        group.MapPut("/users/{userId:guid}/lessons/{lessonId:guid}", async (
+            Guid userId,
+            Guid lessonId,
+            AdminLessonCompletionInput input,
+            AloriaDbContext db,
+            UserService users,
+            AchievementEvaluator achievements,
+            AuditLogger audit,
+            CancellationToken ct) =>
+        {
+            var user = await db.Users.FindAsync([userId], ct);
+            if (user == null) return Results.NotFound();
+            var lesson = await db.Lessons.FindAsync([lessonId], ct);
+            if (lesson == null) return Results.NotFound();
+
+            var existing = await db.LessonCompletions
+                .FirstOrDefaultAsync(c => c.UserId == userId && c.LessonId == lessonId, ct);
+
+            if (input.Completed && existing == null)
+            {
+                db.LessonCompletions.Add(new LessonCompletion
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = userId,
+                    LessonId = lessonId,
+                    LessonVersion = lesson.Version,
+                    CompletedAt = DateTime.UtcNow,
+                });
+                await db.SaveChangesAsync(ct);
+                await users.AddXpAsync(user, 10, ct);
+                await audit.LogAsync("create", "LessonCompletion", lessonId,
+                    $"manual: user={user.AlorPortfolioId} lesson={lesson.Slug}", ct);
+            }
+            else if (!input.Completed && existing != null)
+            {
+                db.LessonCompletions.Remove(existing);
+                user.Xp = Math.Max(0, user.Xp - 10);
+                user.UpdatedAt = DateTime.UtcNow;
+                await db.SaveChangesAsync(ct);
+                await audit.LogAsync("delete", "LessonCompletion", lessonId,
+                    $"manual: user={user.AlorPortfolioId} lesson={lesson.Slug}", ct);
+            }
+
+            await achievements.EvaluateAsync(user, ct);
+            return Results.NoContent();
+        });
+
+        group.MapPost("/users/{id:guid}/reset", async (
+            Guid id,
+            AloriaDbContext db,
+            AuditLogger audit,
+            CancellationToken ct) =>
+        {
+            var user = await db.Users.FindAsync([id], ct);
+            if (user == null) return Results.NotFound();
+
+            await db.LessonCompletions.Where(x => x.UserId == id).ExecuteDeleteAsync(ct);
+            await db.QuizAttempts.Where(x => x.UserId == id).ExecuteDeleteAsync(ct);
+            await db.AchievementUnlocks.Where(x => x.UserId == id).ExecuteDeleteAsync(ct);
+            await db.BuyingPowerGrants.Where(x => x.UserId == id).ExecuteDeleteAsync(ct);
+            await db.UserEvents.Where(x => x.UserId == id).ExecuteDeleteAsync(ct);
+
+            user.Xp = 0;
+            user.Level = 1;
+            user.StreakDays = 0;
+            user.LastActiveDate = null;
+            user.UpdatedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync(ct);
+
+            await audit.LogAsync("reset", "User", id, $"manual progress reset for {user.AlorPortfolioId}", ct);
+            return Results.NoContent();
+        });
     }
 
     private static void MapAudit(RouteGroupBuilder group)

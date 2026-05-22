@@ -17,6 +17,7 @@ public class AloriaDbContext(DbContextOptions<AloriaDbContext> options) : DbCont
     public DbSet<AchievementUnlock> AchievementUnlocks => Set<AchievementUnlock>();
     public DbSet<BuyingPowerGrant> BuyingPowerGrants => Set<BuyingPowerGrant>();
     public DbSet<AuditLogEntry> AuditLog => Set<AuditLogEntry>();
+    public DbSet<UserEvent> UserEvents => Set<UserEvent>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -93,6 +94,12 @@ public class AloriaDbContext(DbContextOptions<AloriaDbContext> options) : DbCont
         b.Entity<AuditLogEntry>(e =>
         {
             e.HasIndex(x => x.CreatedAt);
+        });
+
+        b.Entity<UserEvent>(e =>
+        {
+            e.HasIndex(x => new { x.UserId, x.Code }).IsUnique();
+            e.Property(x => x.Code).HasMaxLength(64).IsRequired();
         });
     }
 }

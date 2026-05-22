@@ -3,6 +3,9 @@ import 'package:aloria/core/theme/tokens.dart';
 import 'package:aloria/core/utils/layout_utils.dart';
 import 'package:aloria/core/widgets/top_notification.dart';
 import 'package:aloria/features/auth/application/auth_controller.dart';
+import 'package:aloria/features/learn/application/learning_providers.dart';
+import 'package:aloria/features/learn/data/learning_api_client.dart';
+import 'package:aloria/features/learn/presentation/widgets/server_quiz_block.dart';
 import 'package:aloria/features/learning_mode/presentation/explainable.dart';
 import 'package:aloria/features/market/application/orders_provider.dart';
 import 'package:aloria/features/market/application/portfolio_summary_provider.dart';
@@ -12,6 +15,7 @@ import 'package:aloria/features/market/domain/portfolio_summary.dart';
 import 'package:aloria/features/market/domain/position.dart';
 import 'package:aloria/features/market/domain/trade_order.dart';
 import 'package:aloria/features/market/presentation/widgets/instrument_avatar.dart';
+import 'package:aloria/features/settings/application/settings_controller.dart';
 import 'package:aloria/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -33,6 +37,21 @@ class PositionsPage extends ConsumerWidget {
     final summary = ref.watch(portfolioSummaryProvider);
     final orders = ref.watch(ordersProvider);
     final auth = ref.read(authControllerProvider.notifier);
+
+    // Как только видим хотя бы одну ненулевую позицию — отправляем
+    // событие «первая сделка» в aloria-api. Бэкенд идемпотентен,
+    // повторные вызовы безопасны (UNIQUE индекс по userId+code).
+    ref.listen<AsyncValue<List<Position>>>(positionsProvider, (prev, next) {
+      next.whenData((list) {
+        final hasPosition = list.any((p) => p.quantity != 0);
+        if (!hasPosition) return;
+        final portfolioId = ref.read(aloriaPortfolioIdProvider);
+        final client = ref.read(learningApiClientProvider);
+        // Огонь и забыли: ошибки сети не должны ломать UI.
+        client.reportFirstPosition(portfolioId).catchError((_) {});
+      });
+    });
+
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -156,58 +175,11 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
     }
   }
 
-  Future<void> _handleQuizStart(_PortfolioQuiz quiz) async {
-    final result = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _QuizSheet(quiz: quiz),
-    );
-
-    if (result == true && mounted) {
-      await _showSuccessDialog(quiz);
-    }
-  }
-
   Future<void> _openTopUp() async {
     await Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute(
         fullscreenDialog: true,
-        builder: (_) => _TopUpPage(onQuizTap: _handleQuizStart),
-      ),
-    );
-  }
-
-  Future<void> _showSuccessDialog(_PortfolioQuiz quiz) async {
-    final text = Theme.of(context).textTheme;
-    final scheme = Theme.of(context).colorScheme;
-
-    await showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Поздравляем!'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Вы прошли тест «${quiz.title}». Счёт будет пополнен на ${quiz.reward} вирт. ₽.',
-              style: text.bodyMedium,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              quiz.successNote,
-              style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Закрыть'),
-          ),
-        ],
+        builder: (_) => const _TopUpPage(),
       ),
     );
   }
@@ -465,25 +437,48 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
   }
 }
 
-class _PortfolioTitleBar extends StatelessWidget {
+class _PortfolioTitleBar extends ConsumerWidget {
   const _PortfolioTitleBar();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     final l = AppLocalizations.of(context)!;
+    final learningMode = ref.watch(
+      settingsControllerProvider.select((s) => s.learningMode),
+    );
     return Row(
       children: [
         Text(
           l.portfolioTitle,
-          style: GoogleFonts.caveat(
-            fontSize: 38,
-            fontWeight: FontWeight.w700,
+          style: GoogleFonts.nunito(
+            fontSize: 28,
+            fontWeight: FontWeight.w800,
             height: 1.0,
+            letterSpacing: -0.4,
             color: scheme.onSurface,
           ),
         ),
         const Spacer(),
+        SizedBox(
+          width: 40,
+          height: 40,
+          child: IconButton(
+            tooltip: l.settingsLearningMode,
+            padding: EdgeInsets.zero,
+            iconSize: 22,
+            visualDensity: VisualDensity.compact,
+            color: learningMode
+                ? AppColors.primary
+                : scheme.onSurfaceVariant,
+            icon: Icon(
+              learningMode ? Icons.school : Icons.school_outlined,
+            ),
+            onPressed: () => ref
+                .read(settingsControllerProvider.notifier)
+                .setLearningMode(!learningMode),
+          ),
+        ),
         SizedBox(
           width: 40,
           height: 40,
@@ -1147,15 +1142,48 @@ class _LegendItem extends StatelessWidget {
   }
 }
 
-class _TopUpPage extends StatelessWidget {
-  const _TopUpPage({required this.onQuizTap});
 
-  final Future<void> Function(_PortfolioQuiz quiz) onQuizTap;
+class _TopUpQuizSummary {
+  const _TopUpQuizSummary({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.rewardBuyingPower,
+    required this.questionCount,
+  });
+
+  final String id;
+  final String title;
+  final String description;
+  final double rewardBuyingPower;
+  final int questionCount;
+
+  factory _TopUpQuizSummary.fromJson(Map<String, dynamic> json) {
+    return _TopUpQuizSummary(
+      id: json['id'] as String,
+      title: json['title'] as String? ?? '',
+      description: json['description'] as String? ?? '',
+      rewardBuyingPower: (json['rewardBuyingPower'] as num?)?.toDouble() ?? 0,
+      questionCount: (json['questionCount'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
+
+final _topUpQuizzesProvider =
+    FutureProvider<List<_TopUpQuizSummary>>((ref) async {
+  final client = ref.watch(learningApiClientProvider);
+  final raw = await client.fetchTopUpQuizzes();
+  return raw.map(_TopUpQuizSummary.fromJson).toList(growable: false);
+});
+
+class _TopUpPage extends ConsumerWidget {
+  const _TopUpPage();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final text = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
+    final list = ref.watch(_topUpQuizzesProvider);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Расширить доступ'),
@@ -1164,629 +1192,220 @@ class _TopUpPage extends StatelessWidget {
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-        children: [
-          Container(
+      body: RefreshIndicator(
+        color: AppColors.primary,
+        onRefresh: () async {
+          ref.invalidate(_topUpQuizzesProvider);
+          await ref.read(_topUpQuizzesProvider.future);
+        },
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: scheme.primary.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: scheme.primary.withValues(alpha: 0.2)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Подтвердите знания',
+                    style: text.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Каждый пройденный тест увеличивает покупательную способность. '
+                    'Это мера допуска: чем уверенней понимаете рынок — тем больше операций открыто.',
+                    style: text.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            list.when(
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 40),
+                child: Center(
+                  child: SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+              ),
+              error: (e, _) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Text(
+                  'Не удалось загрузить тесты: $e',
+                  style: text.bodyMedium?.copyWith(color: scheme.error),
+                ),
+              ),
+              data: (items) => items.isEmpty
+                  ? Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: Text(
+                        'Тестов пока нет — добавь их в админке.',
+                        style: text.bodyMedium?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    )
+                  : Column(
+                      children: [
+                        for (final q in items) _TopUpQuizCard(quiz: q),
+                      ],
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TopUpQuizCard extends StatelessWidget {
+  const _TopUpQuizCard({required this.quiz});
+
+  final _TopUpQuizSummary quiz;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            Navigator.of(context, rootNavigator: true).push(
+              MaterialPageRoute(
+                builder: (_) =>
+                    _TopUpQuizPage(quizId: quiz.id, title: quiz.title),
+              ),
+            );
+          },
+          child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: scheme.primary.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: scheme.primary.withValues(alpha: 0.2)),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: context.palette.heroBorder),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Подтвердите знания',
-                  style: text.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Каждый пройденный тест увеличивает покупательную способность. '
-                  'Это мера допуска: чем уверенней понимаете рынок — тем больше операций открыто.',
-                  style: text.bodyMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          ..._portfolioQuizzes.map(
-            (quiz) => _QuizCard(
-              quiz: quiz,
-              onTap: () async {
-                Navigator.of(context).pop();
-                await onQuizTap(quiz);
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _QuizCard extends StatelessWidget {
-  const _QuizCard({required this.quiz, required this.onTap});
-
-  final _PortfolioQuiz quiz;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    final scheme = Theme.of(context).colorScheme;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 6),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              scheme.primaryContainer.withValues(alpha: 0.85),
-              scheme.secondaryContainer.withValues(alpha: 0.9),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: scheme.primary.withValues(alpha: 0.35)),
-          boxShadow: [
-            BoxShadow(
-              color: scheme.primary.withValues(alpha: 0.18),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    quiz.title,
-                    style: text.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: scheme.onPrimary.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: scheme.onPrimary.withValues(alpha: 0.2),
-                    ),
-                  ),
-                  child: Text(
-                    '+${quiz.reward} вирт. ₽',
-                    style: text.labelMedium?.copyWith(
-                      color: scheme.onPrimary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(quiz.description, style: text.bodyMedium),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Icon(Icons.help_outline, size: 18, color: scheme.onPrimary),
-                const SizedBox(width: 6),
-                Text(
-                  '${quiz.questions.length} вопросов',
-                  style: text.bodySmall?.copyWith(color: scheme.onPrimary),
-                ),
-                const SizedBox(width: 14),
-                Icon(
-                  Icons.monetization_on_outlined,
-                  size: 18,
-                  color: scheme.onPrimary,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  '+${quiz.reward}',
-                  style: text.bodySmall?.copyWith(color: scheme.onPrimary),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: onTap,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: scheme.onPrimary,
-                side: BorderSide(
-                  color: scheme.onPrimary.withValues(alpha: 0.6),
-                ),
-                backgroundColor: scheme.surface.withValues(alpha: 0.08),
-              ),
-              icon: const Icon(Icons.play_arrow_rounded),
-              label: const Text('Пройти тест'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _QuizSheet extends StatefulWidget {
-  const _QuizSheet({required this.quiz});
-
-  final _PortfolioQuiz quiz;
-
-  @override
-  State<_QuizSheet> createState() => _QuizSheetState();
-}
-
-class _QuizSheetState extends State<_QuizSheet> {
-  int _currentIndex = 0;
-  final Map<int, Set<int>> _answers = {};
-
-  void _toggleOption(int optionIndex) {
-    final question = widget.quiz.questions[_currentIndex];
-    final current = _answers[_currentIndex] != null
-        ? {..._answers[_currentIndex]!}
-        : <int>{};
-
-    if (question.allowsMultiple) {
-      if (current.contains(optionIndex)) {
-        current.remove(optionIndex);
-      } else {
-        current.add(optionIndex);
-      }
-    } else {
-      current
-        ..clear()
-        ..add(optionIndex);
-    }
-
-    setState(() {
-      _answers[_currentIndex] = current;
-    });
-  }
-
-  bool _isQuizPassed() {
-    for (final entry in widget.quiz.questions.asMap().entries) {
-      final selected = _answers[entry.key] ?? <int>{};
-      final correct = entry.value.options
-          .asMap()
-          .entries
-          .where((o) => o.value.isCorrect)
-          .map((o) => o.key)
-          .toSet();
-
-      if (selected.length != correct.length || !selected.containsAll(correct)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  void _goNext() {
-    final selected = _answers[_currentIndex] ?? <int>{};
-    if (selected.isEmpty) {
-      showTopNotification(context, 'Выберите вариант ответа', isError: true);
-      return;
-    }
-
-    if (_currentIndex < widget.quiz.questions.length - 1) {
-      setState(() {
-        _currentIndex += 1;
-      });
-      return;
-    }
-
-    final success = _isQuizPassed();
-    if (!mounted) return;
-
-    if (success) {
-      Navigator.of(context).pop(true);
-    } else {
-      showTopNotification(
-        context,
-        'Есть неверные ответы, попробуйте ещё раз',
-        isError: true,
-      );
-    }
-  }
-
-  void _goBack() {
-    if (_currentIndex == 0) return;
-    setState(() {
-      _currentIndex -= 1;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    final scheme = Theme.of(context).colorScheme;
-    final question = widget.quiz.questions[_currentIndex];
-    final selected = _answers[_currentIndex] ?? <int>{};
-
-    return FractionallySizedBox(
-      heightFactor: 0.92,
-      child: ClipRRect(
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        child: Material(
-          color: Theme.of(context).colorScheme.surface,
-          child: Column(
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      scheme.primaryContainer.withValues(alpha: 0.9),
-                      scheme.secondaryContainer.withValues(alpha: 0.9),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                Row(
                   children: [
-                    Text(
-                      widget.quiz.title,
-                      style: text.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Вопрос ${_currentIndex + 1} из ${widget.quiz.questions.length}',
-                      style: text.bodySmall?.copyWith(color: scheme.onPrimary),
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    Text(question.text, style: text.titleMedium),
-                    const SizedBox(height: 8),
-                    if (question.allowsMultiple)
-                      Text(
-                        'Можно выбрать несколько вариантов',
-                        style: text.bodySmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
-                      )
-                    else
-                      Text(
-                        'Выберите один вариант',
-                        style: text.bodySmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
+                    Expanded(
+                      child: Text(
+                        quiz.title,
+                        style: text.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
-                    const SizedBox(height: 12),
-                    ...question.options.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final option = entry.value;
-                      final isActive = selected.contains(index);
-
-                      return Container(
-                        margin: const EdgeInsets.symmetric(vertical: 6),
+                    ),
+                    if (quiz.rewardBuyingPower > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isActive
-                                ? scheme.primary
-                                : scheme.outline.withValues(alpha: 0.6),
-                          ),
-                          color: isActive
-                              ? scheme.primary.withValues(alpha: 0.08)
-                              : scheme.surface,
+                          color: AppColors.success.withValues(alpha: 0.14),
+                          borderRadius: BorderRadius.circular(999),
                         ),
-                        child: question.allowsMultiple
-                            ? CheckboxListTile(
-                                value: isActive,
-                                onChanged: (_) => _toggleOption(index),
-                                title: Text(
-                                  option.text,
-                                  style: text.bodyMedium,
-                                ),
-                                controlAffinity:
-                                    ListTileControlAffinity.leading,
-                              )
-                            : ListTile(
-                                onTap: () => _toggleOption(index),
-                                leading: Icon(
-                                  isActive
-                                      ? Icons.radio_button_checked
-                                      : Icons.radio_button_off,
-                                  color: isActive
-                                      ? scheme.primary
-                                      : scheme.onSurfaceVariant,
-                                ),
-                                title: Text(
-                                  option.text,
-                                  style: text.bodyMedium,
-                                ),
-                              ),
-                      );
-                    }),
+                        child: Text(
+                          '+${quiz.rewardBuyingPower.toStringAsFixed(0)} ₽',
+                          style: text.labelMedium?.copyWith(
+                            color: AppColors.success,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
                   ],
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                child: Row(
+                if (quiz.description.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    quiz.description,
+                    style: text.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 12),
+                Row(
                   children: [
-                    OutlinedButton.icon(
-                      onPressed: _currentIndex == 0 ? null : _goBack,
-                      icon: const Icon(Icons.arrow_back_ios_new, size: 16),
-                      label: const Text('Назад'),
+                    Icon(Icons.help_outline,
+                        size: 16, color: scheme.onSurfaceVariant),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${quiz.questionCount} ${_questionWord(quiz.questionCount)}',
+                      style: text.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
                     ),
                     const Spacer(),
-                    FilledButton(
-                      onPressed: _goNext,
-                      child: Text(
-                        _currentIndex == widget.quiz.questions.length - 1
-                            ? 'Завершить'
-                            : 'Далее',
-                      ),
-                    ),
+                    Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
                   ],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
   }
+
+  static String _questionWord(int n) {
+    final mod10 = n % 10;
+    final mod100 = n % 100;
+    if (mod10 == 1 && mod100 != 11) return 'вопрос';
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) {
+      return 'вопроса';
+    }
+    return 'вопросов';
+  }
 }
 
-class _PortfolioQuiz {
-  const _PortfolioQuiz({
-    required this.id,
-    required this.title,
-    required this.description,
-    required this.reward,
-    required this.successNote,
-    required this.questions,
-  });
+class _TopUpQuizPage extends ConsumerWidget {
+  const _TopUpQuizPage({required this.quizId, required this.title});
 
-  final String id;
+  final String quizId;
   final String title;
-  final String description;
-  final int reward;
-  final String successNote;
-  final List<_QuizQuestion> questions;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        children: [
+          ServerQuizBlock(
+            quizId: quizId,
+            tint: AppColors.primary,
+            onPassed: (_) {},
+          ),
+        ],
+      ),
+    );
+  }
 }
-
-class _QuizQuestion {
-  const _QuizQuestion({
-    required this.text,
-    required this.allowsMultiple,
-    required this.options,
-  });
-
-  final String text;
-  final bool allowsMultiple;
-  final List<_QuizOption> options;
-}
-
-class _QuizOption {
-  const _QuizOption({required this.text, required this.isCorrect});
-
-  final String text;
-  final bool isCorrect;
-}
-
-const List<_PortfolioQuiz> _portfolioQuizzes = [
-  _PortfolioQuiz(
-    id: 'diversification',
-    title: 'Базовая диверсификация',
-    description:
-        'Разберитесь, как распределять капитал между активами и странами, чтобы снизить волатильность.',
-    reward: 5000,
-    successNote:
-        'Отличная работа! Вы умеете распределять риски и повышать устойчивость портфеля.',
-    questions: [
-      _QuizQuestion(
-        text: 'Что даёт диверсификация портфеля?',
-        allowsMultiple: true,
-        options: [
-          _QuizOption(
-            text:
-                'Снижает зависимость от результата одной компании или сектора',
-            isCorrect: true,
-          ),
-          _QuizOption(
-            text: 'Гарантирует фиксированную доходность 20% в год',
-            isCorrect: false,
-          ),
-          _QuizOption(
-            text: 'Смягчает просадки за счёт разных классов активов',
-            isCorrect: true,
-          ),
-          _QuizOption(
-            text: 'Уменьшает вероятность коротких просадок',
-            isCorrect: true,
-          ),
-        ],
-      ),
-      _QuizQuestion(
-        text:
-            'Какой минимальный набор секторов помогает стартовой диверсификации?',
-        allowsMultiple: false,
-        options: [
-          _QuizOption(text: 'Один сектор для концентрации', isCorrect: false),
-          _QuizOption(text: 'Три–пять секторов', isCorrect: true),
-          _QuizOption(
-            text: 'Десять и более секторов всегда обязательны',
-            isCorrect: false,
-          ),
-        ],
-      ),
-      _QuizQuestion(
-        text: 'Как распределить валюты в долгосрочном портфеле?',
-        allowsMultiple: true,
-        options: [
-          _QuizOption(
-            text: 'Использовать одну валюту для простоты',
-            isCorrect: false,
-          ),
-          _QuizOption(
-            text: 'Смешивать основные мировые валюты и локальную',
-            isCorrect: true,
-          ),
-          _QuizOption(
-            text: 'Учитывать валюту расходов и целей',
-            isCorrect: true,
-          ),
-          _QuizOption(text: 'Игнорировать валютные риски', isCorrect: false),
-        ],
-      ),
-    ],
-  ),
-  _PortfolioQuiz(
-    id: 'goals',
-    title: 'Цели и горизонт',
-    description:
-        'Свяжите сроки, цели и риск-профиль, чтобы выбирать подходящие активы.',
-    reward: 3500,
-    successNote:
-        'Вы умеете увязывать инвестиции с целями — это ключ к дисциплине и росту капитала.',
-    questions: [
-      _QuizQuestion(
-        text: 'Что учитывать при выборе горизонта инвестиций?',
-        allowsMultiple: true,
-        options: [
-          _QuizOption(text: 'Срок, когда понадобятся деньги', isCorrect: true),
-          _QuizOption(text: 'Личную толерантность к риску', isCorrect: true),
-          _QuizOption(text: 'Погоду на следующей неделе', isCorrect: false),
-          _QuizOption(text: 'Валюту будущих расходов', isCorrect: true),
-        ],
-      ),
-      _QuizQuestion(
-        text: 'Какой инструмент чаще выбирают для цели через 1–2 года?',
-        allowsMultiple: false,
-        options: [
-          _QuizOption(
-            text: 'Краткосрочные облигации или депозиты',
-            isCorrect: true,
-          ),
-          _QuizOption(text: 'Высокорисковые акций роста', isCorrect: false),
-          _QuizOption(text: 'Долгосрочные венчурные фонды', isCorrect: false),
-        ],
-      ),
-      _QuizQuestion(
-        text: 'Как поступать с риском, если цель близка по времени?',
-        allowsMultiple: false,
-        options: [
-          _QuizOption(
-            text: 'Снижать долю рискованных активов',
-            isCorrect: true,
-          ),
-          _QuizOption(
-            text: 'Увеличивать волатильные активы ради доходности',
-            isCorrect: false,
-          ),
-          _QuizOption(
-            text: 'Не учитывать срок, если есть дивиденды',
-            isCorrect: false,
-          ),
-        ],
-      ),
-    ],
-  ),
-  _PortfolioQuiz(
-    id: 'riskcontrol',
-    title: 'Контроль риска',
-    description:
-        'Научитесь определять приемлемые просадки и подбирать размер позиции.',
-    reward: 4200,
-    successNote:
-        'Вы уверенно управляете просадками и контролируете риск — так держать!',
-    questions: [
-      _QuizQuestion(
-        text: 'Что помогает удерживать риск на позиции под контролем?',
-        allowsMultiple: true,
-        options: [
-          _QuizOption(
-            text: 'Лимиты на долю позиции в портфеле',
-            isCorrect: true,
-          ),
-          _QuizOption(text: 'Открывать позицию на весь счёт', isCorrect: false),
-          _QuizOption(
-            text: 'Использовать стоп-лоссы или алерты',
-            isCorrect: true,
-          ),
-          _QuizOption(
-            text: 'Игнорировать новости и просадки',
-            isCorrect: false,
-          ),
-        ],
-      ),
-      _QuizQuestion(
-        text: 'Какую просадку допустимо закладывать на позицию без плеча?',
-        allowsMultiple: false,
-        options: [
-          _QuizOption(
-            text: 'Любую, главное дождаться восстановления',
-            isCorrect: false,
-          ),
-          _QuizOption(
-            text: 'Ту, что соответствует личному риск-профилю и горизонту',
-            isCorrect: true,
-          ),
-          _QuizOption(
-            text: 'Фиксированно 2% для всех активов',
-            isCorrect: false,
-          ),
-        ],
-      ),
-      _QuizQuestion(
-        text: 'Как соотнести доходность и риск при отборе активов?',
-        allowsMultiple: true,
-        options: [
-          _QuizOption(
-            text: 'Смотреть на ожидаемую доходность без учёта волатильности',
-            isCorrect: false,
-          ),
-          _QuizOption(
-            text: 'Сравнивать потенциальную просадку с целями и горизонтом',
-            isCorrect: true,
-          ),
-          _QuizOption(
-            text: 'Не превышать заранее заданный лимит риска на портфель',
-            isCorrect: true,
-          ),
-          _QuizOption(
-            text: 'Покупать только то, что уже растёт',
-            isCorrect: false,
-          ),
-        ],
-      ),
-    ],
-  ),
-];
 
 class _PortfolioTabsHeader extends StatelessWidget {
   const _PortfolioTabsHeader({

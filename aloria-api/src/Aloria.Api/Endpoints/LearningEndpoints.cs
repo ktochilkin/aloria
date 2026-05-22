@@ -153,8 +153,12 @@ public static class LearningEndpoints
                 await db.SaveChangesAsync(ct);
                 await users.AddXpAsync(user, 10, ct); // фикс XP за урок
                 await users.TouchActivityAsync(user, ct);
-                await achievements.EvaluateAsync(user, ct);
             }
+
+            // Evaluator идемпотентен — отрабатывает только на ещё не открытые
+            // ачивки. Гоним его и на дубликатах: страхует от потерянных
+            // апдейтов при гонке быстрых параллельных completions.
+            await achievements.EvaluateAsync(user, ct);
 
             return Results.Ok(new { isCompleted = true });
         });

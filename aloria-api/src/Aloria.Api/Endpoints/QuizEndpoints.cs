@@ -11,6 +11,28 @@ public static class QuizEndpoints
     {
         var group = app.MapGroup("/api/v1/quizzes").WithTags("Quizzes");
 
+        // Standalone top-up тесты для экрана «Пополнить» (не привязаны к уроку
+        // и имеют ненулевую денежную награду).
+        app.MapGet("/api/v1/topup/quizzes", async (
+            AloriaDbContext db,
+            CancellationToken ct) =>
+        {
+            var list = await db.Quizzes
+                .Where(q => q.LessonId == null && q.RewardBuyingPower > 0)
+                .OrderBy(q => q.Title)
+                .Select(q => new
+                {
+                    q.Id,
+                    q.Slug,
+                    q.Title,
+                    q.Description,
+                    q.RewardBuyingPower,
+                    QuestionCount = q.Questions.Count,
+                })
+                .ToListAsync(ct);
+            return Results.Ok(list);
+        }).WithTags("Quizzes");
+
         group.MapGet("/{id:guid}", async (
             Guid id,
             AloriaDbContext db,

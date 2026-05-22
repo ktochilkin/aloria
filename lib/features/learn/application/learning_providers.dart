@@ -110,6 +110,22 @@ class LearningProgressNotifier extends StateNotifier<LearningProgressState> {
     );
   }
 
+  /// Применяет серверный снимок: локальные `read` приводятся к серверному
+  /// состоянию. Если серверный сброс удалил completion, локальный флаг тоже
+  /// снимается. Не трогает `lastVisited` и историю тестов.
+  Future<void> applyServerSnapshot(
+    Iterable<({String sectionId, String lessonId, bool serverCompleted})>
+        snapshot,
+  ) async {
+    final repo = _repository;
+    if (repo == null) return;
+    final updated = await repo.applyServerSnapshot(snapshot);
+    state = LearningProgressState(
+      entries: updated,
+      lastVisited: state.lastVisited,
+    );
+  }
+
   Future<void> saveQuizResult({
     required String sectionId,
     required String lessonId,
@@ -148,6 +164,44 @@ final learningProgressProvider =
     );
   },
 );
+
+/// Синхронизация прогресса с aloria-api: сервер — источник истины.
+///
+/// При готовности разделов и репозитория применяет снимок: для каждого
+/// урока приводит локальный `read` к серверному `isCompleted`. Если урок
+/// был сброшен на бэке (например, через админ-панель), локальный флаг
+/// тоже снимется и UI обновится.
+///
+/// Локальные «оффлайн-чтения» (когда `markLessonComplete` не дошёл до
+/// сервера) восстанавливаются естественно: lesson_page.dart дёргает
+/// `complete` при каждом заходе на урок, бэк идемпотентен.
+final learningProgressSyncProvider = Provider<void>((ref) {
+  final sectionsAsync = ref.watch(learningSectionsProvider);
+  final repoAsync = ref.watch(learningProgressRepositoryProvider);
+
+  final sections = sectionsAsync.asData?.value;
+  final repoReady = repoAsync.asData != null;
+  if (sections == null || !repoReady) return;
+
+  final snapshot =
+      <({String sectionId, String lessonId, bool serverCompleted})>[];
+  for (final s in sections) {
+    for (final l in s.lessons) {
+      snapshot.add((
+        sectionId: s.id,
+        lessonId: l.id,
+        serverCompleted: l.serverCompleted,
+      ));
+    }
+  }
+  if (snapshot.isEmpty) return;
+
+  Future.microtask(() {
+    ref
+        .read(learningProgressProvider.notifier)
+        .applyServerSnapshot(snapshot);
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Удобные derived-провайдеры.

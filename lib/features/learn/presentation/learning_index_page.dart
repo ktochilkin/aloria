@@ -21,6 +21,8 @@ class LearningPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final sectionsAsync = ref.watch(learningSectionsProvider);
+    // Тихая синхронизация локального прогресса с сервером.
+    ref.watch(learningProgressSyncProvider);
 
     return Scaffold(
       appBar: AppBar(

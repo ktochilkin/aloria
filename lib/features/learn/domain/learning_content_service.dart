@@ -31,8 +31,9 @@ class LearningContentService {
       final lessons = <Lesson>[];
       for (final summary in lessonsList) {
         final lessonId = summary['id'] as String;
+        final isCompleted = summary['isCompleted'] as bool? ?? false;
         final full = await _client.fetchLesson(lessonId);
-        final lesson = _mapLesson(full);
+        final lesson = _mapLesson(full, serverCompleted: isCompleted);
         if (lesson != null) lessons.add(lesson);
       }
 
@@ -51,7 +52,10 @@ class LearningContentService {
   /// Заглушка под старый API. Бэкенд тело intro-модалки не отдаёт пока.
   Future<String> loadIntro() async => '';
 
-  Lesson? _mapLesson(Map<String, dynamic> json) {
+  Lesson? _mapLesson(
+    Map<String, dynamic> json, {
+    bool serverCompleted = false,
+  }) {
     if (json.isEmpty) return null;
     final id = json['slug'] as String? ?? '';
     if (id.isEmpty) return null;
@@ -70,6 +74,7 @@ class LearningContentService {
       estimatedMinutes: (json['estimatedMinutes'] as num?)?.toInt(),
       serverId: json['id'] as String?,
       serverQuizId: quizId,
+      serverCompleted: serverCompleted,
     );
   }
 

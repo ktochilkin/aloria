@@ -181,3 +181,5 @@ public record AdminAuditEntryDto(
 public record AdminManualGrantInput(
     decimal Amount,
     string Reason);
+
+public record AdminLessonCompletionInput(bool Completed);

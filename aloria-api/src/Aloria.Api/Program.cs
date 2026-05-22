@@ -62,6 +62,21 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AloriaDbContext>();
     await db.Database.EnsureCreatedAsync();
 
+    // Лёгкая ручная миграция для таблиц, добавленных уже после первого
+    // создания БД. EnsureCreated к существующей БД новые таблицы не докатывает.
+    await db.Database.ExecuteSqlRawAsync(@"
+        CREATE TABLE IF NOT EXISTS ""UserEvents"" (
+            ""Id"" TEXT NOT NULL CONSTRAINT ""PK_UserEvents"" PRIMARY KEY,
+            ""UserId"" TEXT NOT NULL,
+            ""Code"" TEXT NOT NULL,
+            ""OccurredAt"" TEXT NOT NULL,
+            CONSTRAINT ""FK_UserEvents_Users_UserId"" FOREIGN KEY (""UserId"")
+                REFERENCES ""Users"" (""Id"") ON DELETE CASCADE
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS ""IX_UserEvents_UserId_Code""
+            ON ""UserEvents"" (""UserId"", ""Code"");
+    ");
+
     // Авто-импорт markdown уроков из Flutter-проекта при первом запуске
     if (!await db.Sections.AnyAsync())
     {
@@ -72,6 +87,12 @@ using (var scope = app.Services.CreateScope())
         app.Logger.LogInformation("Seeded {Count} lessons from {Dir}", imported, lessonsDir);
 
         await SeedDefaultAchievementsAsync(db);
+    }
+
+    if (!await db.Quizzes.AnyAsync(q => q.LessonId == null))
+    {
+        await SeedDefaultTopUpQuizzesAsync(db);
+        app.Logger.LogInformation("Seeded default top-up quizzes");
     }
 }
 
@@ -105,6 +126,140 @@ app.MapAdminEndpoints();
 app.Run();
 
 // ---------------------------------------------------------------------------
+static async Task SeedDefaultTopUpQuizzesAsync(AloriaDbContext db)
+{
+    Quiz BuildQuiz(string slug, string title, string description, int reward, List<(string text, bool multi, List<(string, bool, string?)> options)> qs)
+    {
+        var quiz = new Quiz
+        {
+            Id = Guid.NewGuid(),
+            Slug = slug,
+            Title = title,
+            Description = description,
+            RewardXp = 0,
+            RewardBuyingPower = reward,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        };
+        var qOrder = 0;
+        foreach (var (qText, multi, opts) in qs)
+        {
+            var question = new QuizQuestion
+            {
+                Id = Guid.NewGuid(),
+                QuizId = quiz.Id,
+                Text = qText,
+                AllowsMultiple = multi,
+                Order = qOrder++,
+            };
+            var oOrder = 0;
+            foreach (var (oText, isCorrect, expl) in opts)
+            {
+                question.Options.Add(new QuizOption
+                {
+                    Id = Guid.NewGuid(),
+                    QuestionId = question.Id,
+                    Text = oText,
+                    IsCorrect = isCorrect,
+                    Explanation = isCorrect ? expl : null,
+                    Order = oOrder++,
+                });
+            }
+            quiz.Questions.Add(question);
+        }
+        return quiz;
+    }
+
+    var quizzes = new[]
+    {
+        BuildQuiz(
+            slug: "topup-diversification",
+            title: "Базовая диверсификация",
+            description: "Как распределять капитал между активами и секторами, чтобы снизить волатильность.",
+            reward: 5000,
+            qs: new()
+            {
+                ("Что даёт диверсификация портфеля?", true, new()
+                {
+                    ("Снижает зависимость от результата одной компании или сектора", true, "Распределяя капитал, ты не привязан к успеху или неудаче одного эмитента."),
+                    ("Гарантирует фиксированную доходность 20% в год", false, null),
+                    ("Смягчает просадки за счёт разных классов активов", true, null),
+                    ("Уменьшает риск, что весь портфель упадёт одновременно", true, null),
+                }),
+                ("Какой минимальный набор секторов помогает стартовой диверсификации?", false, new()
+                {
+                    ("Один сектор для концентрации", false, null),
+                    ("3–5 разных секторов", true, "Достаточно нескольких независимых секторов, чтобы разнести риск."),
+                    ("Десять и более секторов всегда обязательны", false, null),
+                }),
+                ("Что относится к разным классам активов?", true, new()
+                {
+                    ("Акции", true, null),
+                    ("Облигации", true, "Облигации движутся менее коррелированно с акциями."),
+                    ("Денежная позиция (cash)", true, null),
+                    ("Только акции одного сектора", false, null),
+                }),
+            }),
+
+        BuildQuiz(
+            slug: "topup-orders",
+            title: "Типы заявок",
+            description: "Чем отличается рыночная заявка от лимитной и когда какую использовать.",
+            reward: 3000,
+            qs: new()
+            {
+                ("Что делает рыночная заявка?", false, new()
+                {
+                    ("Покупает/продаёт прямо сейчас по лучшей доступной цене", true, "Рыночная заявка исполняется мгновенно — пожертвовать ценой ради скорости."),
+                    ("Покупает только если цена дойдёт до указанной", false, null),
+                    ("Гарантирует точную цену исполнения", false, null),
+                }),
+                ("Какие риски у рыночной заявки в тонком стакане?", true, new()
+                {
+                    ("Цена может «убежать» — исполнение по сильно худшей цене", true, null),
+                    ("Заявка не исполнится никогда", false, null),
+                    ("Можно проскользнуть через несколько уровней стакана", true, "В тонком стакане один большой ордер съедает несколько уровней цен сразу."),
+                }),
+                ("Когда уместна лимитная заявка?", true, new()
+                {
+                    ("Когда ты готов ждать ради нужной цены", true, null),
+                    ("Когда хочешь купить любой ценой как можно быстрее", false, null),
+                    ("Когда хочешь зафиксировать максимально допустимую цену покупки", true, "Лимитка — это твоя страховка от неожиданно высокой цены."),
+                }),
+            }),
+
+        BuildQuiz(
+            slug: "topup-risk",
+            title: "Управление риском",
+            description: "Как ограничивать потери на одну позицию и не сжигать портфель за неделю.",
+            reward: 4000,
+            qs: new()
+            {
+                ("Что такое позиция в плюсе?", false, new()
+                {
+                    ("Текущая стоимость пакета бумаг выше суммы покупки", true, "Это нереализованная прибыль — она зафиксируется только при закрытии позиции."),
+                    ("Брокер автоматически зачислил доход", false, null),
+                    ("Гарантия будущей прибыли", false, null),
+                }),
+                ("Какой простой способ ограничить убыток на одной позиции?", false, new()
+                {
+                    ("Выставить стоп-лосс заранее", true, "Стоп-лосс — это автозакрытие позиции, если цена дошла до триггера."),
+                    ("Игнорировать просадку и ждать", false, null),
+                    ("Доливать каждый раз, как цена падает", false, null),
+                }),
+                ("Сколько от портфеля разумно рисковать на одной сделке?", false, new()
+                {
+                    ("Не больше 1–2%", true, "Это позволяет ошибиться много раз и не потерять весь капитал."),
+                    ("30–50% всё нормально", false, null),
+                    ("Весь портфель — иначе нет смысла", false, null),
+                }),
+            }),
+    };
+
+    db.Quizzes.AddRange(quizzes);
+    await db.SaveChangesAsync();
+}
+
 static async Task SeedDefaultAchievementsAsync(AloriaDbContext db)
 {
     // Награда — в виртуальных рублях покупательной способности. XP отключён в UI,

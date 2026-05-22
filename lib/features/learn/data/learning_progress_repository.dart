@@ -116,6 +116,34 @@ class LearningProgressRepository {
     return all;
   }
 
+  /// Применяет серверный снимок прогресса: для каждого урока выставляет
+  /// локальный флаг `read` ровно как на сервере. Используется при заходе
+  /// на «Обучение» — сервер становится источником истины, локальный кэш
+  /// перетягивается под него (включая снятие флага, если на сервере
+  /// прохождение было удалено, например через админ-сброс).
+  ///
+  /// Записи `lastQuizScore` / `lastViewedAt` не трогаются — это локальная
+  /// телеметрия.
+  Future<Map<String, LessonProgressEntry>> applyServerSnapshot(
+    Iterable<
+            ({String sectionId, String lessonId, bool serverCompleted})>
+        snapshot,
+  ) async {
+    final all = Map<String, LessonProgressEntry>.from(loadAll());
+    var changed = false;
+    for (final s in snapshot) {
+      final id = compositeId(s.sectionId, s.lessonId);
+      final current = all[id];
+      final isRead = current?.read ?? false;
+      if (s.serverCompleted == isRead) continue;
+      all[id] = (current ?? LessonProgressEntry(lessonId: id, read: false))
+          .copyWith(read: s.serverCompleted);
+      changed = true;
+    }
+    if (changed) await _saveAll(all);
+    return all;
+  }
+
   /// Сохраняет результат теста урока. Не меняет флаг `read`.
   Future<Map<String, LessonProgressEntry>> saveQuizResult(
     String sectionId,
