@@ -86,6 +86,10 @@ class Lesson {
     required this.imageUrl,
     required this.body,
     this.estimatedMinutes,
+    this.practiceSymbol,
+    this.practiceText,
+    this.recallPrompt,
+    this.recallAnswer,
     this.quiz = const [],
     this.serverId,
     this.serverQuizId,
@@ -99,6 +103,18 @@ class Lesson {
   final String imageUrl;
   final String body;
   final int? estimatedMinutes;
+
+  /// Опциональная связка «попробуй вживую» (см. backend Lesson.Practice*).
+  /// Если задан [practiceText] — в уроке показывается карточка с deep-link
+  /// в рынок (на инструмент [practiceSymbol] или, если он пуст, на список).
+  final String? practiceSymbol;
+  final String? practiceText;
+
+  /// Опциональная карточка retrieval-practice (см. backend Lesson.Recall*):
+  /// вопрос на вспоминание и эталонный ответ для самопроверки.
+  final String? recallPrompt;
+  final String? recallAnswer;
+
   final List<QuizQuestion> quiz;
   final String? serverId;
   final String? serverQuizId;

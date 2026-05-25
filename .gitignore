@@ -76,3 +76,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# push secrets (не коммитим)
+**/fcm-service-account.json
+*.p8

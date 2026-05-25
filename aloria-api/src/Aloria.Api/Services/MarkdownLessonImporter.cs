@@ -3,8 +3,6 @@ using System.Text.RegularExpressions;
 using Aloria.Api.Data;
 using Aloria.Api.Domain;
 using Microsoft.EntityFrameworkCore;
-using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
 
 namespace Aloria.Api.Services;
 
@@ -16,11 +14,6 @@ public class MarkdownLessonImporter(
     AloriaDbContext db,
     ILogger<MarkdownLessonImporter> log)
 {
-    private static readonly IDeserializer Yaml = new DeserializerBuilder()
-        .WithNamingConvention(UnderscoredNamingConvention.Instance)
-        .IgnoreUnmatchedProperties()
-        .Build();
-
     private static readonly Regex Frontmatter = new(
         @"^---\s*\r?\n(?<yaml>.*?)\r?\n---\s*\r?\n(?<body>.*)$",
         RegexOptions.Singleline | RegexOptions.Compiled);
@@ -64,6 +57,12 @@ public class MarkdownLessonImporter(
             var files = Directory.EnumerateFiles(sectionDir, "*.md").OrderBy(x => x).ToList();
             for (var i = 0; i < files.Count; i++)
             {
+                // Чистим трекер между уроками. Контекст живёт долго, и при
+                // повторном импорте (--seed) накопленные и каскадно удалённые
+                // сущности из прошлых итераций ломали SaveChanges
+                // (DbUpdateConcurrencyException: affected 0 rows).
+                db.ChangeTracker.Clear();
+
                 var path = files[i];
                 var name = Path.GetFileNameWithoutExtension(path);
                 var slug = StripOrderPrefix(name);
@@ -72,28 +71,14 @@ public class MarkdownLessonImporter(
                 var (frontmatter, body) = SplitFrontmatter(raw);
                 var (bodyWithoutQuiz, quizJson) = SplitQuiz(body);
 
-                Dictionary<string, object?> meta;
-                try
-                {
-                    meta = string.IsNullOrWhiteSpace(frontmatter)
-                        ? new()
-                        : Yaml.Deserialize<Dictionary<string, object?>>(frontmatter)
-                          ?? new Dictionary<string, object?>();
-                }
-                catch (Exception ex)
-                {
-                    log.LogWarning(ex, "Bad frontmatter in {File}, skipping", path);
-                    continue;
-                }
+                var meta = ParseFrontmatter(frontmatter);
 
                 string? Get(params string[] keys) => keys
-                    .Select(k => meta.TryGetValue(k, out var v) ? v?.ToString() : null)
+                    .Select(k => meta.TryGetValue(k, out var v) ? v : null)
                     .FirstOrDefault(s => !string.IsNullOrWhiteSpace(s));
 
-                int? GetInt(string key) => meta.TryGetValue(key, out var v) && v != null
-                    && int.TryParse(v.ToString(), out var n)
-                    ? n
-                    : null;
+                int? GetInt(params string[] keys) =>
+                    Get(keys) is { } s && int.TryParse(s, out var n) ? n : null;
 
                 var existing = await db.Lessons
                     .FirstOrDefaultAsync(l => l.SectionId == section.Id && l.Slug == slug, ct);
@@ -116,9 +101,12 @@ public class MarkdownLessonImporter(
                 existing.Description = Get("description") ?? string.Empty;
                 existing.BodyMd = bodyWithoutQuiz.TrimEnd();
                 existing.ImageUrl = Get("imageurl", "image_url", "image");
-                existing.EstimatedMinutes = GetInt("estimatedminutes")
-                    ?? GetInt("estimated_minutes");
+                existing.EstimatedMinutes = GetInt("estimatedMinutes", "estimated_minutes");
                 existing.AcademicDefinition = Get("academicdefinition", "academic_definition");
+                existing.PracticeSymbol = Get("practiceSymbol", "practice_symbol");
+                existing.PracticeText = Get("practiceTask", "practiceText", "practice_task");
+                existing.RecallPrompt = Get("recallPrompt", "recall_prompt");
+                existing.RecallAnswer = Get("recallAnswer", "recall_answer");
                 existing.Order = i;
                 existing.Version = (existing.Version == 0 ? 1 : existing.Version);
                 existing.UpdatedAt = DateTime.UtcNow;
@@ -128,6 +116,13 @@ public class MarkdownLessonImporter(
                 if (!string.IsNullOrWhiteSpace(quizJson))
                 {
                     await ImportQuizAsync(existing, quizJson!, ct);
+                }
+                else
+                {
+                    // Урок без блока ---quiz---: убираем ранее импортированный тест
+                    // урока (markdown — источник правды). Каскад БД уберёт вопросы,
+                    // варианты и попытки. Тесты пополнения (LessonId == null) не трогаем.
+                    await db.Quizzes.Where(q => q.LessonId == existing.Id).ExecuteDeleteAsync(ct);
                 }
 
                 totalLessons++;
@@ -146,8 +141,6 @@ public class MarkdownLessonImporter(
             if (root.ValueKind != JsonValueKind.Array) return;
 
             var quiz = await db.Quizzes
-                .Include(q => q.Questions)
-                    .ThenInclude(q => q.Options)
                 .FirstOrDefaultAsync(q => q.LessonId == lesson.Id, ct);
 
             if (quiz == null)
@@ -168,7 +161,10 @@ public class MarkdownLessonImporter(
             }
             else
             {
-                db.QuizQuestions.RemoveRange(quiz.Questions);
+                // Старые вопросы убираем set-based удалением: связанные QuizOptions
+                // уйдут каскадом на уровне БД. Грузить их в трекер и звать
+                // RemoveRange нельзя — это конфликтует с каскадом БД (affected 0 rows).
+                await db.QuizQuestions.Where(q => q.QuizId == quiz.Id).ExecuteDeleteAsync(ct);
             }
 
             var order = 0;
@@ -203,7 +199,10 @@ public class MarkdownLessonImporter(
                         Order = oi,
                     });
                 }
-                quiz.Questions.Add(question);
+                // Через db.Add (а не навигацию quiz.Questions.Add): иначе EF
+                // считает заданный Guid-ключ признаком существующей записи и
+                // делает UPDATE вместо INSERT при переимпорте (--seed).
+                db.QuizQuestions.Add(question);
             }
             quiz.UpdatedAt = DateTime.UtcNow;
             await db.SaveChangesAsync(ct);
@@ -219,6 +218,42 @@ public class MarkdownLessonImporter(
         var m = Frontmatter.Match(raw);
         if (!m.Success) return (string.Empty, raw);
         return (m.Groups["yaml"].Value, m.Groups["body"].Value);
+    }
+
+    /// <summary>
+    /// Разбор frontmatter урока. Это плоский набор «ключ: значение», поэтому
+    /// вместо строгого YAML используем устойчивый строковый разбор: делим по
+    /// первому двоеточию (двоеточия в значении, например «продаж: как», не ломают
+    /// разбор) и сравниваем ключи без учёта регистра (academicDefinition,
+    /// estimatedMinutes и т. п. больше не теряются).
+    /// </summary>
+    private static Dictionary<string, string> ParseFrontmatter(string frontmatter)
+    {
+        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(frontmatter)) return map;
+
+        foreach (var rawLine in frontmatter.Split('\n'))
+        {
+            var line = rawLine.TrimEnd('\r');
+            if (string.IsNullOrWhiteSpace(line) || line.TrimStart().StartsWith('#')) continue;
+
+            var idx = line.IndexOf(':');
+            if (idx <= 0) continue;
+
+            var key = line[..idx].Trim();
+            var value = line[(idx + 1)..].Trim();
+
+            // Снимаем обрамляющие кавычки, если значение было заквотировано.
+            if (value.Length >= 2 &&
+                ((value[0] == '"' && value[^1] == '"') || (value[0] == '\'' && value[^1] == '\'')))
+            {
+                value = value[1..^1];
+            }
+
+            if (key.Length > 0) map[key] = value;
+        }
+
+        return map;
     }
 
     private static (string Body, string? Quiz) SplitQuiz(string body)

@@ -121,7 +121,9 @@ public static class LearningEndpoints
             return Results.Ok(new LessonDto(
                 lesson.Id, lesson.SectionId, lesson.Slug, lesson.Title, lesson.Description,
                 lesson.BodyMd, lesson.ImageUrl, lesson.EstimatedMinutes, lesson.AcademicDefinition,
-                lesson.Order, lesson.Version, quizDto));
+                lesson.Order, lesson.Version, quizDto,
+                lesson.PracticeSymbol, lesson.PracticeText,
+                lesson.RecallPrompt, lesson.RecallAnswer));
         });
 
         group.MapPost("/lessons/{id:guid}/complete", async (

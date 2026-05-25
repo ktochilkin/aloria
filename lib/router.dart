@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:aloria/core/env/env.dart';
+import 'package:aloria/core/push/push_controller.dart';
 import 'package:aloria/features/auth/application/auth_controller.dart';
 import 'package:aloria/features/auth/presentation/login_page.dart';
 import 'package:aloria/features/learn/presentation/learning_page.dart';
@@ -172,6 +173,13 @@ class _ScaffoldWithNavBar extends ConsumerWidget {
     ref.read(positionsBootstrapperProvider);
     ref.read(portfolioSummaryBootstrapperProvider);
     ref.read(ordersBootstrapperProvider);
+    // Пуши (iOS): инициализация + регистрация токена после логина.
+    ref.read(pushBootstrapProvider);
+    // Тап по пушу → deep-link на нужный экран.
+    ref.listen(pushTapProvider, (_, next) {
+      final tap = next.valueOrNull;
+      if (tap != null) context.go(tap.route);
+    });
 
     final width = MediaQuery.of(context).size.width;
     final isMobile = width < 600;

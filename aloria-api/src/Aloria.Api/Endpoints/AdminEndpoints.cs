@@ -2,6 +2,7 @@ using Aloria.Api.Data;
 using Aloria.Api.Domain;
 using Aloria.Api.Dtos;
 using Aloria.Api.Services;
+using Aloria.Api.Services.Push;
 using Microsoft.EntityFrameworkCore;
 
 namespace Aloria.Api.Endpoints;
@@ -17,10 +18,62 @@ public static class AdminEndpoints
         MapQuizzes(group);
         MapAchievements(group);
         MapUsers(group);
+        MapPush(group);
         MapAudit(group);
         MapUploads(group);
 
         return app;
+    }
+
+    private static void MapPush(RouteGroupBuilder group)
+    {
+        // Ручная рассылка всем зарегистрированным устройствам.
+        group.MapPost("/push/broadcast", async (
+            AdminPushInput input,
+            PushDispatcher dispatcher,
+            AuditLogger audit,
+            CancellationToken ct) =>
+        {
+            if (string.IsNullOrWhiteSpace(input.Title) || string.IsNullOrWhiteSpace(input.Body))
+                return Results.BadRequest("title и body обязательны");
+
+            var outcome = await dispatcher.DispatchToAllAsync(NotificationType.Custom, PushArgs(input), ct);
+            await audit.LogAsync("push", "Broadcast", null,
+                $"\"{input.Title}\" → {outcome.Sent}/{outcome.Targeted}", ct);
+            return Results.Ok(outcome);
+        });
+
+        // Ручная отправка конкретному пользователю (на все его устройства).
+        group.MapPost("/users/{id:guid}/push", async (
+            Guid id,
+            AdminPushInput input,
+            AloriaDbContext db,
+            PushDispatcher dispatcher,
+            AuditLogger audit,
+            CancellationToken ct) =>
+        {
+            if (string.IsNullOrWhiteSpace(input.Title) || string.IsNullOrWhiteSpace(input.Body))
+                return Results.BadRequest("title и body обязательны");
+
+            var user = await db.Users.FindAsync([id], ct);
+            if (user == null) return Results.NotFound();
+
+            var outcome = await dispatcher.DispatchAsync(user.Id, NotificationType.Custom, PushArgs(input), ct);
+            await audit.LogAsync("push", "User", id,
+                $"\"{input.Title}\" → {outcome.Sent}/{outcome.Targeted}", ct);
+            return Results.Ok(outcome);
+        });
+    }
+
+    private static Dictionary<string, string> PushArgs(AdminPushInput input)
+    {
+        var args = new Dictionary<string, string>
+        {
+            ["title"] = input.Title,
+            ["body"] = input.Body,
+        };
+        if (!string.IsNullOrWhiteSpace(input.Route)) args["route"] = input.Route!;
+        return args;
     }
 
     private static void MapSections(RouteGroupBuilder group)

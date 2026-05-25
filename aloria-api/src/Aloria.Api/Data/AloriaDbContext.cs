@@ -18,6 +18,8 @@ public class AloriaDbContext(DbContextOptions<AloriaDbContext> options) : DbCont
     public DbSet<BuyingPowerGrant> BuyingPowerGrants => Set<BuyingPowerGrant>();
     public DbSet<AuditLogEntry> AuditLog => Set<AuditLogEntry>();
     public DbSet<UserEvent> UserEvents => Set<UserEvent>();
+    public DbSet<ReviewItem> ReviewItems => Set<ReviewItem>();
+    public DbSet<DeviceToken> DeviceTokens => Set<DeviceToken>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -100,6 +102,17 @@ public class AloriaDbContext(DbContextOptions<AloriaDbContext> options) : DbCont
         {
             e.HasIndex(x => new { x.UserId, x.Code }).IsUnique();
             e.Property(x => x.Code).HasMaxLength(64).IsRequired();
+        });
+
+        b.Entity<ReviewItem>(e =>
+        {
+            e.HasIndex(x => new { x.UserId, x.LessonId }).IsUnique();
+        });
+
+        b.Entity<DeviceToken>(e =>
+        {
+            e.HasIndex(x => x.Token).IsUnique();
+            e.Property(x => x.Token).IsRequired();
         });
     }
 }

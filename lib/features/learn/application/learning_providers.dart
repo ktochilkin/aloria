@@ -1,4 +1,5 @@
 import 'package:aloria/features/learn/data/learning_api_client.dart';
+import 'package:aloria/features/learn/data/learning_content_cache.dart';
 import 'package:aloria/features/learn/data/learning_progress_repository.dart';
 import 'package:aloria/features/learn/domain/learning_content_service.dart';
 import 'package:aloria/features/learn/domain/models.dart';
@@ -20,14 +21,37 @@ final learningContentServiceProvider = Provider<LearningContentService>(
   (ref) => LearningContentService(ref.watch(learningApiClientProvider)),
 );
 
-/// Кэшированный список разделов с уроками.
+/// Список разделов с уроками.
 ///
-/// Список загружается один раз и переиспользуется всеми экранами обучения.
+/// Network-first: грузим с бэка и сохраняем в локальный кэш; если сеть/бэк
+/// недоступны — отдаём последний сохранённый кэш. Переиспользуется всеми
+/// экранами обучения.
 final learningSectionsProvider = FutureProvider<List<LearningSection>>(
-  (ref) {
+  (ref) async {
     final service = ref.watch(learningContentServiceProvider);
     final portfolioId = ref.watch(aloriaPortfolioIdProvider);
-    return service.loadSections(portfolioId: portfolioId);
+
+    // Кэш — best-effort: если SharedPreferences ещё не готов, работаем как раньше.
+    LearningContentCache? cache;
+    try {
+      cache = LearningContentCache(
+        await ref.watch(_sharedPreferencesProvider.future),
+      );
+    } catch (_) {
+      cache = null;
+    }
+
+    try {
+      // Всегда пробуем свежий контент.
+      final sections = await service.loadSections(portfolioId: portfolioId);
+      await cache?.save(sections);
+      return sections;
+    } catch (e) {
+      // Сеть/бэк недоступны — отдаём последний кэш, если он есть.
+      final cached = cache?.load();
+      if (cached != null && cached.isNotEmpty) return cached;
+      rethrow; // ни сети, ни кэша — UI покажет ошибку.
+    }
   },
 );
 

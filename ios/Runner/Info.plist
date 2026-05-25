@@ -68,5 +68,9 @@
 	<!-- Локальная сеть: для подключения к 192.168.x.x на iOS 14+ -->
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Aloria подключается к учебному серверу в вашей локальной сети.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 </dict>
 </plist>

@@ -1,18 +1,22 @@
 import 'package:aloria/core/theme/tokens.dart';
 import 'package:aloria/core/utils/layout_utils.dart';
 import 'package:aloria/core/widgets/top_notification.dart';
+import 'package:aloria/features/learning_mode/presentation/order_form_coaching.dart';
 import 'package:aloria/features/market/application/market_news_provider.dart';
 import 'package:aloria/features/market/application/order_book_notifier.dart';
+import 'package:aloria/features/market/application/orders_provider.dart';
 import 'package:aloria/features/market/application/price_feed_notifier.dart';
 import 'package:aloria/features/market/data/market_data_repository.dart';
 import 'package:aloria/features/market/domain/candle.dart';
 import 'package:aloria/features/market/domain/market_news.dart';
 import 'package:aloria/features/market/domain/order_book.dart';
+import 'package:aloria/features/market/domain/portfolio_order.dart';
 import 'package:aloria/features/market/domain/trade_order.dart';
 import 'package:aloria/features/market/presentation/widgets/instrument_avatar.dart';
 import 'package:aloria/features/market/presentation/widgets/news_widget.dart';
 import 'package:aloria/features/market/presentation/widgets/order_book_widget.dart';
 import 'package:aloria/features/market/presentation/widgets/quotes_list.dart';
+import 'package:aloria/features/settings/application/settings_controller.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -53,6 +57,11 @@ class _TradePageState extends ConsumerState<TradePage> {
   late final ScrollController _scrollController;
   bool _isLimit = false;
   bool _submitting = false;
+
+  /// Коучинг по отказам: id уже показанных отклонённых заявок и флаг «после
+  /// отправки», чтобы не всплывать на исторических отказах из потока заявок.
+  final Set<String> _coachedRejectionIds = {};
+  bool _armedForRejections = false;
 
   @override
   void initState() {
@@ -103,6 +112,16 @@ class _TradePageState extends ConsumerState<TradePage> {
 
   Future<void> _submit(OrderSide side) async {
     final repo = await ref.read(marketDataRepositoryProvider.future);
+
+    // Готовимся ловить асинхронный отказ: помечаем уже отклонённые заявки как
+    // показанные, чтобы всплыло только новое — без зависимости от часов сервера.
+    final existingOrders =
+        ref.read(ordersProvider).valueOrNull ?? const <ClientOrder>[];
+    for (final o in existingOrders) {
+      if (o.status == OrderStatus.rejected) _coachedRejectionIds.add(o.id);
+    }
+    _armedForRejections = true;
+
     final qty = double.tryParse(_qtyController.text) ?? 0;
     final limitPrice = double.tryParse(_priceController.text);
     final order = TradeOrder(
@@ -137,6 +156,14 @@ class _TradePageState extends ConsumerState<TradePage> {
         }
 
         showTopNotification(context, errorMessage, isError: true);
+
+        // Синхронный отказ (валидация при отправке): в режиме обучения
+        // показываем человеческое объяснение возможных причин.
+        if (e is DioException &&
+            e.response != null &&
+            ref.read(settingsControllerProvider).learningMode) {
+          showOrderRejectionHelp(context, brokerMessage: errorMessage);
+        }
       }
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -145,6 +172,24 @@ class _TradePageState extends ConsumerState<TradePage> {
 
   @override
   Widget build(BuildContext context) {
+    // Асинхронный отказ приходит через поток заявок (OrdersGetAndSubscribeV2).
+    // Реагируем только на новые отклонённые заявки по этому инструменту после
+    // отправки — в режиме обучения показываем объяснение причины.
+    ref.listen<AsyncValue<List<ClientOrder>>>(ordersProvider, (_, next) {
+      if (!_armedForRejections) return;
+      final orders = next.valueOrNull;
+      if (orders == null) return;
+      final learningMode = ref.read(settingsControllerProvider).learningMode;
+      for (final o in orders) {
+        if (o.symbol != widget.symbol) continue;
+        if (o.status != OrderStatus.rejected) continue;
+        if (!_coachedRejectionIds.add(o.id)) continue;
+        if (learningMode && mounted) {
+          showOrderRejectionHelp(context, brokerMessage: o.comment);
+        }
+      }
+    });
+
     final feed = ref.watch(
       priceFeedProvider((symbol: widget.symbol, exchange: widget.exchange)),
     );
@@ -166,6 +211,10 @@ class _TradePageState extends ConsumerState<TradePage> {
         : widget.symbol;
 
     return Scaffold(
+      // Клавиатуру уже учитывает внешний Scaffold нижней навигации (shell).
+      // Без этого оба Scaffold'а поднимают контент над клавиатурой —
+      // получается двойной отступ и большой пустой зазор над клавиатурой.
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: Text(titleText, maxLines: 1, overflow: TextOverflow.ellipsis),
       ),
@@ -464,6 +513,7 @@ class _TradeBody extends StatelessWidget {
                   ),
                 ],
               ),
+              OrderTypeHint(isLimit: isLimit),
               const SizedBox(height: 12),
               TextField(
                 controller: qtyController,

@@ -4,6 +4,8 @@ import 'package:aloria/app.dart';
 import 'package:aloria/app_config.dart';
 import 'package:aloria/core/env/env.dart';
 import 'package:aloria/core/logging/logger.dart';
+import 'package:aloria/firebase_options.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -11,7 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 void main() {
   runZonedGuarded(
-    () {
+    () async {
       WidgetsFlutterBinding.ensureInitialized();
 
       // Настройка статус-бара для iOS
@@ -30,6 +32,19 @@ void main() {
       }
 
       final config = AppConfig.fromEnv();
+
+      // Firebase нужен для пушей. Конфиг пока только для iOS — на других
+      // платформах init пропускаем (там пуши не запускаются). Best-effort:
+      // сбой инициализации не должен блокировать запуск приложения.
+      if (!kIsWeb) {
+        try {
+          await Firebase.initializeApp(
+            options: DefaultFirebaseOptions.currentPlatform,
+          );
+        } catch (e, s) {
+          appLogger.w('Firebase init пропущен/упал', error: e, stackTrace: s);
+        }
+      }
 
       FlutterError.onError = (details) {
         FlutterError.presentError(details);

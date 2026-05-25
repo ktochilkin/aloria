@@ -33,7 +33,11 @@ public record LessonDto(
     string? AcademicDefinition,
     int Order,
     int Version,
-    QuizDto? Quiz);
+    QuizDto? Quiz,
+    string? PracticeSymbol,
+    string? PracticeText,
+    string? RecallPrompt,
+    string? RecallAnswer);
 
 public record QuizDto(
     Guid Id,
@@ -106,3 +110,19 @@ public record GrantDto(
     string Status,
     DateTime CreatedAt,
     DateTime? CommittedAt);
+
+// ----- Разнесённое повторение (recall) -----------------------------------
+public record ReviewGradeRequest(bool Remembered);
+
+public record ReviewGradeResultDto(DateTime NextDueAt, int IntervalDays);
+
+public record DueReviewDto(
+    Guid LessonId,
+    string SectionSlug,
+    string LessonSlug,
+    string Title,
+    string RecallPrompt,
+    string? RecallAnswer);
+
+// ----- Push-устройства ----------------------------------------------------
+public record DeviceRegisterRequest(string Token, string? Platform);

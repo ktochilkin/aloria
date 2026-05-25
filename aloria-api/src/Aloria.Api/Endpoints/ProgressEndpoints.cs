@@ -122,6 +122,86 @@ public static class ProgressEndpoints
             return Results.Ok(grants);
         });
 
+        // Оценка карточки recall: упрощённый SM-2. Создаёт ReviewItem при первой
+        // оценке, дальше двигает интервал и срок следующего повторения.
+        group.MapPost("/reviews/{lessonId:guid}/grade", async (
+            Guid lessonId,
+            string portfolioId,
+            ReviewGradeRequest body,
+            AloriaDbContext db,
+            UserService users,
+            CancellationToken ct) =>
+        {
+            if (string.IsNullOrWhiteSpace(portfolioId))
+                return Results.BadRequest("portfolioId required");
+            if (!await db.Lessons.AnyAsync(l => l.Id == lessonId, ct))
+                return Results.NotFound();
+
+            var user = await users.EnsureUserAsync(portfolioId, ct);
+            var item = await db.ReviewItems
+                .FirstOrDefaultAsync(r => r.UserId == user.Id && r.LessonId == lessonId, ct);
+            if (item == null)
+            {
+                item = new Domain.ReviewItem
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = user.Id,
+                    LessonId = lessonId,
+                };
+                db.ReviewItems.Add(item);
+            }
+
+            if (body.Remembered)
+            {
+                item.Repetitions += 1;
+                item.IntervalDays = item.Repetitions switch
+                {
+                    1 => 1,
+                    2 => 3,
+                    _ => (int)Math.Round(item.IntervalDays * item.EaseFactor),
+                };
+                item.EaseFactor = Math.Min(2.8, item.EaseFactor + 0.05);
+            }
+            else
+            {
+                item.Repetitions = 0;
+                item.IntervalDays = 1;
+                item.EaseFactor = Math.Max(1.3, item.EaseFactor - 0.2);
+            }
+            if (item.IntervalDays < 1) item.IntervalDays = 1;
+            item.NextDueAt = DateTime.UtcNow.AddDays(item.IntervalDays);
+            item.UpdatedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync(ct);
+
+            return Results.Ok(new ReviewGradeResultDto(item.NextDueAt, item.IntervalDays));
+        });
+
+        // Карточки recall, которые пора повторить (NextDueAt <= сейчас).
+        group.MapGet("/reviews/due", async (
+            string portfolioId,
+            AloriaDbContext db,
+            UserService users,
+            CancellationToken ct) =>
+        {
+            if (string.IsNullOrWhiteSpace(portfolioId))
+                return Results.BadRequest("portfolioId required");
+            var user = await users.EnsureUserAsync(portfolioId, ct);
+            var now = DateTime.UtcNow;
+
+            var due = await (
+                from r in db.ReviewItems
+                where r.UserId == user.Id && r.NextDueAt <= now
+                join l in db.Lessons on r.LessonId equals l.Id
+                join s in db.Sections on l.SectionId equals s.Id
+                where l.RecallPrompt != null && l.RecallPrompt != ""
+                orderby r.NextDueAt
+                select new DueReviewDto(
+                    l.Id, s.Slug, l.Slug, l.Title, l.RecallPrompt!, l.RecallAnswer)
+            ).ToListAsync(ct);
+
+            return Results.Ok(due);
+        });
+
         return app;
     }
 }

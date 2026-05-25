@@ -183,3 +183,9 @@ public record AdminManualGrantInput(
     string Reason);
 
 public record AdminLessonCompletionInput(bool Completed);
+
+/// Ручная push-рассылка из админки. Route — опциональный deep-link (по умолчанию /learn).
+public record AdminPushInput(
+    string Title,
+    string Body,
+    string? Route);

@@ -14,6 +14,17 @@ public class Lesson
     public string? ImageUrl { get; set; }
     public int? EstimatedMinutes { get; set; }
     public string? AcademicDefinition { get; set; }
+
+    /// Опциональная связка «попробуй вживую»: тикер инструмента и текст задачи.
+    /// Если задан текст — в уроке показывается карточка с deep-link в рынок.
+    public string? PracticeSymbol { get; set; }
+    public string? PracticeText { get; set; }
+
+    /// Опциональная карточка retrieval-practice: вопрос на вспоминание и
+    /// эталонный ответ для самопроверки. Расписание повторений — в ReviewItem.
+    public string? RecallPrompt { get; set; }
+    public string? RecallAnswer { get; set; }
+
     public int Order { get; set; }
     public int Version { get; set; } = 1;
 

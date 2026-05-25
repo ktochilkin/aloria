@@ -5,6 +5,7 @@ import 'package:aloria/features/learn/data/learning_api_client.dart';
 import 'package:aloria/features/learn/domain/models.dart';
 import 'package:aloria/features/learn/presentation/widgets/learning_widgets.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_quiz_block.dart';
+import 'package:aloria/features/learn/presentation/widgets/recall_card.dart';
 import 'package:aloria/features/learn/presentation/widgets/server_quiz_block.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
@@ -268,6 +269,32 @@ class _LessonViewState extends ConsumerState<_LessonView> {
               },
             ),
           ],
+          if ((widget.lesson.recallPrompt ?? '').trim().isNotEmpty &&
+              widget.lesson.serverId != null) ...[
+            const SizedBox(height: 22),
+            RecallCard(
+              prompt: widget.lesson.recallPrompt!.trim(),
+              answer: widget.lesson.recallAnswer,
+              tint: widget.section.tint,
+              onGrade: (remembered) {
+                final client = ref.read(learningApiClientProvider);
+                final portfolioId = ref.read(aloriaPortfolioIdProvider);
+                return client.gradeReview(
+                  lessonId: widget.lesson.serverId!,
+                  remembered: remembered,
+                  portfolioId: portfolioId,
+                );
+              },
+            ),
+          ],
+          if ((widget.lesson.practiceText ?? '').trim().isNotEmpty) ...[
+            const SizedBox(height: 22),
+            _PracticeCard(
+              tint: widget.section.tint,
+              text: widget.lesson.practiceText!.trim(),
+              symbol: widget.lesson.practiceSymbol,
+            ),
+          ],
           const SizedBox(height: 22),
           _BottomActions(
             section: widget.section,
@@ -453,6 +480,71 @@ class _BottomActions extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Карточка «Попробуй вживую» — deep-link в рынок.
+// ---------------------------------------------------------------------------
+
+class _PracticeCard extends StatelessWidget {
+  const _PracticeCard({
+    required this.tint,
+    required this.text,
+    this.symbol,
+  });
+
+  final Color tint;
+  final String text;
+  final String? symbol;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: tint.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: tint.withValues(alpha: 0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.play_circle_outline, color: tint, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Попробуй вживую',
+                style: t.labelLarge?.copyWith(
+                  color: tint,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(text, style: t.bodyMedium?.copyWith(height: 1.5)),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: () {
+                final s = symbol?.trim() ?? '';
+                context.push(s.isNotEmpty ? '/market/$s' : '/market');
+              },
+              style: FilledButton.styleFrom(
+                backgroundColor: tint,
+                foregroundColor: Colors.white,
+              ),
+              icon: const Icon(Icons.show_chart, size: 18),
+              label: const Text('Открыть рынок'),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

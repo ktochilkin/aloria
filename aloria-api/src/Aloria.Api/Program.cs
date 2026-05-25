@@ -2,10 +2,15 @@ using Aloria.Api.Data;
 using Aloria.Api.Domain;
 using Aloria.Api.Endpoints;
 using Aloria.Api.Services;
+using Aloria.Api.Services.Push;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// CLI: `dotnet run -- --seed` — переимпортировать markdown-уроки в существующую
+// БД (идемпотентно, без сброса) и выйти, не поднимая сервер.
+var seedOnly = args.Contains("--seed");
 
 // ----- Конфигурация БД ----------------------------------------------------
 var dbProvider = builder.Configuration["Db:Provider"] ?? "sqlite";
@@ -35,6 +40,8 @@ builder.Services.AddScoped<AchievementEvaluator>();
 builder.Services.AddScoped<AuditLogger>();
 builder.Services.AddScoped<MarkdownLessonImporter>();
 builder.Services.AddScoped<IBrokerageGateway, StubBrokerageGateway>();
+builder.Services.AddSingleton<IPushSender, FcmPushSender>();
+builder.Services.AddScoped<PushDispatcher>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -77,16 +84,83 @@ using (var scope = app.Services.CreateScope())
             ON ""UserEvents"" (""UserId"", ""Code"");
     ");
 
-    // Авто-импорт markdown уроков из Flutter-проекта при первом запуске
-    if (!await db.Sections.AnyAsync())
+    // Колонки practice* для уроков («попробуй вживую»). EnsureCreated не
+    // докатывает новые колонки к существующей БД, а у SQLite нет ADD COLUMN IF
+    // NOT EXISTS — поэтому добавляем через try/catch (идемпотентно). SQL —
+    // строковые литералы (без интерполяции/конкатенации), чтобы не ловить EF1002/1003.
+    try
+    {
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Lessons\" ADD COLUMN \"PracticeSymbol\" TEXT");
+    }
+    catch { /* колонка уже существует */ }
+    try
+    {
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Lessons\" ADD COLUMN \"PracticeText\" TEXT");
+    }
+    catch { /* колонка уже существует */ }
+    try
+    {
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Lessons\" ADD COLUMN \"RecallPrompt\" TEXT");
+    }
+    catch { /* колонка уже существует */ }
+    try
+    {
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Lessons\" ADD COLUMN \"RecallAnswer\" TEXT");
+    }
+    catch { /* колонка уже существует */ }
+
+    // Таблица разнесённого повторения (recall). EnsureCreated не создаёт её в
+    // уже существующей БД — добавляем вручную, идемпотентно.
+    await db.Database.ExecuteSqlRawAsync(@"
+        CREATE TABLE IF NOT EXISTS ""ReviewItems"" (
+            ""Id"" TEXT NOT NULL CONSTRAINT ""PK_ReviewItems"" PRIMARY KEY,
+            ""UserId"" TEXT NOT NULL,
+            ""LessonId"" TEXT NOT NULL,
+            ""Repetitions"" INTEGER NOT NULL,
+            ""EaseFactor"" REAL NOT NULL,
+            ""IntervalDays"" INTEGER NOT NULL,
+            ""NextDueAt"" TEXT NOT NULL,
+            ""UpdatedAt"" TEXT NOT NULL
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS ""IX_ReviewItems_UserId_LessonId""
+            ON ""ReviewItems"" (""UserId"", ""LessonId"");
+    ");
+
+    await db.Database.ExecuteSqlRawAsync(@"
+        CREATE TABLE IF NOT EXISTS ""DeviceTokens"" (
+            ""Id"" TEXT NOT NULL CONSTRAINT ""PK_DeviceTokens"" PRIMARY KEY,
+            ""UserId"" TEXT NOT NULL,
+            ""Token"" TEXT NOT NULL,
+            ""Platform"" TEXT NOT NULL,
+            ""Disabled"" INTEGER NOT NULL,
+            ""CreatedAt"" TEXT NOT NULL,
+            ""LastSeenAt"" TEXT NOT NULL
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS ""IX_DeviceTokens_Token""
+            ON ""DeviceTokens"" (""Token"");
+    ");
+
+    // Импорт markdown-уроков: при первом запуске (пустая БД) либо явно по флагу
+    // --seed. Импортёр идемпотентный — обновляет уроки по (section, slug) и
+    // добавляет новые, поэтому повторный прогон безопасен.
+    if (seedOnly || !await db.Sections.AnyAsync())
     {
         var importer = scope.ServiceProvider.GetRequiredService<MarkdownLessonImporter>();
         var contentRoot = app.Environment.ContentRootPath;
         var lessonsDir = Path.GetFullPath(Path.Combine(contentRoot, "../../..", "assets", "lessons"));
         var imported = await importer.ImportFromFlutterAsync(lessonsDir);
         app.Logger.LogInformation("Seeded {Count} lessons from {Dir}", imported, lessonsDir);
+    }
 
+    // Ачивки сидим один раз — только если их ещё нет (защита от дублей при --seed).
+    if (!await db.Achievements.AnyAsync())
+    {
         await SeedDefaultAchievementsAsync(db);
+        app.Logger.LogInformation("Seeded default achievements");
     }
 
     if (!await db.Quizzes.AnyAsync(q => q.LessonId == null))
@@ -94,6 +168,13 @@ using (var scope = app.Services.CreateScope())
         await SeedDefaultTopUpQuizzesAsync(db);
         app.Logger.LogInformation("Seeded default top-up quizzes");
     }
+}
+
+// Режим разового засева: уроки переимпортированы, сервер поднимать не нужно.
+if (seedOnly)
+{
+    app.Logger.LogInformation("Seed completed (--seed), exiting without starting the server.");
+    return;
 }
 
 // ----- Pipeline -----------------------------------------------------------
@@ -122,6 +203,7 @@ app.MapLearningEndpoints();
 app.MapQuizEndpoints();
 app.MapProgressEndpoints();
 app.MapAdminEndpoints();
+app.MapDeviceEndpoints();
 
 app.Run();
 

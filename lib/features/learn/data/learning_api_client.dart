@@ -128,6 +128,50 @@ class LearningApiClient {
     );
   }
 
+  /// Оценка карточки recall (разнесённое повторение). Возвращает интервал в
+  /// днях до следующего повторения, если бэкенд его вернул.
+  Future<int?> gradeReview({
+    required String lessonId,
+    required bool remembered,
+    required String portfolioId,
+  }) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      '/api/v1/me/reviews/$lessonId/grade',
+      queryParameters: {'portfolioId': portfolioId},
+      data: {'remembered': remembered},
+    );
+    return (res.data?['intervalDays'] as num?)?.toInt();
+  }
+
+  /// Карточки recall, которые пора повторить (NextDueAt <= сейчас).
+  Future<List<Map<String, dynamic>>> fetchDueReviews(String portfolioId) async {
+    final res = await _dio.get<List<dynamic>>(
+      '/api/v1/me/reviews/due',
+      queryParameters: {'portfolioId': portfolioId},
+    );
+    return (res.data ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .toList(growable: false);
+  }
+
+  /// Регистрирует push-токен устройства за пользователем (portfolioId).
+  Future<void> registerDevice({
+    required String token,
+    required String platform,
+    required String portfolioId,
+  }) async {
+    await _dio.post<void>(
+      '/api/v1/me/devices',
+      queryParameters: {'portfolioId': portfolioId},
+      data: {'token': token, 'platform': platform},
+    );
+  }
+
+  /// Отписывает устройство (logout / выключение пушей).
+  Future<void> unregisterDevice(String token) async {
+    await _dio.delete<void>('/api/v1/me/devices/$token');
+  }
+
   Future<List<Map<String, dynamic>>> fetchAchievements(String portfolioId) async {
     final res = await _dio.get<List<dynamic>>(
       '/api/v1/me/achievements',

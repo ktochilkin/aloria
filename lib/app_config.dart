@@ -49,7 +49,9 @@ class AppConfig {
     );
     const aloriaApiBaseUrl = String.fromEnvironment(
       'ALORIA_API_URL',
-      defaultValue: 'http://192.168.1.21:5050',
+      // .local-хостнейм стабилен при смене IP (DHCP) и покрыт
+      // NSAllowsLocalNetworking в Info.plist. Переопределяется через --dart-define.
+      defaultValue: 'http://Noutbuk-Kirill.local:5050',
     );
     const logging = bool.fromEnvironment('ENABLE_LOGGING', defaultValue: true);
     return AppConfig(

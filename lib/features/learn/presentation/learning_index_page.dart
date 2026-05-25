@@ -1,7 +1,9 @@
 import 'package:aloria/core/theme/tokens.dart';
 import 'package:aloria/core/utils/layout_utils.dart';
 import 'package:aloria/features/learn/application/learning_providers.dart';
+import 'package:aloria/features/learn/application/review_providers.dart';
 import 'package:aloria/features/learn/domain/models.dart';
+import 'package:aloria/features/learn/presentation/review_session_page.dart';
 import 'package:aloria/features/learn/presentation/widgets/learning_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
@@ -67,6 +69,8 @@ class _LearningIndexBody extends ConsumerWidget {
     final progress = ref.watch(learningProgressProvider);
     final lastVisited = ref.watch(lastVisitedLessonProvider);
     final hint = ref.watch(nextLessonHintProvider);
+    final dueReviews =
+        ref.watch(dueReviewsProvider).valueOrNull ?? const <DueReview>[];
 
     final totalLessons = sections.fold<int>(
       0,
@@ -95,6 +99,10 @@ class _LearningIndexBody extends ConsumerWidget {
           )
         else if (hint != null)
           _StartCard(section: hint.section, lesson: hint.lesson),
+        if (dueReviews.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          _ReviewDueCard(items: dueReviews),
+        ],
         const SizedBox(height: 24),
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 8),
@@ -384,6 +392,85 @@ class _StartCard extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Карточка «К повторению» — открывает сессию разнесённого повторения.
+// ---------------------------------------------------------------------------
+
+class _ReviewDueCard extends StatelessWidget {
+  const _ReviewDueCard({required this.items});
+
+  final List<DueReview> items;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+
+    return Material(
+      color: scheme.surface,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: () => Navigator.of(context, rootNavigator: true).push(
+          MaterialPageRoute<void>(
+            builder: (_) => ReviewSessionPage(items: items),
+          ),
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            color: AppColors.primary.withValues(alpha: 0.08),
+            border: Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.refresh, color: AppColors.primary),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('К повторению',
+                        style: text.titleMedium?.copyWith(fontSize: 17)),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${items.length} ${_plural(items.length)} ждут разбора',
+                      style: text.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: AppColors.primary),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _plural(int n) {
+    final mod10 = n % 10;
+    final mod100 = n % 100;
+    if (mod10 == 1 && mod100 != 11) return 'карточка';
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
+      return 'карточки';
+    }
+    return 'карточек';
   }
 }
 

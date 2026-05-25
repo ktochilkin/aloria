@@ -41,8 +41,8 @@ class LearningContentService {
         id: slug,
         title: s['title'] as String? ?? slug,
         subtitle: s['description'] as String? ?? '',
-        icon: _iconFor(slug),
-        tint: _tintFor(slug),
+        icon: iconFor(slug),
+        tint: tintFor(slug),
         lessons: lessons,
       ));
     }
@@ -72,13 +72,19 @@ class LearningContentService {
       imageUrl: json['imageUrl'] as String? ?? '',
       body: (json['bodyMd'] as String? ?? '').trim(),
       estimatedMinutes: (json['estimatedMinutes'] as num?)?.toInt(),
+      practiceSymbol: json['practiceSymbol'] as String?,
+      practiceText: json['practiceText'] as String?,
+      recallPrompt: json['recallPrompt'] as String?,
+      recallAnswer: json['recallAnswer'] as String?,
       serverId: json['id'] as String?,
       serverQuizId: quizId,
       serverCompleted: serverCompleted,
     );
   }
 
-  static IconData _iconFor(String slug) {
+  /// Иконка раздела по его slug (UI-атрибут, сервер иконки не отдаёт).
+  /// Публичная: используется и при восстановлении разделов из кэша.
+  static IconData iconFor(String slug) {
     switch (slug) {
       case 'investing-basics':
         return Icons.account_balance;
@@ -91,7 +97,8 @@ class LearningContentService {
     }
   }
 
-  static Color _tintFor(String slug) {
+  /// Цвет-акцент раздела по его slug. См. [iconFor].
+  static Color tintFor(String slug) {
     switch (slug) {
       case 'investing-basics':
         return const Color(0xFF5D8CFF);
