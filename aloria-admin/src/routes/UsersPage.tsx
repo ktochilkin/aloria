@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Search } from 'lucide-react';
+import { Search, Send } from 'lucide-react';
 import { api } from '../lib/api';
-import type { AdminUserDetail, AdminUserListItem } from '../lib/types';
-import { Badge, Button, Card, EmptyState, Field, Input, PageHeader, Spinner } from '../components/ui';
+import type { AdminUserDetail, AdminUserListItem, PushDispatchOutcome } from '../lib/types';
+import { Badge, Button, Card, EmptyState, Field, Input, PageHeader, Spinner, Textarea } from '../components/ui';
 
 export function UsersPage() {
   const [search, setSearch] = useState('');
@@ -81,6 +81,13 @@ function UserDetailDialog({ userId, onClose }: { userId: string; onClose: () => 
   const lessons = useQuery({ queryKey: ['user-lessons', userId], queryFn: () => api.get<LessonProgressItem[]>(`/api/admin/users/${userId}/lessons`) });
   const [grantAmount, setGrantAmount] = useState('');
   const [grantReason, setGrantReason] = useState('');
+  const [pushTitle, setPushTitle] = useState('Aloria');
+  const [pushBody, setPushBody] = useState('');
+
+  const push = useMutation({
+    mutationFn: () =>
+      api.post<PushDispatchOutcome>(`/api/admin/users/${userId}/push`, { title: pushTitle, body: pushBody }),
+  });
 
   const grant = useMutation({
     mutationFn: () => api.post<string>(`/api/admin/users/${userId}/grants`, { amount: parseFloat(grantAmount), reason: grantReason || 'manual' }),
@@ -251,6 +258,27 @@ function UserDetailDialog({ userId, onClose }: { userId: string; onClose: () => 
                 <Button variant="primary" onClick={() => grant.mutate()} disabled={grant.isPending || !grantAmount}>Начислить</Button>
               </div>
               {grant.error && <div className="text-sm text-(--color-error) mt-2">{(grant.error as Error).message}</div>}
+            </Card>
+
+            <Card className="p-4 mt-4">
+              <div className="text-xs uppercase tracking-wider text-(--color-fg-muted) font-semibold mb-2">Отправить пуш</div>
+              <div className="grid gap-2">
+                <Field label="Заголовок"><Input value={pushTitle} onChange={(e) => setPushTitle(e.target.value)} maxLength={80} /></Field>
+                <Field label="Текст"><Textarea rows={2} value={pushBody} onChange={(e) => setPushBody(e.target.value)} maxLength={240} placeholder="Личное уведомление этому пользователю" /></Field>
+                <div className="flex items-center gap-3">
+                  <Button variant="primary" onClick={() => push.mutate()} disabled={push.isPending || !pushTitle.trim() || !pushBody.trim()}>
+                    <Send className="size-4" /> {push.isPending ? 'Отправляю…' : 'Отправить'}
+                  </Button>
+                  {push.data && (
+                    <span className="text-sm text-(--color-fg-muted)">
+                      {push.data.targeted === 0
+                        ? 'Нет активных устройств — пуш не ушёл.'
+                        : `Отправлено на ${push.data.sent} из ${push.data.targeted} устройств.`}
+                    </span>
+                  )}
+                </div>
+              </div>
+              {push.error && <div className="text-sm text-(--color-error) mt-2">{(push.error as Error).message}</div>}
             </Card>
           </>
         )}

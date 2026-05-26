@@ -7,6 +7,7 @@ import { LessonEditPage } from './routes/LessonEditPage';
 import { QuizzesPage } from './routes/QuizzesPage';
 import { AchievementsPage } from './routes/AchievementsPage';
 import { UsersPage } from './routes/UsersPage';
+import { BroadcastPage } from './routes/BroadcastPage';
 import { AuditPage } from './routes/AuditPage';
 
 const queryClient = new QueryClient({
@@ -28,6 +29,7 @@ export default function App() {
             <Route path="/quizzes" element={<QuizzesPage />} />
             <Route path="/achievements" element={<AchievementsPage />} />
             <Route path="/users" element={<UsersPage />} />
+            <Route path="/broadcast" element={<BroadcastPage />} />
             <Route path="/audit" element={<AuditPage />} />
           </Route>
         </Routes>

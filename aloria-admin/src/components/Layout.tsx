@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from 'react-router';
-import { BookOpen, Layers, ListChecks, Trophy, Users, Activity } from 'lucide-react';
+import { BookOpen, Layers, ListChecks, Trophy, Users, Activity, Send } from 'lucide-react';
 import { clsx } from 'clsx';
 
 const navItems = [
@@ -8,6 +8,7 @@ const navItems = [
   { to: '/quizzes', icon: ListChecks, label: 'Тесты' },
   { to: '/achievements', icon: Trophy, label: 'Ачивки' },
   { to: '/users', icon: Users, label: 'Пользователи' },
+  { to: '/broadcast', icon: Send, label: 'Рассылка' },
   { to: '/audit', icon: Activity, label: 'Аудит' },
 ];
 

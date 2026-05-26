@@ -140,6 +140,19 @@ export type AdminUserDetail = {
   achievements: { achievementId: string; code: string; title: string; unlockedAt: string }[];
 };
 
+export type AdminPushInput = {
+  title: string;
+  body: string;
+  route: string | null;
+};
+
+/// Итог рассылки с бэка: устройств в цели, ушло, погашено мёртвых токенов.
+export type PushDispatchOutcome = {
+  targeted: number;
+  sent: number;
+  disabled: number;
+};
+
 export type AdminAuditEntry = {
   id: string;
   actor: string;
