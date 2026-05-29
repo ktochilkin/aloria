@@ -59,7 +59,7 @@ public static class LearningEndpoints
                 .Select(l => new
                 {
                     l.Id, l.Slug, l.Title, l.Description, l.ImageUrl, l.EstimatedMinutes, l.Order,
-                    HasQuiz = l.Quiz != null
+                    HasQuiz = l.Quiz != null, l.Group
                 })
                 .ToListAsync(ct);
 
@@ -75,7 +75,7 @@ public static class LearningEndpoints
 
             var dto = lessons.Select(l => new LessonSummaryDto(
                 l.Id, l.Slug, l.Title, l.Description, l.ImageUrl, l.EstimatedMinutes,
-                l.Order, l.HasQuiz, completed.Contains(l.Id)));
+                l.Order, l.HasQuiz, completed.Contains(l.Id), l.Group));
             return Results.Ok(new
             {
                 section = new
@@ -123,7 +123,7 @@ public static class LearningEndpoints
                 lesson.BodyMd, lesson.ImageUrl, lesson.EstimatedMinutes, lesson.AcademicDefinition,
                 lesson.Order, lesson.Version, quizDto,
                 lesson.PracticeSymbol, lesson.PracticeText,
-                lesson.RecallPrompt, lesson.RecallAnswer));
+                lesson.RecallPrompt, lesson.RecallAnswer, lesson.Group));
         });
 
         group.MapPost("/lessons/{id:guid}/complete", async (

@@ -1,18 +1,25 @@
 {
   "sections": [
     {
-      "id": "trading-basics",
-      "title": "Основы",
-      "subtitle": "Как устроена биржа, заявки и первые шаги в стакане.",
-      "icon": "flash_on",
-      "tint": "primary"
+      "id": "start",
+      "title": "Старт",
+      "subtitle": "С чего начать: первые шаги и первая сделка без риска.",
+      "icon": "rocket_launch",
+      "tint": "warning"
     },
     {
-      "id": "investing-basics",
-      "title": "Основы инвестиций",
-      "subtitle": "Участие в экономике, риск и долгосрочное мышление.",
+      "id": "investor",
+      "title": "Инвестор",
+      "subtitle": "Риск глубже, доходность, инструменты и как читать рынок.",
       "icon": "park",
       "tint": "success"
+    },
+    {
+      "id": "trader",
+      "title": "Трейдер",
+      "subtitle": "Сложные сделки: маржа, шорт, расчёты и деривативы.",
+      "icon": "show_chart",
+      "tint": "secondary"
     }
   ],
   "intro": {

@@ -112,6 +112,12 @@ using (var scope = app.Services.CreateScope())
             "ALTER TABLE \"Lessons\" ADD COLUMN \"RecallAnswer\" TEXT");
     }
     catch { /* колонка уже существует */ }
+    try
+    {
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Lessons\" ADD COLUMN \"Group\" TEXT");
+    }
+    catch { /* колонка уже существует */ }
 
     // Таблица разнесённого повторения (recall). EnsureCreated не создаёт её в
     // уже существующей БД — добавляем вручную, идемпотентно.

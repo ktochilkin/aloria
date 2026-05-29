@@ -31,6 +31,7 @@ public class MarkdownLessonImporter(
         }
 
         var sectionDirs = Directory.EnumerateDirectories(lessonsDir).OrderBy(x => x).ToList();
+        var sectionMeta = LoadSectionMeta(lessonsDir);
         var totalLessons = 0;
 
         foreach (var sectionDir in sectionDirs)
@@ -50,9 +51,20 @@ public class MarkdownLessonImporter(
                     UpdatedAt = DateTime.UtcNow,
                 };
                 db.Sections.Add(section);
-                await db.SaveChangesAsync(ct);
                 log.LogInformation("Created section {Slug}", sectionSlug);
             }
+
+            // Метаданные раздела (название, подпись, порядок) — из sections.json,
+            // если раздел там описан. Иначе остаются titleize-название и
+            // алфавитный порядок. Иконки/цвета — на стороне клиента (по slug).
+            if (sectionMeta.TryGetValue(sectionSlug, out var sm))
+            {
+                if (!string.IsNullOrWhiteSpace(sm.Title)) section.Title = sm.Title!;
+                section.Description = sm.Subtitle;
+                section.Order = sm.Order;
+            }
+            section.UpdatedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync(ct);
 
             var files = Directory.EnumerateFiles(sectionDir, "*.md").OrderBy(x => x).ToList();
             for (var i = 0; i < files.Count; i++)
@@ -107,6 +119,7 @@ public class MarkdownLessonImporter(
                 existing.PracticeText = Get("practiceTask", "practiceText", "practice_task");
                 existing.RecallPrompt = Get("recallPrompt", "recall_prompt");
                 existing.RecallAnswer = Get("recallAnswer", "recall_answer");
+                existing.Group = Get("group");
                 existing.Order = i;
                 existing.Version = (existing.Version == 0 ? 1 : existing.Version);
                 existing.UpdatedAt = DateTime.UtcNow;
@@ -276,4 +289,44 @@ public class MarkdownLessonImporter(
         var s = slug.Replace('-', ' ').Replace('_', ' ');
         return char.ToUpper(s[0]) + s[1..];
     }
+
+    /// <summary>
+    /// Метаданные разделов из assets/lessons/sections.json (название, подпись,
+    /// порядок) — источник правды по тому, как раздел показывается. Отсутствующий
+    /// или битый файл не ошибка: тогда раздел получает titleize-название и
+    /// алфавитный порядок.
+    /// </summary>
+    private static Dictionary<string, SectionMeta> LoadSectionMeta(string lessonsDir)
+    {
+        var map = new Dictionary<string, SectionMeta>(StringComparer.OrdinalIgnoreCase);
+        var path = Path.Combine(lessonsDir, "sections.json");
+        if (!File.Exists(path)) return map;
+        try
+        {
+            using var doc = JsonDocument.Parse(File.ReadAllText(path));
+            if (doc.RootElement.TryGetProperty("sections", out var arr)
+                && arr.ValueKind == JsonValueKind.Array)
+            {
+                var order = 0;
+                foreach (var el in arr.EnumerateArray())
+                {
+                    var id = el.TryGetProperty("id", out var idEl) ? idEl.GetString() : null;
+                    if (!string.IsNullOrWhiteSpace(id))
+                    {
+                        var title = el.TryGetProperty("title", out var t) ? t.GetString() : null;
+                        var subtitle = el.TryGetProperty("subtitle", out var s) ? s.GetString() : null;
+                        map[id!.ToLowerInvariant()] = new SectionMeta(title, subtitle ?? string.Empty, order);
+                    }
+                    order++;
+                }
+            }
+        }
+        catch
+        {
+            // битый sections.json — игнорируем, fallback на titleize
+        }
+        return map;
+    }
+
+    private record SectionMeta(string? Title, string Subtitle, int Order);
 }

@@ -90,6 +90,7 @@ class Lesson {
     this.practiceText,
     this.recallPrompt,
     this.recallAnswer,
+    this.group,
     this.quiz = const [],
     this.serverId,
     this.serverQuizId,
@@ -114,6 +115,10 @@ class Lesson {
   /// вопрос на вспоминание и эталонный ответ для самопроверки.
   final String? recallPrompt;
   final String? recallAnswer;
+
+  /// Глава внутри раздела (необязательно). Группирует уроки под общим
+  /// заголовком-главой в дорожке раздела. См. backend Lesson.Group.
+  final String? group;
 
   final List<QuizQuestion> quiz;
   final String? serverId;

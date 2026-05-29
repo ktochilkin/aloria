@@ -76,6 +76,7 @@ class LearningContentService {
       practiceText: json['practiceText'] as String?,
       recallPrompt: json['recallPrompt'] as String?,
       recallAnswer: json['recallAnswer'] as String?,
+      group: json['group'] as String?,
       serverId: json['id'] as String?,
       serverQuizId: quizId,
       serverCompleted: serverCompleted,
@@ -86,6 +87,12 @@ class LearningContentService {
   /// Публичная: используется и при восстановлении разделов из кэша.
   static IconData iconFor(String slug) {
     switch (slug) {
+      case 'start':
+        return Icons.rocket_launch;
+      case 'investor':
+        return Icons.park;
+      case 'trader':
+        return Icons.show_chart;
       case 'investing-basics':
         return Icons.account_balance;
       case 'trading-basics':
@@ -100,6 +107,12 @@ class LearningContentService {
   /// Цвет-акцент раздела по его slug. См. [iconFor].
   static Color tintFor(String slug) {
     switch (slug) {
+      case 'start':
+        return const Color(0xFFF5C24D);
+      case 'investor':
+        return const Color(0xFF37B38A);
+      case 'trader':
+        return const Color(0xFFFF9E7C);
       case 'investing-basics':
         return const Color(0xFF5D8CFF);
       case 'trading-basics':

@@ -25,6 +25,10 @@ public class Lesson
     public string? RecallPrompt { get; set; }
     public string? RecallAnswer { get; set; }
 
+    /// Глава внутри раздела (необязательно). Уроки с одинаковым значением
+    /// показываются под общим заголовком-главой в дорожке раздела.
+    public string? Group { get; set; }
+
     public int Order { get; set; }
     public int Version { get; set; } = 1;
 

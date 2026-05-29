@@ -109,25 +109,7 @@ class _SectionBody extends ConsumerWidget {
               ),
             )
           else
-            ...List.generate(total, (i) {
-              final lesson = section.lessons[i];
-              final isRead = progress.isLessonRead(section.id, lesson.id);
-              final status = isRead
-                  ? RoadmapNodeStatus.completed
-                  : i == currentIndex
-                      ? RoadmapNodeStatus.current
-                      : RoadmapNodeStatus.available;
-              return LessonRoadmapNode(
-                index: i + 1,
-                lesson: lesson,
-                tint: section.tint,
-                status: status,
-                isFirst: i == 0,
-                isLast: i == total - 1,
-                onTap: () =>
-                    context.push('/learn/${section.id}/${lesson.id}'),
-              );
-            }),
+            ..._buildRoadmap(context, section, progress, currentIndex),
         ],
       ),
     );
@@ -141,6 +123,57 @@ class _SectionBody extends ConsumerWidget {
       if (!progress.isLessonRead(section.id, section.lessons[i].id)) return i;
     }
     return -1; // всё пройдено
+  }
+
+  /// Строит дорожку уроков с заголовками-главами. Уроки с непустым
+  /// [Lesson.group] объединяются под общим заголовком; на границе главы линия
+  /// дорожки прерывается. Если глав нет (group пуст у всех) — обычная сплошная
+  /// дорожка, как раньше.
+  List<Widget> _buildRoadmap(
+    BuildContext context,
+    LearningSection section,
+    LearningProgressState progress,
+    int currentIndex,
+  ) {
+    final lessons = section.lessons;
+    final total = lessons.length;
+    final children = <Widget>[];
+
+    for (var i = 0; i < total; i++) {
+      final lesson = lessons[i];
+      final group = (lesson.group ?? '').trim();
+      final prevGroup = i == 0 ? null : (lessons[i - 1].group ?? '').trim();
+      final nextGroup =
+          i == total - 1 ? null : (lessons[i + 1].group ?? '').trim();
+      final firstInGroup = i == 0 || group != prevGroup;
+      final lastInGroup = i == total - 1 || group != nextGroup;
+
+      if (group.isNotEmpty && firstInGroup) {
+        children.add(_ChapterHeader(
+          title: group,
+          tint: section.tint,
+          isFirst: i == 0,
+        ));
+      }
+
+      final isRead = progress.isLessonRead(section.id, lesson.id);
+      final status = isRead
+          ? RoadmapNodeStatus.completed
+          : i == currentIndex
+              ? RoadmapNodeStatus.current
+              : RoadmapNodeStatus.available;
+
+      children.add(LessonRoadmapNode(
+        index: i + 1,
+        lesson: lesson,
+        tint: section.tint,
+        status: status,
+        isFirst: firstInGroup,
+        isLast: lastInGroup,
+        onTap: () => context.push('/learn/${section.id}/${lesson.id}'),
+      ));
+    }
+    return children;
   }
 }
 
@@ -255,5 +288,49 @@ class _SectionHeaderCard extends StatelessWidget {
       return 'урока';
     }
     return 'уроков';
+  }
+}
+
+/// Заголовок-глава внутри дорожки раздела: маркер цвета раздела + название.
+class _ChapterHeader extends StatelessWidget {
+  const _ChapterHeader({
+    required this.title,
+    required this.tint,
+    required this.isFirst,
+  });
+
+  final String title;
+  final Color tint;
+  final bool isFirst;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return Padding(
+      padding: EdgeInsets.only(top: isFirst ? 0 : 20, bottom: 6, left: 2),
+      child: Row(
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(
+              color: tint,
+              borderRadius: BorderRadius.circular(3),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              title.toUpperCase(),
+              style: text.labelMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.6,
+                color: tint,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

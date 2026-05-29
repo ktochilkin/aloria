@@ -79,6 +79,7 @@ class LearningContentCache {
         'practiceText': l.practiceText,
         'recallPrompt': l.recallPrompt,
         'recallAnswer': l.recallAnswer,
+        'group': l.group,
       };
 
   Lesson _lessonFromJson(Map<String, dynamic> j) => Lesson(
@@ -96,5 +97,6 @@ class LearningContentCache {
         practiceText: j['practiceText'] as String?,
         recallPrompt: j['recallPrompt'] as String?,
         recallAnswer: j['recallAnswer'] as String?,
+        group: j['group'] as String?,
       );
 }
