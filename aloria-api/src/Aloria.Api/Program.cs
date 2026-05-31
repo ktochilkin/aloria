@@ -353,6 +353,7 @@ app.MapGet("/", () => Results.Ok(new { name = "aloria-api", version = "0.1.0", t
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
 app.MapLearningEndpoints();
+app.MapStagesEndpoints();
 app.MapQuizEndpoints();
 app.MapProgressEndpoints();
 app.MapAdminEndpoints();
