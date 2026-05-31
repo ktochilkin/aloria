@@ -1,23 +1,51 @@
 {
   "sections": [
     {
-      "id": "start",
-      "title": "Старт",
-      "subtitle": "С чего начать: первые шаги и первая сделка без риска.",
+      "id": "why-market",
+      "title": "Зачем биржа",
+      "subtitle": "Научиться видеть, зачем участвовать в рынке.",
+      "icon": "lightbulb_outline",
+      "tint": "warning"
+    },
+    {
+      "id": "first-trade",
+      "title": "Как устроены торги",
+      "subtitle": "Научиться отправлять заявку и понимать сделку.",
       "icon": "rocket_launch",
       "tint": "warning"
     },
     {
-      "id": "investor",
-      "title": "Инвестор",
-      "subtitle": "Риск глубже, доходность, инструменты и как читать рынок.",
-      "icon": "park",
+      "id": "stocks",
+      "title": "Акции как доля бизнеса",
+      "subtitle": "Научиться покупать бизнес и понимать дивиденды.",
+      "icon": "business",
       "tint": "success"
     },
     {
-      "id": "trader",
-      "title": "Трейдер",
-      "subtitle": "Сложные сделки: маржа, шорт, расчёты и деривативы.",
+      "id": "bonds",
+      "title": "Облигации как заём",
+      "subtitle": "Научиться давать в долг государству и компаниям.",
+      "icon": "receipt_long",
+      "tint": "success"
+    },
+    {
+      "id": "funds",
+      "title": "Фонды как готовый портфель",
+      "subtitle": "Научиться брать диверсификацию одной покупкой.",
+      "icon": "category",
+      "tint": "success"
+    },
+    {
+      "id": "portfolio",
+      "title": "Свой портфель",
+      "subtitle": "Научиться собирать и поддерживать набор инструментов под себя.",
+      "icon": "pie_chart",
+      "tint": "success"
+    },
+    {
+      "id": "active-trading",
+      "title": "Плечо, шорт, стопы",
+      "subtitle": "Научиться активной торговле — для тех, кто этого хочет.",
       "icon": "show_chart",
       "tint": "secondary"
     }

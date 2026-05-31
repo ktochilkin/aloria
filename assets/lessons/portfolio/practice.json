@@ -1,0 +1,24 @@
+{
+  "requirements": [
+    {
+      "code": "diversified-portfolio",
+      "title": "Собрать портфель из разных классов",
+      "description": "Держи одновременно позиции хотя бы в двух разных классах активов (например, акция + облигация, или акция + фонд).",
+      "kind": "Custom",
+      "params": { "customCode": "portfolio-diversified", "minClasses": 2 },
+      "isOptional": false,
+      "rewardBuyingPower": 0,
+      "concepts": ["diversification", "risk-profile"]
+    },
+    {
+      "code": "rebalance-once",
+      "title": "Провести одну ребалансировку",
+      "description": "Когда доля одного из классов в портфеле вырастет — продай часть и купи отстающего, возвращая исходные пропорции.",
+      "kind": "Custom",
+      "params": { "customCode": "rebalancing-action" },
+      "isOptional": true,
+      "rewardBuyingPower": 0,
+      "concepts": ["rebalancing"]
+    }
+  ]
+}

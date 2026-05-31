@@ -1,0 +1,92 @@
+{
+  "stages": [
+    {
+      "id": "why-market",
+      "title": "Зачем биржа",
+      "subtitle": "Научиться видеть, зачем участвовать в рынке.",
+      "icon": "lightbulb_outline",
+      "tint": "warning",
+      "goal": "Понять, что деньги в покое теряют ценность, как работает сложный процент и какие риски ждут на входе.",
+      "targetMinutes": 12,
+      "isOptional": false,
+      "order": 0,
+      "unlockRule": null
+    },
+    {
+      "id": "first-trade",
+      "title": "Как устроены торги",
+      "subtitle": "Научиться отправлять заявку и понимать сделку.",
+      "icon": "rocket_launch",
+      "tint": "warning",
+      "goal": "Совершить первую безопасную сделку, понять заявку, стакан, позицию и P&L.",
+      "targetMinutes": 30,
+      "isOptional": false,
+      "order": 1,
+      "unlockRule": { "requires": [{ "type": "stage", "slug": "why-market", "status": "completed" }] }
+    },
+    {
+      "id": "stocks",
+      "title": "Акции как доля бизнеса",
+      "subtitle": "Научиться покупать бизнес и понимать дивиденды.",
+      "icon": "business",
+      "tint": "success",
+      "goal": "Понять акцию как долю в бизнесе, разобрать риск конкретной акции и дивидендный гэп; купить акцию на учебном счёте.",
+      "targetMinutes": 28,
+      "isOptional": false,
+      "order": 2,
+      "unlockRule": { "requires": [{ "type": "stage", "slug": "first-trade", "status": "completed" }] }
+    },
+    {
+      "id": "bonds",
+      "title": "Облигации как заём",
+      "subtitle": "Научиться давать в долг государству и компаниям.",
+      "icon": "receipt_long",
+      "tint": "success",
+      "goal": "Понять облигацию как долг, разобрать купон, НКД, ставку ЦБ и кредитный риск; купить ОФЗ и увидеть купон.",
+      "targetMinutes": 30,
+      "isOptional": false,
+      "order": 3,
+      "unlockRule": { "requires": [{ "type": "stage", "slug": "stocks", "status": "completed" }] }
+    },
+    {
+      "id": "funds",
+      "title": "Фонды как готовый портфель",
+      "subtitle": "Научиться брать диверсификацию одной покупкой.",
+      "icon": "category",
+      "tint": "success",
+      "goal": "Понять фонд как корзину бумаг, разобрать TER и индексный vs активный подход; купить БПИФ.",
+      "targetMinutes": 22,
+      "isOptional": false,
+      "order": 4,
+      "unlockRule": { "requires": [{ "type": "stage", "slug": "bonds", "status": "completed" }] }
+    },
+    {
+      "id": "portfolio",
+      "title": "Свой портфель",
+      "subtitle": "Научиться собирать и поддерживать набор инструментов под себя.",
+      "icon": "pie_chart",
+      "tint": "success",
+      "goal": "Собрать портфель под свой риск-профиль, провести одну ребалансировку, разобрать налоги и психологические ловушки.",
+      "targetMinutes": 32,
+      "isOptional": false,
+      "order": 5,
+      "unlockRule": { "requires": [{ "type": "stage", "slug": "funds", "status": "completed" }] }
+    },
+    {
+      "id": "active-trading",
+      "title": "Плечо, шорт, стопы",
+      "subtitle": "Научиться активной торговле — для тех, кто этого хочет.",
+      "icon": "show_chart",
+      "tint": "secondary",
+      "goal": "Разобрать механики активной торговли: шорт, маржу, стоп-заявки, режим расчётов T+ и базу деривативов. Большинству инвесторов это не нужно.",
+      "targetMinutes": 25,
+      "isOptional": true,
+      "order": 6,
+      "unlockRule": { "requires": [{ "type": "stage", "slug": "portfolio", "status": "completed" }] }
+    }
+  ],
+  "intro": {
+    "title": "Открой мир Aloria",
+    "subtitle": "Учебный рынок без риска: заявки, сделки, цены — всё как вживую, только безопасно."
+  }
+}
