@@ -82,6 +82,7 @@ public static class ProgressEndpoints
             AloriaDbContext db,
             UserService users,
             AchievementEvaluator achievements,
+            PracticeEventDispatcher dispatcher,
             CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(portfolioId))
@@ -101,6 +102,32 @@ public static class ProgressEndpoints
                 await db.SaveChangesAsync(ct);
                 await achievements.EvaluateAsync(user, ct);
             }
+
+            // Спиральная интеграция: первая позиция = TradeEvent типа
+            // PositionOpened с assetClass="any". Закрывает любую цель практики,
+            // которая требует «купить что угодно» (Этап 1). Идемпотентно по
+            // составному ключу.
+            var idemKey = $"first-position:{user.Id}";
+            var alreadyDispatched = await db.TradeEvents.AnyAsync(t => t.IdempotencyKey == idemKey, ct);
+            if (!alreadyDispatched)
+            {
+                var ev = new Domain.TradeEvent
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = user.Id,
+                    Type = Domain.TradeEventType.PositionOpened,
+                    Symbol = string.Empty,
+                    AssetClass = "any",
+                    Qty = 1m,
+                    OccurredAt = DateTime.UtcNow,
+                    IdempotencyKey = idemKey,
+                    PayloadJson = "{\"source\":\"first-position\"}",
+                };
+                db.TradeEvents.Add(ev);
+                await db.SaveChangesAsync(ct);
+                await dispatcher.DispatchAsync(user, ev, ct);
+            }
+
             return Results.Ok(new { recorded = !existing });
         });
 

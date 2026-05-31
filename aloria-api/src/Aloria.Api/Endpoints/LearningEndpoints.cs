@@ -132,6 +132,7 @@ public static class LearningEndpoints
             AloriaDbContext db,
             UserService users,
             AchievementEvaluator achievements,
+            ProgressUpdater progressUpdater,
             CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(portfolioId)) return Results.BadRequest("portfolioId required");
@@ -161,6 +162,12 @@ public static class LearningEndpoints
             // ачивки. Гоним его и на дубликатах: страхует от потерянных
             // апдейтов при гонке быстрых параллельных completions.
             await achievements.EvaluateAsync(user, ct);
+
+            // Спиральный прогресс: поднимаем UserConceptMastery по ролям
+            // LessonConcept и пересчитываем UserStageProgress этого этапа.
+            // Идемпотентно — повторный вызов на уже завершённом уроке
+            // безопасен (уровни мастеринга монотонны).
+            await progressUpdater.OnLessonCompletedAsync(user, lesson, ct);
 
             return Results.Ok(new { isCompleted = true });
         });

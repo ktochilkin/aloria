@@ -39,6 +39,8 @@ builder.Services.AddScoped<QuizService>();
 builder.Services.AddScoped<AchievementEvaluator>();
 builder.Services.AddScoped<AuditLogger>();
 builder.Services.AddScoped<MarkdownLessonImporter>();
+builder.Services.AddScoped<ProgressUpdater>();
+builder.Services.AddScoped<PracticeEventDispatcher>();
 builder.Services.AddScoped<IBrokerageGateway, StubBrokerageGateway>();
 builder.Services.AddSingleton<IPushSender, FcmPushSender>();
 builder.Services.AddScoped<PushDispatcher>();

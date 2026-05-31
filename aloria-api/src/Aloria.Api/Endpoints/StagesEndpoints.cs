@@ -1,5 +1,7 @@
+using System.Text.Json;
 using Aloria.Api.Data;
 using Aloria.Api.Domain;
+using Aloria.Api.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace Aloria.Api.Endpoints;
@@ -183,6 +185,79 @@ public static class StagesEndpoints
             });
         });
 
+        stages.MapPost("/{slug}/practice-events", async (
+            string slug,
+            string portfolioId,
+            HttpRequest req,
+            AloriaDbContext db,
+            UserService users,
+            PracticeEventDispatcher dispatcher,
+            CancellationToken ct) =>
+        {
+            if (string.IsNullOrWhiteSpace(portfolioId))
+                return Results.BadRequest(new { error = "portfolioId required" });
+
+            var section = await db.Sections.FirstOrDefaultAsync(s => s.Slug == slug, ct);
+            if (section == null) return Results.NotFound();
+
+            // Тело: { type, symbol, assetClass, qty, price?, idempotencyKey, payload? }.
+            using var doc = await JsonDocument.ParseAsync(req.Body, cancellationToken: ct);
+            var root = doc.RootElement;
+
+            var idemKey = root.TryGetProperty("idempotencyKey", out var ikEl) ? ikEl.GetString() : null;
+            if (string.IsNullOrWhiteSpace(idemKey))
+                idemKey = req.Headers["Idempotency-Key"].ToString();
+            if (string.IsNullOrWhiteSpace(idemKey))
+                return Results.BadRequest(new { error = "Idempotency-Key required" });
+
+            // Дубль события — возвращаем 200 с известным фулфилментом, без повторной обработки.
+            var existing = await db.TradeEvents
+                .FirstOrDefaultAsync(t => t.IdempotencyKey == idemKey, ct);
+            if (existing != null)
+            {
+                return Results.Ok(new
+                {
+                    duplicate = true,
+                    tradeEventId = existing.Id,
+                    fulfilled = Array.Empty<object>(),
+                });
+            }
+
+            var user = await users.EnsureUserAsync(portfolioId, ct);
+
+            var type = root.TryGetProperty("type", out var t) ? t.GetString() : null;
+            var typeEnum = ParseTradeEventType(type);
+            if (typeEnum == null)
+                return Results.BadRequest(new { error = $"unknown event type '{type}'" });
+
+            var tradeEvent = new TradeEvent
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                Type = typeEnum.Value,
+                Symbol = root.TryGetProperty("symbol", out var sy) ? sy.GetString() ?? "" : "",
+                AssetClass = root.TryGetProperty("assetClass", out var ac) ? ac.GetString() ?? "" : "",
+                Qty = root.TryGetProperty("qty", out var qt) && qt.ValueKind == JsonValueKind.Number
+                    ? qt.GetDecimal() : 0m,
+                Price = root.TryGetProperty("price", out var pr) && pr.ValueKind == JsonValueKind.Number
+                    ? pr.GetDecimal() : (decimal?)null,
+                OccurredAt = root.TryGetProperty("occurredAt", out var oa) && oa.ValueKind == JsonValueKind.String
+                    && DateTime.TryParse(oa.GetString(), out var parsedAt) ? parsedAt : DateTime.UtcNow,
+                IdempotencyKey = idemKey!,
+                PayloadJson = root.TryGetProperty("payload", out var pl) ? pl.GetRawText() : "{}",
+            };
+            db.TradeEvents.Add(tradeEvent);
+            await db.SaveChangesAsync(ct);
+
+            var fulfilled = await dispatcher.DispatchAsync(user, tradeEvent, ct);
+
+            return Results.Ok(new
+            {
+                tradeEventId = tradeEvent.Id,
+                fulfilled = fulfilled.Select(f => new { f.Code, f.Title, sectionSlug = slug }),
+            });
+        });
+
         var concepts = app.MapGroup("/api/v1/concepts").WithTags("Concepts");
 
         concepts.MapGet("/", async (
@@ -276,4 +351,16 @@ public static class StagesEndpoints
 
         return app;
     }
+
+    private static TradeEventType? ParseTradeEventType(string? raw) => raw?.Trim() switch
+    {
+        "OrderPlaced" or "orderPlaced" or "order_placed" => TradeEventType.OrderPlaced,
+        "OrderFilled" or "orderFilled" or "order_filled" => TradeEventType.OrderFilled,
+        "OrderCancelled" or "orderCancelled" or "order_cancelled" => TradeEventType.OrderCancelled,
+        "PositionOpened" or "positionOpened" or "position_opened" => TradeEventType.PositionOpened,
+        "PositionClosed" or "positionClosed" or "position_closed" => TradeEventType.PositionClosed,
+        "CouponPaid" or "couponPaid" or "coupon_paid" => TradeEventType.CouponPaid,
+        "DividendPaid" or "dividendPaid" or "dividend_paid" => TradeEventType.DividendPaid,
+        _ => null,
+    };
 }
