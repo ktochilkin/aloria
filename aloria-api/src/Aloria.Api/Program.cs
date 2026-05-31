@@ -203,7 +203,7 @@ using (var scope = app.Services.CreateScope())
             ""Title"" TEXT NOT NULL,
             ""Description"" TEXT NOT NULL DEFAULT '',
             ""Kind"" INTEGER NOT NULL,
-            ""ParamsJson"" TEXT NOT NULL DEFAULT '{}',
+            ""ParamsJson"" TEXT NOT NULL DEFAULT '{{}}',
             ""Order"" INTEGER NOT NULL DEFAULT 0,
             ""IsOptional"" INTEGER NOT NULL DEFAULT 0,
             ""RewardBuyingPower"" INTEGER NOT NULL DEFAULT 0,
@@ -268,7 +268,7 @@ using (var scope = app.Services.CreateScope())
             ""UserId"" TEXT NOT NULL,
             ""PracticeRequirementId"" TEXT NOT NULL,
             ""FulfilledAt"" TEXT NOT NULL,
-            ""EvidenceJson"" TEXT NOT NULL DEFAULT '{}',
+            ""EvidenceJson"" TEXT NOT NULL DEFAULT '{{}}',
             ""IdempotencyKey"" TEXT NOT NULL,
             FOREIGN KEY (""UserId"") REFERENCES ""Users"" (""Id"") ON DELETE CASCADE,
             FOREIGN KEY (""PracticeRequirementId"") REFERENCES ""PracticeRequirements"" (""Id"") ON DELETE CASCADE
@@ -288,7 +288,7 @@ using (var scope = app.Services.CreateScope())
             ""Price"" REAL,
             ""OccurredAt"" TEXT NOT NULL,
             ""IdempotencyKey"" TEXT NOT NULL,
-            ""PayloadJson"" TEXT NOT NULL DEFAULT '{}',
+            ""PayloadJson"" TEXT NOT NULL DEFAULT '{{}}',
             FOREIGN KEY (""UserId"") REFERENCES ""Users"" (""Id"") ON DELETE CASCADE
         );
         CREATE INDEX IF NOT EXISTS ""IX_TradeEvents_UserId_OccurredAt""
