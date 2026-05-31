@@ -172,6 +172,92 @@ class LearningApiClient {
     await _dio.delete<void>('/api/v1/me/devices/$token');
   }
 
+  /// Спиральный курс (r11). Возвращает список этапов с прогрессом
+  /// пользователя.
+  Future<List<Map<String, dynamic>>> fetchStages({String? portfolioId}) async {
+    final res = await _dio.get<List<dynamic>>(
+      '/api/v1/stages',
+      queryParameters: {
+        if (portfolioId != null) 'portfolioId': portfolioId,
+      },
+    );
+    return (res.data ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .toList(growable: false);
+  }
+
+  Future<Map<String, dynamic>> fetchStage(
+    String slug, {
+    String? portfolioId,
+  }) async {
+    final res = await _dio.get<Map<String, dynamic>>(
+      '/api/v1/stages/$slug',
+      queryParameters: {
+        if (portfolioId != null) 'portfolioId': portfolioId,
+      },
+    );
+    return res.data ?? const {};
+  }
+
+  /// Каталог концепций. Для пользователя возвращает уровень владения каждой.
+  Future<List<Map<String, dynamic>>> fetchConcepts({String? portfolioId}) async {
+    final res = await _dio.get<List<dynamic>>(
+      '/api/v1/concepts',
+      queryParameters: {
+        if (portfolioId != null) 'portfolioId': portfolioId,
+      },
+    );
+    return (res.data ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .toList(growable: false);
+  }
+
+  /// Биография концепции в курсе: где введена, где углублена, где применяется.
+  Future<Map<String, dynamic>> fetchConcept(
+    String slug, {
+    String? portfolioId,
+  }) async {
+    final res = await _dio.get<Map<String, dynamic>>(
+      '/api/v1/concepts/$slug',
+      queryParameters: {
+        if (portfolioId != null) 'portfolioId': portfolioId,
+      },
+    );
+    return res.data ?? const {};
+  }
+
+  /// Сообщает бэку о реальной торговой операции на учебном счёте, чтобы
+  /// закрыть совпавшие требования практики этапа. Идемпотентно по
+  /// [idempotencyKey] — повторный вызов с тем же ключом вернёт прошлый
+  /// результат без повторного зачёта.
+  Future<Map<String, dynamic>> postPracticeEvent({
+    required String stageSlug,
+    required String portfolioId,
+    required String idempotencyKey,
+    required String type,
+    String? symbol,
+    String? assetClass,
+    num? qty,
+    num? price,
+    Map<String, dynamic>? payload,
+  }) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      '/api/v1/stages/$stageSlug/practice-events',
+      queryParameters: {'portfolioId': portfolioId},
+      options: Options(headers: {'Idempotency-Key': idempotencyKey}),
+      data: {
+        'idempotencyKey': idempotencyKey,
+        'type': type,
+        if (symbol != null) 'symbol': symbol,
+        if (assetClass != null) 'assetClass': assetClass,
+        if (qty != null) 'qty': qty,
+        if (price != null) 'price': price,
+        if (payload != null) 'payload': payload,
+      },
+    );
+    return res.data ?? const {};
+  }
+
   Future<List<Map<String, dynamic>>> fetchAchievements(String portfolioId) async {
     final res = await _dio.get<List<dynamic>>(
       '/api/v1/me/achievements',
