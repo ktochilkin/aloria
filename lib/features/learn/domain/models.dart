@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 
+/// Статус этапа спирального курса.
+enum LearningStageStatus { notStarted, inProgress, completed }
+
+/// Этап обучения (термин бэка — Section, но в UI это спиральный этап).
+/// Замкнут вокруг одного класса инструментов или одной задачи. Содержит
+/// уроки + капстоун-практику.
 class LearningSection {
   const LearningSection({
     required this.id,
@@ -8,8 +14,18 @@ class LearningSection {
     required this.icon,
     required this.tint,
     required this.lessons,
+    this.goal,
+    this.targetMinutes,
+    this.isOptional = false,
+    this.status = LearningStageStatus.notStarted,
+    this.lessonsTotal = 0,
+    this.lessonsCompleted = 0,
+    this.practiceTotal = 0,
+    this.practiceFulfilled = 0,
+    this.practice = const [],
   });
 
+  /// `slug` этапа в API (например, `first-trade`).
   final String id;
   final String title;
   final String subtitle;
@@ -17,18 +33,29 @@ class LearningSection {
   final Color tint;
   final List<Lesson> lessons;
 
-  factory LearningSection.fromJson(Map<String, dynamic> json) {
-    return LearningSection(
-      id: json['id'] as String,
-      title: json['title'] as String,
-      subtitle: json['subtitle'] as String,
-      icon: _iconFromString(json['icon'] as String),
-      tint: _colorFromString(json['tint'] as String),
-      lessons: const [], // lessons will be loaded separately
-    );
-  }
+  /// Спиральный курс (r11).
+  final String? goal;
+  final int? targetMinutes;
+  final bool isOptional;
+  final LearningStageStatus status;
+  final int lessonsTotal;
+  final int lessonsCompleted;
+  final int practiceTotal;
+  final int practiceFulfilled;
+  final List<StagePractice> practice;
 
-  LearningSection copyWith({List<Lesson>? lessons}) {
+  LearningSection copyWith({
+    List<Lesson>? lessons,
+    String? goal,
+    int? targetMinutes,
+    bool? isOptional,
+    LearningStageStatus? status,
+    int? lessonsTotal,
+    int? lessonsCompleted,
+    int? practiceTotal,
+    int? practiceFulfilled,
+    List<StagePractice>? practice,
+  }) {
     return LearningSection(
       id: id,
       title: title,
@@ -36,47 +63,40 @@ class LearningSection {
       icon: icon,
       tint: tint,
       lessons: lessons ?? this.lessons,
+      goal: goal ?? this.goal,
+      targetMinutes: targetMinutes ?? this.targetMinutes,
+      isOptional: isOptional ?? this.isOptional,
+      status: status ?? this.status,
+      lessonsTotal: lessonsTotal ?? this.lessonsTotal,
+      lessonsCompleted: lessonsCompleted ?? this.lessonsCompleted,
+      practiceTotal: practiceTotal ?? this.practiceTotal,
+      practiceFulfilled: practiceFulfilled ?? this.practiceFulfilled,
+      practice: practice ?? this.practice,
     );
-  }
-
-  static IconData _iconFromString(String iconName) {
-    switch (iconName) {
-      case 'flash_on':
-        return Icons.flash_on;
-      case 'park':
-        return Icons.park;
-      case 'show_chart':
-        return Icons.show_chart;
-      case 'account_balance':
-        return Icons.account_balance;
-      default:
-        return Icons.book;
-    }
-  }
-
-  static Color _colorFromString(String colorName) {
-    switch (colorName) {
-      case 'primary':
-        return const Color(0xFF5D8CFF);
-      case 'secondary':
-        return const Color(0xFFFF9E7C);
-      case 'success':
-        return const Color(0xFF37B38A);
-      case 'warning':
-        return const Color(0xFFF5C24D);
-      default:
-        return const Color(0xFF5D8CFF);
-    }
   }
 }
 
+/// Ссылка на концепцию в контексте урока (slug, отображаемое имя, глубина).
+class LessonConceptRef {
+  const LessonConceptRef({
+    required this.slug,
+    required this.title,
+    required this.depth,
+  });
+
+  final String slug;
+  final String title;
+  final int depth;
+
+  factory LessonConceptRef.fromJson(Map<String, dynamic> json) =>
+      LessonConceptRef(
+        slug: (json['slug'] as String?) ?? '',
+        title: (json['title'] as String?) ?? (json['slug'] as String? ?? ''),
+        depth: (json['depth'] as num?)?.toInt() ?? 1,
+      );
+}
+
 /// Урок раздела обучения.
-///
-/// `quiz` — необязательный список вопросов из markdown-frontmatter (legacy путь,
-/// валидация локальная по `correctIndex`).
-/// `serverQuizId` — ID теста на бэке. Если задан, валидация уходит на сервер
-/// и результаты возвращаются им же. См. [ServerQuiz].
-/// `serverId` — ID самого урока на бэке. Нужен для отметки прохождения.
 class Lesson {
   const Lesson({
     required this.id,
@@ -95,6 +115,12 @@ class Lesson {
     this.serverId,
     this.serverQuizId,
     this.serverCompleted = false,
+    this.introduces = const [],
+    this.deepens = const [],
+    this.applies = const [],
+    this.isCapstone = false,
+    this.roleHint,
+    this.practiceRequirementCode,
   });
 
   final String id;
@@ -106,33 +132,88 @@ class Lesson {
   final int? estimatedMinutes;
 
   /// Опциональная связка «попробуй вживую» (см. backend Lesson.Practice*).
-  /// Если задан [practiceText] — в уроке показывается карточка с deep-link
-  /// в рынок (на инструмент [practiceSymbol] или, если он пуст, на список).
   final String? practiceSymbol;
   final String? practiceText;
 
-  /// Опциональная карточка retrieval-practice (см. backend Lesson.Recall*):
-  /// вопрос на вспоминание и эталонный ответ для самопроверки.
+  /// Карточка retrieval-practice (см. backend Lesson.Recall*).
   final String? recallPrompt;
   final String? recallAnswer;
 
-  /// Глава внутри раздела (необязательно). Группирует уроки под общим
-  /// заголовком-главой в дорожке раздела. См. backend Lesson.Group.
+  /// Глава внутри этапа (необязательно).
   final String? group;
 
   final List<QuizQuestion> quiz;
   final String? serverId;
   final String? serverQuizId;
 
-  /// Урок отмечен пройденным на бэке (`/me/lessons/...`). Используется
-  /// для синхронизации локального прогресса с сервером при загрузке.
+  /// Урок отмечен пройденным на бэке.
   final bool serverCompleted;
+
+  /// Спиральный курс (r11).
+  final List<LessonConceptRef> introduces;
+  final List<LessonConceptRef> deepens;
+  final List<LessonConceptRef> applies;
+
+  /// Финальный урок этапа — в UI подсвечивается как капстоун.
+  final bool isCapstone;
+
+  /// Подсказка UI о роли в спирали: `introduce` / `deepen` / `apply`.
+  final String? roleHint;
+
+  /// Код требования практики, к которому привязан урок (для кнопки
+  /// «к практике этапа»).
+  final String? practiceRequirementCode;
 
   bool get hasQuiz => quiz.isNotEmpty || serverQuizId != null;
   bool get hasServerQuiz => serverQuizId != null;
+
+  /// Все концепции урока (Introduce + Deepen + Apply) одним списком —
+  /// для бейджей в шапке. Дубли по slug убраны.
+  List<LessonConceptRef> get allConcepts {
+    final seen = <String>{};
+    final result = <LessonConceptRef>[];
+    for (final c in [...introduces, ...deepens, ...applies]) {
+      if (seen.add(c.slug)) result.add(c);
+    }
+    return result;
+  }
 }
 
-/// Один вопрос мини-теста с одиночным выбором.
+/// Требование практики этапа (капстоун).
+class StagePractice {
+  const StagePractice({
+    required this.id,
+    required this.code,
+    required this.title,
+    required this.description,
+    required this.kind,
+    required this.isOptional,
+    required this.rewardBuyingPower,
+    required this.fulfilled,
+  });
+
+  final String id;
+  final String code;
+  final String title;
+  final String description;
+  final String kind;
+  final bool isOptional;
+  final int rewardBuyingPower;
+  final bool fulfilled;
+
+  factory StagePractice.fromJson(Map<String, dynamic> json) => StagePractice(
+        id: (json['id'] as String?) ?? '',
+        code: (json['code'] as String?) ?? '',
+        title: (json['title'] as String?) ?? '',
+        description: (json['description'] as String?) ?? '',
+        kind: (json['kind'] as String?) ?? 'Custom',
+        isOptional: (json['isOptional'] as bool?) ?? false,
+        rewardBuyingPower: (json['rewardBuyingPower'] as num?)?.toInt() ?? 0,
+        fulfilled: (json['fulfilled'] as bool?) ?? false,
+      );
+}
+
+/// Один вопрос мини-теста с одиночным выбором (для legacy frontmatter quiz).
 class QuizQuestion {
   const QuizQuestion({
     required this.question,

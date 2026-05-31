@@ -110,6 +110,10 @@ class _SectionBody extends ConsumerWidget {
             )
           else
             ..._buildRoadmap(context, section, progress, currentIndex),
+          if (section.practice.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            _StagePracticeBlock(section: section),
+          ],
         ],
       ),
     );
@@ -174,6 +178,153 @@ class _SectionBody extends ConsumerWidget {
       ));
     }
     return children;
+  }
+}
+
+/// Блок «Закрепить на рынке» — список требований практики этапа с пометкой,
+/// что уже выполнено. Это спиральный капстоун: этап считается полностью
+/// пройденным, когда выполнены все обязательные требования.
+class _StagePracticeBlock extends StatelessWidget {
+  const _StagePracticeBlock({required this.section});
+
+  final LearningSection section;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    final tint = section.tint;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        color: tint.withValues(alpha: 0.06),
+        border: Border.all(color: tint.withValues(alpha: 0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.task_alt, color: tint),
+              const SizedBox(width: 8),
+              Text(
+                'Закрепить на рынке',
+                style: text.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Чтобы закрыть этап, попробуй это вживую на учебном счёте. '
+            'Сделка засчитается автоматически — деньги учебные, риска нет.',
+            style: text.bodySmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 14),
+          for (final p in section.practice) ...[
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    margin: const EdgeInsets.only(top: 2),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: p.fulfilled
+                          ? AppColors.success.withValues(alpha: 0.18)
+                          : tint.withValues(alpha: 0.12),
+                      border: Border.all(
+                        color: p.fulfilled ? AppColors.success : tint,
+                        width: 1.4,
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: p.fulfilled
+                        ? const Icon(Icons.check,
+                            size: 16, color: AppColors.success)
+                        : Icon(Icons.circle_outlined, size: 12, color: tint),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                p.title,
+                                style: text.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  decoration: p.fulfilled
+                                      ? TextDecoration.lineThrough
+                                      : null,
+                                  color: p.fulfilled
+                                      ? scheme.onSurfaceVariant
+                                      : scheme.onSurface,
+                                ),
+                              ),
+                            ),
+                            if (p.isOptional) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 5, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color: scheme.surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  'опц.',
+                                  style: text.labelSmall?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 9,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        if (p.description.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            p.description,
+                            style: text.bodySmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          if (section.practice.any((p) => !p.fulfilled)) ...[
+            const SizedBox(height: 4),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: () => context.go('/market'),
+                icon: const Icon(Icons.arrow_outward, size: 16),
+                label: const Text('Открыть рынок'),
+                style: TextButton.styleFrom(foregroundColor: tint),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 }
 

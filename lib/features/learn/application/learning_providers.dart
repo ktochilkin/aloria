@@ -60,6 +60,15 @@ final learningIntroProvider = FutureProvider<String>((ref) {
   return service.loadIntro();
 });
 
+/// Тело конкретного урока (markdown). Грузится лениво при заходе на
+/// страницу урока, потому что /stages/{slug} тело не отдаёт.
+final lessonBodyProvider = FutureProvider.family<Lesson?, String>(
+  (ref, serverLessonId) {
+    final service = ref.watch(learningContentServiceProvider);
+    return service.loadLesson(serverLessonId);
+  },
+);
+
 // ---------------------------------------------------------------------------
 // Прогресс.
 // ---------------------------------------------------------------------------

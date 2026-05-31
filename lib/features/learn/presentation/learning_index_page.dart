@@ -527,14 +527,71 @@ class _SectionPanel extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(section.title, style: text.titleMedium),
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(section.title,
+                                  style: text.titleMedium,
+                                  overflow: TextOverflow.ellipsis),
+                            ),
+                            if (section.isOptional) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: scheme.surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  'опционально',
+                                  style: text.labelSmall?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
                         const SizedBox(height: 2),
                         Text(
-                          section.subtitle,
+                          section.goal ?? section.subtitle,
                           style: text.bodySmall?.copyWith(
                             color: scheme.onSurfaceVariant,
                           ),
                         ),
+                        if (section.targetMinutes != null) ...[
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(Icons.schedule, size: 12,
+                                  color: scheme.onSurfaceVariant),
+                              const SizedBox(width: 4),
+                              Text(
+                                '~${section.targetMinutes} мин',
+                                style: text.labelSmall?.copyWith(
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                              ),
+                              if (section.practiceTotal > 0) ...[
+                                const SizedBox(width: 10),
+                                Icon(Icons.star_outline, size: 12,
+                                    color: section.tint),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'капстоун ${section.practiceTotal == 1 ? '' : '×${section.practiceTotal}'}'.trim(),
+                                  style: text.labelSmall?.copyWith(
+                                    color: section.tint,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ],
                       ],
                     ),
                   ),
