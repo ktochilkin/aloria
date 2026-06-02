@@ -2,52 +2,66 @@
   "sections": [
     {
       "id": "why-market",
-      "title": "Зачем биржа",
-      "subtitle": "Научиться видеть, зачем участвовать в рынке.",
+      "title": "С чего начать",
+      "subtitle": "Зачем вообще инвестировать и как не попасть в обман на старте.",
       "icon": "lightbulb_outline",
-      "tint": "warning"
+      "tint": "primary"
+    },
+    {
+      "id": "basics",
+      "title": "Основы инвестиций",
+      "subtitle": "Риск, ликвидность, доходность — три оси, которыми мерят любой инструмент.",
+      "icon": "balance",
+      "tint": "primary"
     },
     {
       "id": "first-trade",
       "title": "Как устроены торги",
-      "subtitle": "Научиться отправлять заявку и понимать сделку.",
+      "subtitle": "Совершить первую сделку и понять, что произошло на счёте.",
       "icon": "rocket_launch",
-      "tint": "warning"
+      "tint": "primary"
+    },
+    {
+      "id": "reading-market",
+      "title": "Читать рынок",
+      "subtitle": "Стакан, лента, спред, график, свечи — техника наблюдения.",
+      "icon": "candlestick_chart",
+      "tint": "primary"
     },
     {
       "id": "stocks",
       "title": "Акции как доля бизнеса",
       "subtitle": "Научиться покупать бизнес и понимать дивиденды.",
       "icon": "business",
-      "tint": "success"
+      "tint": "primary"
     },
     {
       "id": "bonds",
       "title": "Облигации как заём",
       "subtitle": "Научиться давать в долг государству и компаниям.",
       "icon": "receipt_long",
-      "tint": "success"
+      "tint": "primary"
     },
     {
       "id": "funds",
       "title": "Фонды как готовый портфель",
       "subtitle": "Научиться брать диверсификацию одной покупкой.",
       "icon": "category",
-      "tint": "success"
+      "tint": "primary"
     },
     {
       "id": "portfolio",
       "title": "Свой портфель",
       "subtitle": "Научиться собирать и поддерживать набор инструментов под себя.",
       "icon": "pie_chart",
-      "tint": "success"
+      "tint": "primary"
     },
     {
       "id": "active-trading",
       "title": "Плечо, шорт, стопы",
       "subtitle": "Научиться активной торговле — для тех, кто этого хочет.",
       "icon": "show_chart",
-      "tint": "secondary"
+      "tint": "primary"
     }
   ],
   "intro": {
