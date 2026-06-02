@@ -168,11 +168,23 @@ class Lesson {
   bool get hasServerQuiz => serverQuizId != null;
 
   /// Все концепции урока (Introduce + Deepen + Apply) одним списком —
-  /// для бейджей в шапке. Дубли по slug убраны.
+  /// для скрытых-данных. Дубли по slug убраны.
   List<LessonConceptRef> get allConcepts {
     final seen = <String>{};
     final result = <LessonConceptRef>[];
     for (final c in [...introduces, ...deepens, ...applies]) {
+      if (seen.add(c.slug)) result.add(c);
+    }
+    return result;
+  }
+
+  /// Только возвращающиеся концепции (Deepen + Apply) — для бейджей в
+  /// шапке урока. Introduce не показываем: первая встреча с концепцией
+  /// и есть весь урок про неё, метка излишня.
+  List<LessonConceptRef> get returningConcepts {
+    final seen = <String>{};
+    final result = <LessonConceptRef>[];
+    for (final c in [...deepens, ...applies]) {
       if (seen.add(c.slug)) result.add(c);
     }
     return result;

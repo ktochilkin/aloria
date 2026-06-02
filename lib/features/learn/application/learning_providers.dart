@@ -69,6 +69,19 @@ final lessonBodyProvider = FutureProvider.family<Lesson?, String>(
   },
 );
 
+/// Каталог концепций — slug → {title, shortDefinition, iconName}.
+/// Используется для подстановки видимых названий в inline-линки `[[slug]]`
+/// внутри markdown тела урока. Кэшируется на сессию.
+final conceptsCatalogProvider =
+    FutureProvider<Map<String, Map<String, dynamic>>>((ref) async {
+  final client = ref.watch(learningApiClientProvider);
+  final list = await client.fetchConcepts();
+  return {
+    for (final c in list)
+      ((c['slug'] as String?) ?? '').toLowerCase(): c,
+  };
+});
+
 // ---------------------------------------------------------------------------
 // Прогресс.
 // ---------------------------------------------------------------------------

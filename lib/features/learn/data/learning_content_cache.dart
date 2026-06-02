@@ -14,6 +14,13 @@ class LearningContentCache {
   LearningContentCache(this._prefs);
 
   static const _key = 'learning_content_cache_v1';
+
+  /// Префикс ключей в SharedPreferences для тел уроков, кэшированных
+  /// по `serverId`. Тела не лежат в основном кэше (списке этапов),
+  /// потому что /stages/{slug} body не отдаёт — оно подгружается
+  /// /lessons/{id} лениво и кэшируется отдельной записью.
+  static const _bodyKeyPrefix = 'learning_lesson_body_v1:';
+
   final SharedPreferences _prefs;
 
   /// Сохраняет снимок контента. Best-effort: ошибки записи не пробрасываем.
@@ -99,4 +106,32 @@ class LearningContentCache {
         recallAnswer: j['recallAnswer'] as String?,
         group: j['group'] as String?,
       );
+
+  // ---- per-lesson body cache ----
+
+  /// Сохраняет тело урока (markdown + связанные поля) в отдельную запись
+  /// SharedPreferences по `serverId`. Используется в `lesson_page.dart` —
+  /// при заходе на урок сначала пытаемся достать тело из кэша, потом
+  /// идём в сеть.
+  Future<void> saveLessonBody(String serverId, Lesson lesson) async {
+    try {
+      await _prefs.setString(
+        '$_bodyKeyPrefix$serverId',
+        jsonEncode(_lessonToJson(lesson)),
+      );
+    } catch (_) {
+      // best-effort
+    }
+  }
+
+  Lesson? loadLessonBody(String serverId) {
+    final raw = _prefs.getString('$_bodyKeyPrefix$serverId');
+    if (raw == null || raw.isEmpty) return null;
+    try {
+      final j = jsonDecode(raw) as Map<String, dynamic>;
+      return _lessonFromJson(j);
+    } catch (_) {
+      return null;
+    }
+  }
 }

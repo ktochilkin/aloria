@@ -107,7 +107,7 @@ class _LearningIndexBody extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 8),
           child: Text(
-            'Разделы',
+            'Этапы',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w800,
@@ -242,88 +242,78 @@ class _ContinueCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final fraction = sectionTotal == 0 ? 0.0 : sectionCompleted / sectionTotal;
 
+    // Цельная заливка вместо «карточки с рамкой» — чтобы карта читалась
+    // не как ещё один раздел, а как активный экран действия.
     return Material(
-      color: scheme.surface,
-      borderRadius: BorderRadius.circular(18),
+      color: section.tint.withValues(alpha: 0.10),
+      borderRadius: BorderRadius.circular(20),
       child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: () => context.push('/learn/${section.id}/${lesson.id}'),
-        child: Container(
+        borderRadius: BorderRadius.circular(20),
+        // Двухступенчатая навигация: сначала пушим экран этапа, потом
+        // экран урока. Так стек становится [главная] → [этап] → [урок],
+        // и кнопка «назад» из урока ведёт на этап, а не на главную.
+        onTap: () {
+          context.push('/learn/${section.id}');
+          context.push('/learn/${section.id}/${lesson.id}');
+        },
+        child: Padding(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: section.tint.withValues(alpha: 0.55)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: section.tint.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      'Продолжить',
+              // Большая кнопка-индикатор «играть» — визуальный якорь, что
+              // это не раздел, а «продолжить читать».
+              Container(
+                width: 52,
+                height: 52,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: section.tint,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.play_arrow_rounded,
+                  color: Colors.white,
+                  size: 32,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Продолжить чтение',
                       style: text.labelMedium?.copyWith(
                         color: section.tint,
                         fontWeight: FontWeight.w800,
+                        letterSpacing: 0.4,
                         fontSize: 11,
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(
-                      section.title,
-                      style: text.labelMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                        fontSize: 12,
-                      ),
+                    const SizedBox(height: 2),
+                    Text(
+                      lesson.title,
+                      style: text.titleMedium?.copyWith(height: 1.2),
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Text(lesson.title, style: text.titleMedium),
-              if (lesson.description.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(
-                  lesson.description,
-                  style: text.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                    const SizedBox(height: 4),
+                    Text(
+                      '${section.title} · $sectionCompleted/$sectionTotal',
+                      style: text.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+                    ThinProgressBar(fraction: fraction, tint: section.tint),
+                  ],
                 ),
-              ],
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Expanded(
-                    child: ThinProgressBar(
-                      fraction: fraction,
-                      tint: section.tint,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    '$sectionCompleted/$sectionTotal',
-                    style: text.labelMedium?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Icon(Icons.chevron_right, color: section.tint),
-                ],
               ),
+              const SizedBox(width: 8),
+              Icon(Icons.chevron_right, color: section.tint),
             ],
           ),
         ),
@@ -348,7 +338,11 @@ class _StartCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
-        onTap: () => context.push('/learn/${section.id}/${lesson.id}'),
+        // Двухступенчатая навигация — см. _ContinueCard.
+        onTap: () {
+          context.push('/learn/${section.id}');
+          context.push('/learn/${section.id}/${lesson.id}');
+        },
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -511,101 +505,101 @@ class _SectionPanel extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    width: 44,
-                    height: 44,
+                    width: 36,
+                    height: 36,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: section.tint.withValues(alpha: 0.16),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(section.icon, color: section.tint),
+                    child: Icon(section.icon, color: section.tint, size: 20),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(section.title,
-                                  style: text.titleMedium,
-                                  overflow: TextOverflow.ellipsis),
-                            ),
-                            if (section.isOptional) ...[
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: scheme.surfaceContainerHighest,
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  'опционально',
-                                  style: text.labelSmall?.copyWith(
-                                    color: scheme.onSurfaceVariant,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 10,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
+                        Text(
+                          section.title,
+                          style: text.titleMedium?.copyWith(height: 1.15),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 2),
+                        if (section.isOptional) ...[
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: scheme.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              'опционально',
+                              style: text.labelSmall?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 4),
                         Text(
                           section.goal ?? section.subtitle,
                           style: text.bodySmall?.copyWith(
                             color: scheme.onSurfaceVariant,
+                            height: 1.3,
                           ),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        if (section.targetMinutes != null) ...[
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Icon(Icons.schedule, size: 12,
-                                  color: scheme.onSurfaceVariant),
-                              const SizedBox(width: 4),
-                              Text(
-                                '~${section.targetMinutes} мин',
-                                style: text.labelSmall?.copyWith(
-                                  color: scheme.onSurfaceVariant,
-                                ),
-                              ),
-                              if (section.practiceTotal > 0) ...[
-                                const SizedBox(width: 10),
-                                Icon(Icons.star_outline, size: 12,
-                                    color: section.tint),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'капстоун ${section.practiceTotal == 1 ? '' : '×${section.practiceTotal}'}'.trim(),
-                                  style: text.labelSmall?.copyWith(
-                                    color: section.tint,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ],
                       ],
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  SectionProgressRing(
-                    completed: completed,
-                    total: total,
-                    tint: section.tint,
-                  ),
                 ],
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
+              if (section.targetMinutes != null || section.practiceTotal > 0)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Row(
+                    children: [
+                      if (section.targetMinutes != null) ...[
+                        Icon(Icons.schedule, size: 13,
+                            color: scheme.onSurfaceVariant),
+                        const SizedBox(width: 4),
+                        Text(
+                          '~${section.targetMinutes} мин',
+                          style: text.labelSmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                      if (section.practiceTotal > 0) ...[
+                        const SizedBox(width: 12),
+                        Icon(Icons.star_outline, size: 13,
+                            color: section.tint),
+                        const SizedBox(width: 4),
+                        Text(
+                          section.practiceTotal == 1
+                              ? 'главное задание'
+                              : 'заданий ×${section.practiceTotal}',
+                          style: text.labelSmall?.copyWith(
+                            color: section.tint,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
               ThinProgressBar(fraction: fraction, tint: section.tint),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               Row(
                 children: [
                   Text(
@@ -613,7 +607,7 @@ class _SectionPanel extends StatelessWidget {
                         ? 'Не начат'
                         : completed == total
                             ? 'Раздел пройден'
-                            : 'В процессе',
+                            : '$completed из $total',
                     style: text.labelMedium?.copyWith(
                       color: completed == total && total > 0
                           ? AppColors.success
