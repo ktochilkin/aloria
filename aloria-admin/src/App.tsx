@@ -4,6 +4,8 @@ import { Layout } from './components/Layout';
 import { SectionsPage } from './routes/SectionsPage';
 import { LessonsPage } from './routes/LessonsPage';
 import { LessonEditPage } from './routes/LessonEditPage';
+import { ConceptsPage } from './routes/ConceptsPage';
+import { PreviewPage } from './routes/PreviewPage';
 import { QuizzesPage } from './routes/QuizzesPage';
 import { AchievementsPage } from './routes/AchievementsPage';
 import { UsersPage } from './routes/UsersPage';
@@ -22,10 +24,12 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route element={<Layout />}>
-            <Route path="/" element={<Navigate to="/sections" replace />} />
+            <Route path="/" element={<Navigate to="/preview" replace />} />
+            <Route path="/preview" element={<PreviewPage />} />
             <Route path="/sections" element={<SectionsPage />} />
             <Route path="/lessons" element={<LessonsPage />} />
             <Route path="/lessons/:id" element={<LessonEditPage />} />
+            <Route path="/concepts" element={<ConceptsPage />} />
             <Route path="/quizzes" element={<QuizzesPage />} />
             <Route path="/achievements" element={<AchievementsPage />} />
             <Route path="/users" element={<UsersPage />} />
