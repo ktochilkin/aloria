@@ -15,6 +15,8 @@ public static class AdminEndpoints
 
         MapSections(group);
         MapLessons(group);
+        MapConcepts(group);
+        MapPracticeRequirements(group);
         MapQuizzes(group);
         MapAchievements(group);
         MapUsers(group);
@@ -84,7 +86,9 @@ public static class AdminEndpoints
                 .OrderBy(s => s.Order)
                 .Select(s => new AdminSectionDto(
                     s.Id, s.Slug, s.Title, s.Description, s.Order, s.PrerequisiteSectionId,
-                    s.Lessons.Count, s.CreatedAt, s.UpdatedAt))
+                    s.Lessons.Count, s.CreatedAt, s.UpdatedAt,
+                    s.Kind, s.IsOptional, s.IconName, s.Tint, s.Goal, s.TargetMinutes,
+                    s.PracticeRequirements.Count(pr => !pr.Archived)))
                 .ToListAsync(ct);
             return Results.Ok(list);
         });
@@ -103,6 +107,12 @@ public static class AdminEndpoints
                 Description = input.Description,
                 Order = input.Order,
                 PrerequisiteSectionId = input.PrerequisiteSectionId,
+                Kind = input.Kind ?? "stage",
+                IsOptional = input.IsOptional ?? false,
+                IconName = input.IconName,
+                Tint = input.Tint,
+                Goal = input.Goal,
+                TargetMinutes = input.TargetMinutes,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
             };
@@ -126,6 +136,14 @@ public static class AdminEndpoints
             section.Description = input.Description;
             section.Order = input.Order;
             section.PrerequisiteSectionId = input.PrerequisiteSectionId;
+            if (input.Kind != null) section.Kind = input.Kind;
+            if (input.IsOptional.HasValue) section.IsOptional = input.IsOptional.Value;
+            // null = очистить, иначе обновляем; в DTO решения «не трогать» нет —
+            // фронт всегда шлёт текущее значение, поэтому здесь просто перезаписываем.
+            section.IconName = input.IconName;
+            section.Tint = input.Tint;
+            section.Goal = input.Goal;
+            section.TargetMinutes = input.TargetMinutes;
             section.UpdatedAt = DateTime.UtcNow;
             await db.SaveChangesAsync(ct);
             await audit.LogAsync("update", "Section", id, section.Slug, ct);
@@ -164,7 +182,9 @@ public static class AdminEndpoints
                     l.Id, l.SectionId, l.Slug, l.Title, l.Description,
                     l.EstimatedMinutes, l.Order, l.Version,
                     l.Quiz != null,
-                    l.UpdatedAt))
+                    l.UpdatedAt,
+                    l.IsCapstone, l.RoleHint, l.PracticeRequirementCode,
+                    l.Concepts.Count))
                 .ToListAsync(ct);
             return Results.Ok(list);
         });
@@ -178,6 +198,8 @@ public static class AdminEndpoints
                 .Include(l => l.Quiz)
                     .ThenInclude(q => q!.Questions)
                         .ThenInclude(q => q.Options)
+                .Include(l => l.Concepts)
+                    .ThenInclude(lc => lc.Concept)
                 .FirstOrDefaultAsync(l => l.Id == id, ct);
             if (lesson == null) return Results.NotFound();
             AdminQuizDto? quizDto = lesson.Quiz == null ? null : new AdminQuizDto(
@@ -188,10 +210,19 @@ public static class AdminEndpoints
                     q.Options.OrderBy(o => o.Order).Select(o => new AdminQuizOptionDto(
                         o.Id, o.Text, o.IsCorrect, o.Explanation, o.Order)).ToList()
                 )).ToList());
+            var concepts = lesson.Concepts
+                .Select(lc => new AdminLessonConceptDto(
+                    lc.Concept!.Slug, lc.Concept.Title, lc.Role.ToString(), lc.Depth))
+                .OrderBy(c => c.Role).ThenBy(c => c.ConceptSlug)
+                .ToList();
             return Results.Ok(new AdminLessonDto(
                 lesson.Id, lesson.SectionId, lesson.Slug, lesson.Title, lesson.Description,
                 lesson.BodyMd, lesson.ImageUrl, lesson.EstimatedMinutes,
-                lesson.AcademicDefinition, lesson.Order, lesson.Version, quizDto));
+                lesson.AcademicDefinition, lesson.Order, lesson.Version, quizDto,
+                lesson.IsCapstone, lesson.RoleHint, lesson.PracticeRequirementCode,
+                lesson.Group, lesson.RecallPrompt, lesson.RecallAnswer,
+                lesson.PracticeText, lesson.PracticeSymbol,
+                concepts));
         });
 
         group.MapPost("/lessons", async (
@@ -212,6 +243,14 @@ public static class AdminEndpoints
                 EstimatedMinutes = input.EstimatedMinutes,
                 AcademicDefinition = input.AcademicDefinition,
                 Order = input.Order,
+                IsCapstone = input.IsCapstone ?? false,
+                RoleHint = input.RoleHint,
+                PracticeRequirementCode = input.PracticeRequirementCode,
+                Group = input.Group,
+                RecallPrompt = input.RecallPrompt,
+                RecallAnswer = input.RecallAnswer,
+                PracticeText = input.PracticeText,
+                PracticeSymbol = input.PracticeSymbol,
                 Version = 1,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
@@ -240,10 +279,59 @@ public static class AdminEndpoints
             lesson.EstimatedMinutes = input.EstimatedMinutes;
             lesson.AcademicDefinition = input.AcademicDefinition;
             lesson.Order = input.Order;
+            if (input.IsCapstone.HasValue) lesson.IsCapstone = input.IsCapstone.Value;
+            lesson.RoleHint = input.RoleHint;
+            lesson.PracticeRequirementCode = input.PracticeRequirementCode;
+            lesson.Group = input.Group;
+            lesson.RecallPrompt = input.RecallPrompt;
+            lesson.RecallAnswer = input.RecallAnswer;
+            lesson.PracticeText = input.PracticeText;
+            lesson.PracticeSymbol = input.PracticeSymbol;
             lesson.Version += 1;
             lesson.UpdatedAt = DateTime.UtcNow;
             await db.SaveChangesAsync(ct);
             await audit.LogAsync("update", "Lesson", id, lesson.Slug, ct);
+            return Results.NoContent();
+        });
+
+        // r11: правка связей урок ↔ концепции через списки slug'ов.
+        // delete-then-insert по правилам importer'a.
+        group.MapPut("/lessons/{id:guid}/concepts", async (
+            Guid id,
+            AdminLessonConceptsInput input,
+            AloriaDbContext db,
+            AuditLogger audit,
+            CancellationToken ct) =>
+        {
+            var lesson = await db.Lessons.FindAsync([id], ct);
+            if (lesson == null) return Results.NotFound();
+
+            var allSlugs = new HashSet<string>(
+                (input.Introduces ?? []).Concat(input.Deepens ?? []).Concat(input.Applies ?? []),
+                StringComparer.OrdinalIgnoreCase);
+            var conceptIdBySlug = await db.Concepts
+                .Where(c => allSlugs.Contains(c.Slug))
+                .ToDictionaryAsync(c => c.Slug, c => c.Id, StringComparer.OrdinalIgnoreCase, ct);
+
+            await db.LessonConcepts.Where(lc => lc.LessonId == id).ExecuteDeleteAsync(ct);
+
+            void Add(string slug, ConceptRole role, int depth)
+            {
+                if (!conceptIdBySlug.TryGetValue(slug, out var conceptId)) return;
+                db.LessonConcepts.Add(new LessonConcept
+                {
+                    LessonId = id, ConceptId = conceptId, Role = role, Depth = depth,
+                });
+            }
+
+            foreach (var s in input.Introduces ?? []) Add(s, ConceptRole.Introduce, 1);
+            foreach (var s in input.Deepens ?? []) Add(s, ConceptRole.Deepen, 2);
+            foreach (var s in input.Applies ?? []) Add(s, ConceptRole.Apply, 3);
+
+            lesson.Version += 1;
+            lesson.UpdatedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync(ct);
+            await audit.LogAsync("update", "LessonConcepts", id, lesson.Slug, ct);
             return Results.NoContent();
         });
 
@@ -258,6 +346,183 @@ public static class AdminEndpoints
             db.Lessons.Remove(lesson);
             await db.SaveChangesAsync(ct);
             await audit.LogAsync("delete", "Lesson", id, lesson.Slug, ct);
+            return Results.NoContent();
+        });
+    }
+
+    private static void MapConcepts(RouteGroupBuilder group)
+    {
+        group.MapGet("/concepts", async (AloriaDbContext db, CancellationToken ct) =>
+        {
+            var list = await db.Concepts
+                .OrderBy(c => c.Order)
+                .Select(c => new AdminConceptDto(
+                    c.Id, c.Slug, c.Title, c.ShortDefinition, c.IconName, c.Order,
+                    c.Lessons.Count, c.CreatedAt, c.UpdatedAt))
+                .ToListAsync(ct);
+            return Results.Ok(list);
+        });
+
+        group.MapGet("/concepts/{id:guid}", async (Guid id, AloriaDbContext db, CancellationToken ct) =>
+        {
+            var c = await db.Concepts.FindAsync([id], ct);
+            if (c == null) return Results.NotFound();
+            var lessonsCount = await db.LessonConcepts.CountAsync(lc => lc.ConceptId == id, ct);
+            return Results.Ok(new AdminConceptDto(
+                c.Id, c.Slug, c.Title, c.ShortDefinition, c.IconName, c.Order,
+                lessonsCount, c.CreatedAt, c.UpdatedAt));
+        });
+
+        group.MapPost("/concepts", async (
+            AdminConceptInput input,
+            AloriaDbContext db,
+            AuditLogger audit,
+            CancellationToken ct) =>
+        {
+            var concept = new Concept
+            {
+                Id = Guid.NewGuid(),
+                Slug = input.Slug.ToLowerInvariant(),
+                Title = input.Title,
+                ShortDefinition = input.ShortDefinition,
+                IconName = input.IconName,
+                Order = input.Order,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            };
+            db.Concepts.Add(concept);
+            await db.SaveChangesAsync(ct);
+            await audit.LogAsync("create", "Concept", concept.Id, concept.Slug, ct);
+            return Results.Created($"/api/admin/concepts/{concept.Id}", concept.Id);
+        });
+
+        group.MapPut("/concepts/{id:guid}", async (
+            Guid id,
+            AdminConceptInput input,
+            AloriaDbContext db,
+            AuditLogger audit,
+            CancellationToken ct) =>
+        {
+            var concept = await db.Concepts.FindAsync([id], ct);
+            if (concept == null) return Results.NotFound();
+            concept.Slug = input.Slug.ToLowerInvariant();
+            concept.Title = input.Title;
+            concept.ShortDefinition = input.ShortDefinition;
+            concept.IconName = input.IconName;
+            concept.Order = input.Order;
+            concept.UpdatedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync(ct);
+            await audit.LogAsync("update", "Concept", id, concept.Slug, ct);
+            return Results.NoContent();
+        });
+
+        group.MapDelete("/concepts/{id:guid}", async (
+            Guid id,
+            AloriaDbContext db,
+            AuditLogger audit,
+            CancellationToken ct) =>
+        {
+            var concept = await db.Concepts.FindAsync([id], ct);
+            if (concept == null) return Results.NotFound();
+            db.Concepts.Remove(concept);
+            await db.SaveChangesAsync(ct);
+            await audit.LogAsync("delete", "Concept", id, concept.Slug, ct);
+            return Results.NoContent();
+        });
+    }
+
+    private static void MapPracticeRequirements(RouteGroupBuilder group)
+    {
+        group.MapGet("/sections/{sectionId:guid}/practice", async (
+            Guid sectionId, AloriaDbContext db, CancellationToken ct) =>
+        {
+            var list = await db.PracticeRequirements
+                .Where(pr => pr.SectionId == sectionId)
+                .OrderBy(pr => pr.Order)
+                .Select(pr => new AdminPracticeRequirementDto(
+                    pr.Id, pr.SectionId, pr.Code, pr.Title, pr.Description,
+                    pr.Kind.ToString(), pr.ParamsJson, pr.Order, pr.IsOptional,
+                    pr.RewardBuyingPower, pr.ConceptSlugsJson, pr.Archived, pr.UpdatedAt))
+                .ToListAsync(ct);
+            return Results.Ok(list);
+        });
+
+        group.MapPost("/sections/{sectionId:guid}/practice", async (
+            Guid sectionId,
+            AdminPracticeRequirementInput input,
+            AloriaDbContext db,
+            AuditLogger audit,
+            CancellationToken ct) =>
+        {
+            var section = await db.Sections.FindAsync([sectionId], ct);
+            if (section == null) return Results.NotFound();
+            if (!Enum.TryParse<PracticeKind>(input.Kind, true, out var kind))
+                return Results.BadRequest($"unknown PracticeKind '{input.Kind}'");
+
+            var pr = new PracticeRequirement
+            {
+                Id = Guid.NewGuid(),
+                SectionId = sectionId,
+                Code = input.Code,
+                Title = input.Title,
+                Description = input.Description,
+                Kind = kind,
+                ParamsJson = string.IsNullOrWhiteSpace(input.ParamsJson) ? "{}" : input.ParamsJson,
+                Order = input.Order,
+                IsOptional = input.IsOptional,
+                RewardBuyingPower = input.RewardBuyingPower,
+                ConceptSlugsJson = string.IsNullOrWhiteSpace(input.ConceptSlugsJson) ? "[]" : input.ConceptSlugsJson,
+                Archived = false,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            };
+            db.PracticeRequirements.Add(pr);
+            await db.SaveChangesAsync(ct);
+            await audit.LogAsync("create", "PracticeRequirement", pr.Id, pr.Code, ct);
+            return Results.Created($"/api/admin/practice/{pr.Id}", pr.Id);
+        });
+
+        group.MapPut("/practice/{id:guid}", async (
+            Guid id,
+            AdminPracticeRequirementInput input,
+            AloriaDbContext db,
+            AuditLogger audit,
+            CancellationToken ct) =>
+        {
+            var pr = await db.PracticeRequirements.FindAsync([id], ct);
+            if (pr == null) return Results.NotFound();
+            if (!Enum.TryParse<PracticeKind>(input.Kind, true, out var kind))
+                return Results.BadRequest($"unknown PracticeKind '{input.Kind}'");
+
+            pr.Code = input.Code;
+            pr.Title = input.Title;
+            pr.Description = input.Description;
+            pr.Kind = kind;
+            pr.ParamsJson = string.IsNullOrWhiteSpace(input.ParamsJson) ? "{}" : input.ParamsJson;
+            pr.Order = input.Order;
+            pr.IsOptional = input.IsOptional;
+            pr.RewardBuyingPower = input.RewardBuyingPower;
+            pr.ConceptSlugsJson = string.IsNullOrWhiteSpace(input.ConceptSlugsJson) ? "[]" : input.ConceptSlugsJson;
+            pr.Archived = false;
+            pr.UpdatedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync(ct);
+            await audit.LogAsync("update", "PracticeRequirement", id, pr.Code, ct);
+            return Results.NoContent();
+        });
+
+        group.MapDelete("/practice/{id:guid}", async (
+            Guid id,
+            AloriaDbContext db,
+            AuditLogger audit,
+            CancellationToken ct) =>
+        {
+            var pr = await db.PracticeRequirements.FindAsync([id], ct);
+            if (pr == null) return Results.NotFound();
+            // Мягкое удаление — фулфилменты пользователей не теряем.
+            pr.Archived = true;
+            pr.UpdatedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync(ct);
+            await audit.LogAsync("archive", "PracticeRequirement", id, pr.Code, ct);
             return Results.NoContent();
         });
     }

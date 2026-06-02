@@ -9,14 +9,29 @@ public record AdminSectionDto(
     Guid? PrerequisiteSectionId,
     int LessonCount,
     DateTime CreatedAt,
-    DateTime UpdatedAt);
+    DateTime UpdatedAt,
+    // r11 spiral
+    string Kind,
+    bool IsOptional,
+    string? IconName,
+    string? Tint,
+    string? Goal,
+    int? TargetMinutes,
+    int PracticeCount);
 
 public record AdminSectionInput(
     string Slug,
     string Title,
     string Description,
     int Order,
-    Guid? PrerequisiteSectionId);
+    Guid? PrerequisiteSectionId,
+    // r11 spiral — все опциональны, поэтому admin может частично патчить
+    string? Kind,
+    bool? IsOptional,
+    string? IconName,
+    string? Tint,
+    string? Goal,
+    int? TargetMinutes);
 
 public record AdminLessonListDto(
     Guid Id,
@@ -28,7 +43,12 @@ public record AdminLessonListDto(
     int Order,
     int Version,
     bool HasQuiz,
-    DateTime UpdatedAt);
+    DateTime UpdatedAt,
+    // r11 spiral
+    bool IsCapstone,
+    string? RoleHint,
+    string? PracticeRequirementCode,
+    int ConceptCount);
 
 public record AdminLessonDto(
     Guid Id,
@@ -42,7 +62,17 @@ public record AdminLessonDto(
     string? AcademicDefinition,
     int Order,
     int Version,
-    AdminQuizDto? Quiz);
+    AdminQuizDto? Quiz,
+    // r11 spiral
+    bool IsCapstone,
+    string? RoleHint,
+    string? PracticeRequirementCode,
+    string? Group,
+    string? RecallPrompt,
+    string? RecallAnswer,
+    string? PracticeText,
+    string? PracticeSymbol,
+    List<AdminLessonConceptDto> Concepts);
 
 public record AdminLessonInput(
     Guid SectionId,
@@ -53,7 +83,70 @@ public record AdminLessonInput(
     string? ImageUrl,
     int? EstimatedMinutes,
     string? AcademicDefinition,
+    int Order,
+    bool? IsCapstone,
+    string? RoleHint,
+    string? PracticeRequirementCode,
+    string? Group,
+    string? RecallPrompt,
+    string? RecallAnswer,
+    string? PracticeText,
+    string? PracticeSymbol);
+
+public record AdminConceptDto(
+    Guid Id,
+    string Slug,
+    string Title,
+    string ShortDefinition,
+    string? IconName,
+    int Order,
+    int LessonsCount,
+    DateTime CreatedAt,
+    DateTime UpdatedAt);
+
+public record AdminConceptInput(
+    string Slug,
+    string Title,
+    string ShortDefinition,
+    string? IconName,
     int Order);
+
+public record AdminLessonConceptDto(
+    string ConceptSlug,
+    string ConceptTitle,
+    string Role,
+    int Depth);
+
+public record AdminLessonConceptsInput(
+    List<string> Introduces,
+    List<string> Deepens,
+    List<string> Applies);
+
+public record AdminPracticeRequirementDto(
+    Guid Id,
+    Guid SectionId,
+    string Code,
+    string Title,
+    string Description,
+    string Kind,
+    string ParamsJson,
+    int Order,
+    bool IsOptional,
+    int RewardBuyingPower,
+    string ConceptSlugsJson,
+    bool Archived,
+    DateTime UpdatedAt);
+
+public record AdminPracticeRequirementInput(
+    string Code,
+    string Title,
+    string Description,
+    string Kind,
+    string ParamsJson,
+    int Order,
+    bool IsOptional,
+    int RewardBuyingPower,
+    string ConceptSlugsJson);
 
 public record AdminQuizDto(
     Guid Id,
