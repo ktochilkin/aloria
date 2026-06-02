@@ -1,0 +1,14 @@
+{
+  "requirements": [
+    {
+      "code": "any-advanced",
+      "title": "Попробовать активную механику",
+      "description": "На выбор: открой шорт и закрой его выкупом, или совершите маржинальную сделку, или выставь стоп-заявку к открытой позиции.",
+      "kind": "Custom",
+      "params": { "customCode": "advanced-any-of", "options": ["short-roundtrip", "margin-trade", "stop-order-placed"] },
+      "isOptional": true,
+      "rewardBuyingPower": 0,
+      "concepts": ["short", "margin", "stop-order"]
+    }
+  ]
+}

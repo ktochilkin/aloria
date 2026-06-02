@@ -1,10 +1,12 @@
 import { NavLink, Outlet } from 'react-router';
-import { BookOpen, Layers, ListChecks, Trophy, Users, Activity, Send } from 'lucide-react';
+import { BookOpen, Layers, ListChecks, Trophy, Users, Activity, Send, Sparkles, Eye } from 'lucide-react';
 import { clsx } from 'clsx';
 
 const navItems = [
-  { to: '/sections', icon: Layers, label: 'Разделы' },
+  { to: '/preview', icon: Eye, label: 'Превью курса' },
+  { to: '/sections', icon: Layers, label: 'Этапы' },
   { to: '/lessons', icon: BookOpen, label: 'Уроки' },
+  { to: '/concepts', icon: Sparkles, label: 'Концепции' },
   { to: '/quizzes', icon: ListChecks, label: 'Тесты' },
   { to: '/achievements', icon: Trophy, label: 'Ачивки' },
   { to: '/users', icon: Users, label: 'Пользователи' },

@@ -1,0 +1,14 @@
+{
+  "requirements": [
+    {
+      "code": "buy-stock",
+      "title": "Купить акцию",
+      "description": "Купи на учебном счёте акцию любой российской компании — например, голубую фишку из индекса Мосбиржи.",
+      "kind": "OpenPosition",
+      "params": { "assetClass": "stock", "minQty": 1 },
+      "isOptional": false,
+      "rewardBuyingPower": 0,
+      "concepts": ["risk", "liquidity"]
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "requirements": [
+    {
+      "code": "first-trade-any",
+      "title": "Совершить первую сделку",
+      "description": "Открой Обзор рынка, выбери любой ликвидный инструмент и купи рыночной заявкой хотя бы один лот. Это безопасно — деньги учебные.",
+      "kind": "OpenPosition",
+      "params": { "assetClass": "any", "minQty": 1 },
+      "isOptional": false,
+      "rewardBuyingPower": 0,
+      "concepts": ["order", "position", "pnl"]
+    }
+  ]
+}

@@ -59,7 +59,7 @@ public static class LearningEndpoints
                 .Select(l => new
                 {
                     l.Id, l.Slug, l.Title, l.Description, l.ImageUrl, l.EstimatedMinutes, l.Order,
-                    HasQuiz = l.Quiz != null
+                    HasQuiz = l.Quiz != null, l.Group
                 })
                 .ToListAsync(ct);
 
@@ -75,7 +75,7 @@ public static class LearningEndpoints
 
             var dto = lessons.Select(l => new LessonSummaryDto(
                 l.Id, l.Slug, l.Title, l.Description, l.ImageUrl, l.EstimatedMinutes,
-                l.Order, l.HasQuiz, completed.Contains(l.Id)));
+                l.Order, l.HasQuiz, completed.Contains(l.Id), l.Group));
             return Results.Ok(new
             {
                 section = new
@@ -123,7 +123,7 @@ public static class LearningEndpoints
                 lesson.BodyMd, lesson.ImageUrl, lesson.EstimatedMinutes, lesson.AcademicDefinition,
                 lesson.Order, lesson.Version, quizDto,
                 lesson.PracticeSymbol, lesson.PracticeText,
-                lesson.RecallPrompt, lesson.RecallAnswer));
+                lesson.RecallPrompt, lesson.RecallAnswer, lesson.Group));
         });
 
         group.MapPost("/lessons/{id:guid}/complete", async (
@@ -132,6 +132,7 @@ public static class LearningEndpoints
             AloriaDbContext db,
             UserService users,
             AchievementEvaluator achievements,
+            ProgressUpdater progressUpdater,
             CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(portfolioId)) return Results.BadRequest("portfolioId required");
@@ -161,6 +162,12 @@ public static class LearningEndpoints
             // ачивки. Гоним его и на дубликатах: страхует от потерянных
             // апдейтов при гонке быстрых параллельных completions.
             await achievements.EvaluateAsync(user, ct);
+
+            // Спиральный прогресс: поднимаем UserConceptMastery по ролям
+            // LessonConcept и пересчитываем UserStageProgress этого этапа.
+            // Идемпотентно — повторный вызов на уже завершённом уроке
+            // безопасен (уровни мастеринга монотонны).
+            await progressUpdater.OnLessonCompletedAsync(user, lesson, ct);
 
             return Results.Ok(new { isCompleted = true });
         });

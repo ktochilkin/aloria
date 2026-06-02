@@ -2,6 +2,7 @@ import 'package:aloria/core/theme/tokens.dart';
 import 'package:aloria/core/utils/layout_utils.dart';
 import 'package:aloria/features/learn/application/learning_providers.dart';
 import 'package:aloria/features/learn/data/learning_api_client.dart';
+import 'package:aloria/features/learn/data/learning_content_cache.dart';
 import 'package:aloria/features/learn/domain/models.dart';
 import 'package:aloria/features/learn/presentation/widgets/learning_widgets.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_quiz_block.dart';
@@ -11,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Экран урока. Структура:
 ///   1. Шапка-индикатор: «Урок i из N» + переключатели на пред./след. урок.
@@ -104,6 +106,42 @@ class _LessonView extends ConsumerStatefulWidget {
 class _LessonViewState extends ConsumerState<_LessonView> {
   bool _markedThisOpen = false;
 
+  /// Слитая версия урока: метаданные из списка + body, academicDefinition,
+  /// recall* подгружаются отдельным запросом в [_loadedLesson]. Бэк не
+  /// присылает body в /stages/{slug}, поэтому тело подгружается лениво.
+  Lesson get _effectiveLesson {
+    final loaded = _loadedLesson;
+    if (loaded == null) return widget.lesson;
+    return Lesson(
+      id: widget.lesson.id,
+      title: loaded.title.isNotEmpty ? loaded.title : widget.lesson.title,
+      description: loaded.description.isNotEmpty
+          ? loaded.description
+          : widget.lesson.description,
+      academicDefinition: loaded.academicDefinition,
+      imageUrl: loaded.imageUrl.isNotEmpty ? loaded.imageUrl : widget.lesson.imageUrl,
+      body: loaded.body,
+      estimatedMinutes: loaded.estimatedMinutes ?? widget.lesson.estimatedMinutes,
+      practiceSymbol: loaded.practiceSymbol,
+      practiceText: loaded.practiceText,
+      recallPrompt: loaded.recallPrompt,
+      recallAnswer: loaded.recallAnswer,
+      group: loaded.group ?? widget.lesson.group,
+      quiz: widget.lesson.quiz,
+      serverId: widget.lesson.serverId,
+      serverQuizId: loaded.serverQuizId ?? widget.lesson.serverQuizId,
+      serverCompleted: widget.lesson.serverCompleted,
+      introduces: widget.lesson.introduces,
+      deepens: widget.lesson.deepens,
+      applies: widget.lesson.applies,
+      isCapstone: widget.lesson.isCapstone,
+      roleHint: widget.lesson.roleHint,
+      practiceRequirementCode: widget.lesson.practiceRequirementCode,
+    );
+  }
+
+  Lesson? _loadedLesson;
+
   @override
   void initState() {
     super.initState();
@@ -122,13 +160,13 @@ class _LessonViewState extends ConsumerState<_LessonView> {
       if (!mounted) return;
       await ref.read(learningProgressProvider.notifier).markRead(
             widget.section.id,
-            widget.lesson.id,
+            _effectiveLesson.id,
           );
       if (!mounted) return;
       setState(() => _markedThisOpen = true);
 
       // Параллельно отмечаем прохождение на сервере (без блокировки UI).
-      final serverId = widget.lesson.serverId;
+      final serverId = _effectiveLesson.serverId;
       if (serverId != null) {
         try {
           final client = ref.read(learningApiClientProvider);
@@ -142,6 +180,44 @@ class _LessonViewState extends ConsumerState<_LessonView> {
         }
       }
     });
+
+    // Подгружаем тело урока: бэк отдаёт body/academicDefinition/recall*
+    // только в /api/v1/learning/lessons/{id}, а в списке /stages/{slug}
+    // приходят только метаданные. Сначала показываем кэшированное (если
+    // есть) — даёт мгновенный рендер без сети. Потом обновляем со свежими
+    // данными в фоне.
+    final fetchId = widget.lesson.serverId;
+    if (fetchId != null) {
+      Future.microtask(() async {
+        // 1) Кэш — сразу, без сети.
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          final cache = LearningContentCache(prefs);
+          final cached = cache.loadLessonBody(fetchId);
+          if (cached != null && cached.body.isNotEmpty && mounted) {
+            setState(() => _loadedLesson = cached);
+          }
+        } catch (_) {
+          // Кэш — вспомогательный, его сбой не критичен.
+        }
+
+        // 2) Сеть — обновляем кэш и UI, если тело пришло.
+        try {
+          final service = ref.read(learningContentServiceProvider);
+          final full = await service.loadLesson(fetchId);
+          if (!mounted || full == null) return;
+          setState(() => _loadedLesson = full);
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            await LearningContentCache(prefs).saveLessonBody(fetchId, full);
+          } catch (_) {
+            // best-effort
+          }
+        } catch (_) {
+          // Если тело не пришло — UI остаётся с кэшем или метаданными.
+        }
+      });
+    }
   }
 
   @override
@@ -149,7 +225,7 @@ class _LessonViewState extends ConsumerState<_LessonView> {
     final text = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
     final progress = ref.watch(learningProgressProvider);
-    final entry = progress.entryFor(widget.section.id, widget.lesson.id);
+    final entry = progress.entryFor(widget.section.id, _effectiveLesson.id);
     final isRead = entry?.read ?? _markedThisOpen;
     final total = widget.section.lessons.length;
     final hasNext = widget.index + 1 < total;
@@ -178,121 +254,187 @@ class _LessonViewState extends ConsumerState<_LessonView> {
             section: widget.section,
             index: widget.index,
             total: total,
-            estimatedMinutes: widget.lesson.estimatedMinutes,
+            estimatedMinutes: _effectiveLesson.estimatedMinutes,
             isRead: isRead,
           ),
           const SizedBox(height: 14),
-          if (widget.lesson.imageUrl.isNotEmpty)
+          if (_effectiveLesson.imageUrl.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(bottom: 16),
               child: _LessonImage(
-                source: widget.lesson.imageUrl,
+                source: _effectiveLesson.imageUrl,
                 fallbackTint: widget.section.tint,
                 fallbackIcon: widget.section.icon,
               ),
             ),
-          Text(widget.lesson.title, style: text.headlineMedium),
-          if (widget.lesson.description.isNotEmpty) ...[
+          if (_effectiveLesson.isCapstone)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: widget.section.tint.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.star, size: 14, color: widget.section.tint),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Главное задание этапа',
+                      style: text.labelMedium?.copyWith(
+                        color: widget.section.tint,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          Text(
+            _effectiveLesson.title,
+            style: text.titleMedium?.copyWith(
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+              height: 1.2,
+            ),
+          ),
+          if (_effectiveLesson.description.isNotEmpty) ...[
             const SizedBox(height: 6),
             Text(
-              widget.lesson.description,
+              _effectiveLesson.description,
               style: text.bodyMedium?.copyWith(
                 color: scheme.onSurfaceVariant,
               ),
             ),
           ],
-          if (widget.lesson.academicDefinition.isNotEmpty) ...[
+          if (_effectiveLesson.returningConcepts.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            _LessonConceptBadges(lesson: _effectiveLesson, tint: widget.section.tint),
+          ],
+          if (_effectiveLesson.academicDefinition.isNotEmpty) ...[
             const SizedBox(height: 14),
             _DefinitionBlock(
               title: 'Академическое определение',
-              content: widget.lesson.academicDefinition,
+              content: _effectiveLesson.academicDefinition,
               tint: widget.section.tint,
             ),
           ],
           const SizedBox(height: 18),
-          MarkdownBody(
-            data: widget.lesson.body,
-            selectable: true,
-            styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-              p: text.bodyMedium?.copyWith(height: 1.55),
-              h1: text.titleMedium?.copyWith(fontSize: 22),
-              h2: text.titleMedium?.copyWith(fontSize: 19),
-              h3: text.titleMedium?.copyWith(fontSize: 17),
-              blockquote: text.bodyMedium?.copyWith(
-                color: scheme.onSurfaceVariant,
-                fontStyle: FontStyle.italic,
-              ),
-              blockquoteDecoration: BoxDecoration(
-                color: widget.section.tint.withValues(alpha: 0.08),
-                border: Border(
-                  left: BorderSide(color: widget.section.tint, width: 3),
+          Consumer(builder: (context, ref, _) {
+            final catalog =
+                ref.watch(conceptsCatalogProvider).valueOrNull ?? const {};
+            // Препроцессинг: [[slug]] или [[slug|видимый текст]] →
+            // обычный markdown-линк с уникальной схемой aloria-concept://.
+            // Если slug нет в каталоге — оставляем сырой текст без линка.
+            final processed = _injectConceptLinks(
+              _effectiveLesson.body,
+              catalog,
+            );
+            return MarkdownBody(
+              data: processed,
+              selectable: true,
+              styleSheet:
+                  MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+                p: text.bodyMedium?.copyWith(height: 1.55),
+                h1: text.titleMedium?.copyWith(fontSize: 22),
+                h2: text.titleMedium?.copyWith(fontSize: 19),
+                h3: text.titleMedium?.copyWith(fontSize: 17),
+                blockquote: text.bodyMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                  fontStyle: FontStyle.italic,
                 ),
-                borderRadius: const BorderRadius.only(
-                  topRight: Radius.circular(8),
-                  bottomRight: Radius.circular(8),
+                blockquoteDecoration: BoxDecoration(
+                  color: widget.section.tint.withValues(alpha: 0.08),
+                  border: Border(
+                    left: BorderSide(color: widget.section.tint, width: 3),
+                  ),
+                  borderRadius: const BorderRadius.only(
+                    topRight: Radius.circular(8),
+                    bottomRight: Radius.circular(8),
+                  ),
+                ),
+                listBullet: text.bodyMedium,
+                // Ненавязчивая ссылка: обычный цвет текста, заметное, но
+                // мягкое подчёркивание приглушённым цветом — намёк
+                // «можно нажать» без яркого акцента.
+                a: TextStyle(
+                  color: scheme.onSurface,
+                  decoration: TextDecoration.underline,
+                  decorationColor: scheme.onSurfaceVariant,
+                  decorationThickness: 2,
                 ),
               ),
-              listBullet: text.bodyMedium,
-            ),
-            sizedImageBuilder: (config) => _MarkdownImage(
-              uri: config.uri,
-              alt: config.alt,
-              fallbackTint: widget.section.tint,
-            ),
-          ),
-          if (widget.lesson.hasServerQuiz) ...[
+              onTapLink: (label, href, _) {
+                if (href == null) return;
+                const scheme = 'aloria-concept://';
+                if (href.startsWith(scheme)) {
+                  final slug = href.substring(scheme.length);
+                  _showConceptSheet(context, slug, label);
+                }
+              },
+              sizedImageBuilder: (config) => _MarkdownImage(
+                uri: config.uri,
+                alt: config.alt,
+                fallbackTint: widget.section.tint,
+              ),
+            );
+          }),
+          if (_effectiveLesson.hasServerQuiz) ...[
             const SizedBox(height: 22),
             ServerQuizBlock(
-              quizId: widget.lesson.serverQuizId!,
+              quizId: _effectiveLesson.serverQuizId!,
               tint: widget.section.tint,
               onPassed: (result) {
                 ref.read(learningProgressProvider.notifier).saveQuizResult(
                       sectionId: widget.section.id,
-                      lessonId: widget.lesson.id,
+                      lessonId: _effectiveLesson.id,
                       score: result.correctCount,
                       total: result.totalQuestions,
                     );
               },
             ),
-          ] else if (widget.lesson.quiz.isNotEmpty) ...[
+          ] else if (_effectiveLesson.quiz.isNotEmpty) ...[
             const SizedBox(height: 22),
             LessonQuizBlock(
-              questions: widget.lesson.quiz,
+              questions: _effectiveLesson.quiz,
               tint: widget.section.tint,
               onCompleted: (score, total) {
                 ref.read(learningProgressProvider.notifier).saveQuizResult(
                       sectionId: widget.section.id,
-                      lessonId: widget.lesson.id,
+                      lessonId: _effectiveLesson.id,
                       score: score,
                       total: total,
                     );
               },
             ),
           ],
-          if ((widget.lesson.recallPrompt ?? '').trim().isNotEmpty &&
-              widget.lesson.serverId != null) ...[
+          if ((_effectiveLesson.recallPrompt ?? '').trim().isNotEmpty &&
+              _effectiveLesson.serverId != null) ...[
             const SizedBox(height: 22),
             RecallCard(
-              prompt: widget.lesson.recallPrompt!.trim(),
-              answer: widget.lesson.recallAnswer,
+              prompt: _effectiveLesson.recallPrompt!.trim(),
+              answer: _effectiveLesson.recallAnswer,
               tint: widget.section.tint,
               onGrade: (remembered) {
                 final client = ref.read(learningApiClientProvider);
                 final portfolioId = ref.read(aloriaPortfolioIdProvider);
                 return client.gradeReview(
-                  lessonId: widget.lesson.serverId!,
+                  lessonId: _effectiveLesson.serverId!,
                   remembered: remembered,
                   portfolioId: portfolioId,
                 );
               },
             ),
           ],
-          if ((widget.lesson.practiceText ?? '').trim().isNotEmpty) ...[
+          if ((_effectiveLesson.practiceText ?? '').trim().isNotEmpty) ...[
             const SizedBox(height: 22),
             _PracticeCard(
               tint: widget.section.tint,
-              text: widget.lesson.practiceText!.trim(),
-              symbol: widget.lesson.practiceSymbol,
+              text: _effectiveLesson.practiceText!.trim(),
+              symbol: _effectiveLesson.practiceSymbol,
             ),
           ],
           const SizedBox(height: 22),
@@ -704,4 +846,231 @@ class _MarkdownImage extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Регулярка для inline-линков на концепцию в markdown: `[[slug]]` или
+/// `[[slug|видимый текст]]`. Slug = латиница/цифры/дефисы.
+final _conceptLinkRegExp = RegExp(r'\[\[([a-z0-9_-]+)(?:\|([^\]]+))?\]\]');
+
+/// Подставляет в markdown-тело урока ссылки на концепции. `[[slug]]`
+/// заменяется на стандартный markdown-линк `[Название](aloria-concept://slug)`,
+/// который ловится в `onTapLink`. Если slug нет в каталоге — оставляется
+/// сырой текст без декорации.
+String _injectConceptLinks(
+  String body,
+  Map<String, Map<String, dynamic>> catalog,
+) {
+  return body.replaceAllMapped(_conceptLinkRegExp, (m) {
+    final slug = (m.group(1) ?? '').toLowerCase();
+    final visible = m.group(2);
+    final concept = catalog[slug];
+    if (concept == null) {
+      // Концепции нет — показываем сырое слово (без квадратных скобок).
+      return visible ?? slug;
+    }
+    final label = visible ?? (concept['title'] as String? ?? slug);
+    return '[$label](aloria-concept://$slug)';
+  });
+}
+
+/// Открывает bottom sheet с биографией концепции из inline-линка
+/// `[[slug]]`. Переиспользует тот же `_ConceptBiographySheet`, что и
+/// бейджи концепций в шапке урока.
+void _showConceptSheet(BuildContext context, String slug, String label) {
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Theme.of(context).colorScheme.surface,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (_) => _ConceptBiographySheet(slug: slug, title: label),
+  );
+}
+
+/// Бейджи концепций урока: «Знакомлюсь / Углубляю / Применяю на практике».
+/// Кликабельны — открывают bottom sheet с биографией концепции.
+class _LessonConceptBadges extends StatelessWidget {
+  const _LessonConceptBadges({required this.lesson, required this.tint});
+
+  final Lesson lesson;
+  final Color tint;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+
+    Widget chip(LessonConceptRef ref, String roleLabel, IconData icon) {
+      return InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: () => _showConceptSheet(context, ref),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: tint.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: tint.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 14, color: tint),
+              const SizedBox(width: 6),
+              Text(
+                ref.title,
+                style: text.labelMedium?.copyWith(
+                  color: scheme.onSurface,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                roleLabel,
+                style: text.labelSmall?.copyWith(
+                  color: tint,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 10,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Introduce-бейджи не показываем: первая встреча с концепцией —
+    // это и есть весь урок про неё, дополнительная метка лишняя.
+    // Бейджи появляются только когда концепция возвращается (Deepen)
+    // или применяется на практике (Apply) — это и есть спираль.
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: [
+        for (final c in lesson.deepens)
+          chip(c, 'уже встречал', Icons.tune),
+        for (final c in lesson.applies)
+          chip(c, 'на практике', Icons.task_alt),
+      ],
+    );
+  }
+
+  void _showConceptSheet(BuildContext context, LessonConceptRef ref) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => _ConceptBiographySheet(slug: ref.slug, title: ref.title),
+    );
+  }
+}
+
+/// Bottom sheet с биографией концепции: где введена, где углубляется,
+/// где применяется. Грузит данные с /api/v1/concepts/{slug}.
+class _ConceptBiographySheet extends ConsumerWidget {
+  const _ConceptBiographySheet({required this.slug, required this.title});
+
+  final String slug;
+  final String title;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final text = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    final client = ref.read(learningApiClientProvider);
+    final portfolioId = ref.read(aloriaPortfolioIdProvider);
+
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.6,
+      minChildSize: 0.4,
+      maxChildSize: 0.9,
+      builder: (_, controller) => FutureBuilder<Map<String, dynamic>>(
+        future: client.fetchConcept(slug, portfolioId: portfolioId),
+        builder: (_, snap) {
+          if (!snap.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final data = snap.data!;
+          final shortDef = (data['shortDefinition'] as String?) ?? '';
+          final introductions = (data['introductions'] as List? ?? const [])
+              .whereType<Map<String, dynamic>>()
+              .toList();
+
+          // Где термин реально разбирается — берём первое «введение».
+          // Это и есть тот урок, где концепция раскрывается как тема.
+          // Показываем только информационно, без перехода: открытие урока
+          // отсюда ломало бы стек навигации.
+          final intro = introductions.isNotEmpty ? introductions.first : null;
+          final introStage = (intro?['stageTitle'] as String?) ?? '';
+          final introLesson = (intro?['lessonTitle'] as String?) ?? '';
+
+          return ListView(
+            controller: controller,
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(child: Text(title, style: text.titleLarge)),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              if (shortDef.isNotEmpty)
+                Text(
+                  shortDef,
+                  style: text.bodyMedium
+                      ?.copyWith(color: scheme.onSurface, height: 1.5),
+                ),
+              if (intro != null && introLesson.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.menu_book_outlined,
+                          size: 18, color: scheme.onSurfaceVariant),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: RichText(
+                          text: TextSpan(
+                            style: text.bodySmall
+                                ?.copyWith(color: scheme.onSurfaceVariant),
+                            children: [
+                              const TextSpan(text: 'Подробно разбирается в уроке '),
+                              TextSpan(
+                                text: '«$introLesson»',
+                                style: text.bodySmall?.copyWith(
+                                  color: scheme.onSurface,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              if (introStage.isNotEmpty)
+                                TextSpan(text: ' — этап «$introStage»'),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          );
+        },
+      ),
+    );
+  }
+
 }

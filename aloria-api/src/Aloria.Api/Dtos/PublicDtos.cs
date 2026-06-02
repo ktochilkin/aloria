@@ -19,7 +19,8 @@ public record LessonSummaryDto(
     int? EstimatedMinutes,
     int Order,
     bool HasQuiz,
-    bool IsCompleted);
+    bool IsCompleted,
+    string? Group);
 
 public record LessonDto(
     Guid Id,
@@ -37,7 +38,8 @@ public record LessonDto(
     string? PracticeSymbol,
     string? PracticeText,
     string? RecallPrompt,
-    string? RecallAnswer);
+    string? RecallAnswer,
+    string? Group);
 
 public record QuizDto(
     Guid Id,

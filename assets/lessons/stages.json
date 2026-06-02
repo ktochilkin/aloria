@@ -1,0 +1,116 @@
+{
+  "stages": [
+    {
+      "id": "why-market",
+      "title": "С чего начать",
+      "subtitle": "Зачем вообще инвестировать и как не попасть в обман на старте.",
+      "icon": "lightbulb_outline",
+      "tint": "primary",
+      "goal": "Понять, что деньги в покое теряют ценность, как работает сложный процент и какие риски ждут на входе.",
+      "targetMinutes": 12,
+      "isOptional": false,
+      "order": 0,
+      "unlockRule": null
+    },
+    {
+      "id": "basics",
+      "title": "Основы инвестиций",
+      "subtitle": "Риск, ликвидность, доходность — три оси, которыми мерят любой инструмент.",
+      "icon": "balance",
+      "tint": "primary",
+      "goal": "Разобрать базовый каркас оценки инвестиции: три параметра, виды риска, ликвидность и доходность.",
+      "targetMinutes": 24,
+      "isOptional": false,
+      "order": 1,
+      "unlockRule": { "requires": [{ "type": "stage", "slug": "why-market", "status": "completed" }] }
+    },
+    {
+      "id": "first-trade",
+      "title": "Как устроены торги",
+      "subtitle": "Совершить первую сделку и понять, что произошло на счёте.",
+      "icon": "rocket_launch",
+      "tint": "primary",
+      "goal": "Совершить первую безопасную сделку, понять заявку, позицию и P&L.",
+      "targetMinutes": 18,
+      "isOptional": false,
+      "order": 2,
+      "unlockRule": { "requires": [{ "type": "stage", "slug": "basics", "status": "completed" }] }
+    },
+    {
+      "id": "reading-market",
+      "title": "Читать рынок",
+      "subtitle": "Стакан, лента, спред, график, свечи — техника наблюдения.",
+      "icon": "candlestick_chart",
+      "tint": "primary",
+      "goal": "Научиться смотреть на торговый интерфейс: стакан и лента сделок, спред и ликвидность, график и свечи. Этап для тех, кто хочет понимать, что происходит на экране.",
+      "targetMinutes": 20,
+      "isOptional": false,
+      "order": 3,
+      "unlockRule": { "requires": [{ "type": "stage", "slug": "first-trade", "status": "completed" }] }
+    },
+    {
+      "id": "stocks",
+      "title": "Акции как доля бизнеса",
+      "subtitle": "Научиться покупать бизнес и понимать дивиденды.",
+      "icon": "business",
+      "tint": "primary",
+      "goal": "Понять акцию как долю в бизнесе, разобрать риск конкретной акции и дивидендный гэп; купить акцию на учебном счёте.",
+      "targetMinutes": 22,
+      "isOptional": false,
+      "order": 4,
+      "unlockRule": { "requires": [{ "type": "stage", "slug": "reading-market", "status": "completed" }] }
+    },
+    {
+      "id": "bonds",
+      "title": "Облигации как заём",
+      "subtitle": "Научиться давать в долг государству и компаниям.",
+      "icon": "receipt_long",
+      "tint": "primary",
+      "goal": "Понять облигацию как долг: номинал, купон, срок. Разобрать, как она торгуется в процентах от номинала, что такое НКД и почему цена ходит со ставкой ЦБ.",
+      "targetMinutes": 30,
+      "isOptional": false,
+      "order": 5,
+      "unlockRule": { "requires": [{ "type": "stage", "slug": "stocks", "status": "completed" }] }
+    },
+    {
+      "id": "funds",
+      "title": "Фонды как готовый портфель",
+      "subtitle": "Научиться брать диверсификацию одной покупкой.",
+      "icon": "category",
+      "tint": "primary",
+      "goal": "Понять фонд как корзину бумаг, разобрать виды фондов, индексы, активные vs индексные подходы; научиться выбирать фонд и купить БПИФ.",
+      "targetMinutes": 28,
+      "isOptional": false,
+      "order": 6,
+      "unlockRule": { "requires": [{ "type": "stage", "slug": "bonds", "status": "completed" }] }
+    },
+    {
+      "id": "portfolio",
+      "title": "Свой портфель",
+      "subtitle": "Научиться собирать и поддерживать набор инструментов под себя.",
+      "icon": "pie_chart",
+      "tint": "primary",
+      "goal": "Собрать портфель под свой риск-профиль, провести одну ребалансировку, разобрать налоги и психологические ловушки.",
+      "targetMinutes": 26,
+      "isOptional": false,
+      "order": 7,
+      "unlockRule": { "requires": [{ "type": "stage", "slug": "funds", "status": "completed" }] }
+    },
+    {
+      "id": "active-trading",
+      "title": "Плечо, шорт, стопы",
+      "subtitle": "Научиться активной торговле — для тех, кто этого хочет.",
+      "icon": "show_chart",
+      "tint": "primary",
+      "goal": "Разобрать механики активной торговли: шорт, маржу, стоп-заявки, режим расчётов T+ и базу деривативов. Большинству инвесторов это не нужно.",
+      "targetMinutes": 25,
+      "isOptional": true,
+      "order": 8,
+      "unlockRule": { "requires": [{ "type": "stage", "slug": "portfolio", "status": "completed" }] }
+    }
+  ],
+  "intro": {
+    "title": "Открой мир Aloria",
+    "subtitle": "Учебный рынок без риска: заявки, сделки, цены — всё как вживую, только безопасно."
+  }
+}

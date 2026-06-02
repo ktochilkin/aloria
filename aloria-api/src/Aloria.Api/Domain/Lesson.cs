@@ -25,10 +25,27 @@ public class Lesson
     public string? RecallPrompt { get; set; }
     public string? RecallAnswer { get; set; }
 
+    /// Глава внутри раздела (необязательно). Уроки с одинаковым значением
+    /// показываются под общим заголовком-главой в дорожке раздела.
+    public string? Group { get; set; }
+
     public int Order { get; set; }
     public int Version { get; set; } = 1;
 
+    /// Подсказка UI о роли урока в спирали: "introduce" | "deepen" | "apply".
+    /// Источник правды по концепциям — таблица LessonConcept; это поле для
+    /// быстрого подсвечивания глифа без джойна.
+    public string? RoleHint { get; set; }
+
+    /// Финальный урок этапа — в дорожке подсвечивается особо как капстоун.
+    public bool IsCapstone { get; set; }
+
+    /// Опциональная привязка урока к требованию практики этапа (по Code).
+    /// В UI на странице урока показывается кнопка «к практике этапа».
+    public string? PracticeRequirementCode { get; set; }
+
     public Quiz? Quiz { get; set; }
+    public List<LessonConcept> Concepts { get; set; } = new();
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, Pencil } from 'lucide-react';
+import { Plus, Trash2, Pencil, Star } from 'lucide-react';
 import { api } from '../lib/api';
 import type { AdminSection, AdminSectionInput } from '../lib/types';
 import { Badge, Button, Card, EmptyState, Field, Input, PageHeader, Spinner, Textarea } from '../components/ui';
@@ -21,26 +21,28 @@ export function SectionsPage() {
   return (
     <div>
       <PageHeader
-        title="Разделы обучения"
-        subtitle="Каждый раздел содержит набор уроков. Порядок задаёт навигацию."
+        title="Этапы обучения"
+        subtitle="Спиральный курс: каждый этап замкнут вокруг класса инструментов или задачи."
         actions={
           <Button variant="primary" onClick={() => setEditing('new')}>
-            <Plus className="size-4" /> Новый раздел
+            <Plus className="size-4" /> Новый этап
           </Button>
         }
       />
 
       {isLoading && <Spinner />}
-      {data && data.length === 0 && <EmptyState title="Разделов ещё нет" hint="Создай первый — и он появится в списке." />}
+      {data && data.length === 0 && <EmptyState title="Этапов ещё нет" hint="Создай первый — и он появится в списке." />}
       {data && data.length > 0 && (
         <Card>
           <table className="w-full text-sm">
             <thead className="bg-(--color-bg) text-xs uppercase tracking-wider text-(--color-fg-muted)">
               <tr className="text-left">
-                <th className="px-4 py-3 font-semibold">Порядок</th>
+                <th className="px-4 py-3 font-semibold">#</th>
                 <th className="px-4 py-3 font-semibold">Slug</th>
-                <th className="px-4 py-3 font-semibold">Название</th>
+                <th className="px-4 py-3 font-semibold">Этап</th>
+                <th className="px-4 py-3 font-semibold text-center">~мин</th>
                 <th className="px-4 py-3 font-semibold text-center">Уроков</th>
+                <th className="px-4 py-3 font-semibold text-center">Капстоунов</th>
                 <th className="px-4 py-3 font-semibold text-right">Действия</th>
               </tr>
             </thead>
@@ -50,11 +52,28 @@ export function SectionsPage() {
                   <td className="px-4 py-3 text-(--color-fg-muted) font-mono">{s.order}</td>
                   <td className="px-4 py-3 font-mono text-xs">{s.slug}</td>
                   <td className="px-4 py-3">
-                    <div className="font-semibold">{s.title}</div>
-                    {s.description && <div className="text-xs text-(--color-fg-muted) mt-0.5 line-clamp-1">{s.description}</div>}
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">{s.title}</span>
+                      {s.isOptional && <Badge tone="neutral">опционально</Badge>}
+                    </div>
+                    {s.goal && (
+                      <div className="text-xs text-(--color-fg-muted) mt-0.5 line-clamp-2 max-w-[420px]">
+                        {s.goal}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-center text-(--color-fg-muted)">
+                    {s.targetMinutes ?? '—'}
                   </td>
                   <td className="px-4 py-3 text-center">
                     <Badge tone="primary">{s.lessonCount}</Badge>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    {s.practiceCount > 0 ? (
+                      <span className="inline-flex items-center gap-1 text-xs text-(--color-warning)">
+                        <Star className="size-3" /> {s.practiceCount}
+                      </span>
+                    ) : <span className="text-(--color-fg-muted)">—</span>}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1 justify-end">
@@ -64,7 +83,7 @@ export function SectionsPage() {
                       <Button
                         variant="ghost"
                         onClick={() => {
-                          if (confirm(`Удалить раздел "${s.title}"? Уроки внутри тоже удалятся.`)) remove.mutate(s.id);
+                          if (confirm(`Удалить этап "${s.title}"? Уроки внутри тоже удалятся.`)) remove.mutate(s.id);
                         }}
                       >
                         <Trash2 className="size-4 text-(--color-error)" />
@@ -95,8 +114,32 @@ export function SectionsPage() {
 function SectionEditor({ initial, onClose, onSaved }: { initial: AdminSection | null; onClose: () => void; onSaved: () => void }) {
   const [form, setForm] = useState<AdminSectionInput>(
     initial
-      ? { slug: initial.slug, title: initial.title, description: initial.description, order: initial.order, prerequisiteSectionId: initial.prerequisiteSectionId }
-      : { slug: '', title: '', description: '', order: 0, prerequisiteSectionId: null }
+      ? {
+          slug: initial.slug,
+          title: initial.title,
+          description: initial.description,
+          order: initial.order,
+          prerequisiteSectionId: initial.prerequisiteSectionId,
+          kind: initial.kind,
+          isOptional: initial.isOptional,
+          iconName: initial.iconName,
+          tint: initial.tint,
+          goal: initial.goal,
+          targetMinutes: initial.targetMinutes,
+        }
+      : {
+          slug: '',
+          title: '',
+          description: '',
+          order: 0,
+          prerequisiteSectionId: null,
+          kind: 'stage',
+          isOptional: false,
+          iconName: null,
+          tint: null,
+          goal: null,
+          targetMinutes: null,
+        },
   );
 
   const save = useMutation({
@@ -109,21 +152,70 @@ function SectionEditor({ initial, onClose, onSaved }: { initial: AdminSection | 
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={onClose}>
-      <Card className="w-[560px] max-w-[95vw] p-6" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-        <div className="text-lg font-bold mb-4">{initial ? 'Редактировать раздел' : 'Новый раздел'}</div>
+      <Card className="w-[680px] max-w-[95vw] max-h-[92vh] overflow-y-auto p-6" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+        <div className="text-lg font-bold mb-4">{initial ? 'Редактировать этап' : 'Новый этап'}</div>
         <div className="grid gap-4">
-          <Field label="Slug" hint="Короткое имя в URL: orders, basics-trading">
-            <Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} placeholder="basics-orders" />
-          </Field>
+          <div className="grid grid-cols-3 gap-3">
+            <Field label="Порядок">
+              <Input type="number" value={form.order} onChange={(e) => setForm({ ...form, order: parseInt(e.target.value) || 0 })} />
+            </Field>
+            <Field label="Slug" hint="URL: stocks, bonds">
+              <Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} placeholder="stocks" />
+            </Field>
+            <Field label="~ минут">
+              <Input
+                type="number"
+                value={form.targetMinutes ?? ''}
+                onChange={(e) => setForm({ ...form, targetMinutes: e.target.value === '' ? null : parseInt(e.target.value) || 0 })}
+              />
+            </Field>
+          </div>
           <Field label="Название">
-            <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Что такое заявки" />
+            <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Акции как доля бизнеса" />
           </Field>
-          <Field label="Описание">
-            <Textarea rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+          <Field label="Подзаголовок" hint="Короткая фраза под названием в списке этапов">
+            <Textarea rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
           </Field>
-          <Field label="Порядок отображения">
-            <Input type="number" value={form.order} onChange={(e) => setForm({ ...form, order: parseInt(e.target.value) || 0 })} />
+          <Field label="Цель этапа" hint="Что узнаю / смогу после прохождения. Показывается в карточке этапа.">
+            <Textarea
+              rows={3}
+              value={form.goal ?? ''}
+              onChange={(e) => setForm({ ...form, goal: e.target.value || null })}
+              placeholder="Понять акцию как долю в бизнесе, разобрать..."
+            />
           </Field>
+          <div className="grid grid-cols-3 gap-3">
+            <Field label="Иконка" hint="Material icon, напр. business">
+              <Input
+                value={form.iconName ?? ''}
+                onChange={(e) => setForm({ ...form, iconName: e.target.value || null })}
+                placeholder="business"
+              />
+            </Field>
+            <Field label="Цвет" hint="primary | secondary | success | warning">
+              <Input
+                value={form.tint ?? ''}
+                onChange={(e) => setForm({ ...form, tint: e.target.value || null })}
+                placeholder="success"
+              />
+            </Field>
+            <Field label="Тип">
+              <Input
+                value={form.kind ?? 'stage'}
+                onChange={(e) => setForm({ ...form, kind: e.target.value || 'stage' })}
+                placeholder="stage"
+              />
+            </Field>
+          </div>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={form.isOptional ?? false}
+              onChange={(e) => setForm({ ...form, isOptional: e.target.checked })}
+              className="size-4"
+            />
+            <span className="text-sm">Опциональный этап (по желанию ученика)</span>
+          </label>
         </div>
         <div className="flex justify-end gap-2 mt-6">
           <Button variant="ghost" onClick={onClose}>Отмена</Button>

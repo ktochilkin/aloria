@@ -39,6 +39,8 @@ builder.Services.AddScoped<QuizService>();
 builder.Services.AddScoped<AchievementEvaluator>();
 builder.Services.AddScoped<AuditLogger>();
 builder.Services.AddScoped<MarkdownLessonImporter>();
+builder.Services.AddScoped<ProgressUpdater>();
+builder.Services.AddScoped<PracticeEventDispatcher>();
 builder.Services.AddScoped<IBrokerageGateway, StubBrokerageGateway>();
 builder.Services.AddSingleton<IPushSender, FcmPushSender>();
 builder.Services.AddScoped<PushDispatcher>();
@@ -112,6 +114,12 @@ using (var scope = app.Services.CreateScope())
             "ALTER TABLE \"Lessons\" ADD COLUMN \"RecallAnswer\" TEXT");
     }
     catch { /* колонка уже существует */ }
+    try
+    {
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Lessons\" ADD COLUMN \"Group\" TEXT");
+    }
+    catch { /* колонка уже существует */ }
 
     // Таблица разнесённого повторения (recall). EnsureCreated не создаёт её в
     // уже существующей БД — добавляем вручную, идемпотентно.
@@ -142,6 +150,153 @@ using (var scope = app.Services.CreateScope())
         );
         CREATE UNIQUE INDEX IF NOT EXISTS ""IX_DeviceTokens_Token""
             ON ""DeviceTokens"" (""Token"");
+    ");
+
+    // r11 — спиральная модель. Добавляем колонки Section/Lesson и новые
+    // таблицы. ALTER в SQLite не поддерживает IF NOT EXISTS, поэтому
+    // оборачиваем в try/catch. Это переходная мера до миграции на EF Migrations.
+    foreach (var alter in new[]
+    {
+        "ALTER TABLE \"Sections\" ADD COLUMN \"Kind\" TEXT NOT NULL DEFAULT 'stage'",
+        "ALTER TABLE \"Sections\" ADD COLUMN \"IsOptional\" INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE \"Sections\" ADD COLUMN \"IconName\" TEXT",
+        "ALTER TABLE \"Sections\" ADD COLUMN \"Tint\" TEXT",
+        "ALTER TABLE \"Sections\" ADD COLUMN \"Goal\" TEXT",
+        "ALTER TABLE \"Sections\" ADD COLUMN \"TargetMinutes\" INTEGER",
+        "ALTER TABLE \"Sections\" ADD COLUMN \"UnlockRuleJson\" TEXT",
+        "ALTER TABLE \"Lessons\" ADD COLUMN \"RoleHint\" TEXT",
+        "ALTER TABLE \"Lessons\" ADD COLUMN \"IsCapstone\" INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE \"Lessons\" ADD COLUMN \"PracticeRequirementCode\" TEXT",
+    })
+    {
+        try { await db.Database.ExecuteSqlRawAsync(alter); }
+        catch { /* колонка уже существует */ }
+    }
+
+    await db.Database.ExecuteSqlRawAsync(@"
+        CREATE TABLE IF NOT EXISTS ""Concepts"" (
+            ""Id"" TEXT NOT NULL CONSTRAINT ""PK_Concepts"" PRIMARY KEY,
+            ""Slug"" TEXT NOT NULL,
+            ""Title"" TEXT NOT NULL,
+            ""ShortDefinition"" TEXT NOT NULL,
+            ""IconName"" TEXT,
+            ""Order"" INTEGER NOT NULL,
+            ""CreatedAt"" TEXT NOT NULL,
+            ""UpdatedAt"" TEXT NOT NULL
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS ""IX_Concepts_Slug"" ON ""Concepts"" (""Slug"");
+
+        CREATE TABLE IF NOT EXISTS ""LessonConcepts"" (
+            ""LessonId"" TEXT NOT NULL,
+            ""ConceptId"" TEXT NOT NULL,
+            ""Role"" INTEGER NOT NULL,
+            ""Depth"" INTEGER NOT NULL DEFAULT 1,
+            PRIMARY KEY (""LessonId"", ""ConceptId"", ""Role""),
+            FOREIGN KEY (""LessonId"")  REFERENCES ""Lessons""  (""Id"") ON DELETE CASCADE,
+            FOREIGN KEY (""ConceptId"") REFERENCES ""Concepts"" (""Id"") ON DELETE CASCADE
+        );
+        CREATE INDEX IF NOT EXISTS ""IX_LessonConcepts_ConceptId_Role""
+            ON ""LessonConcepts"" (""ConceptId"", ""Role"");
+
+        CREATE TABLE IF NOT EXISTS ""PracticeRequirements"" (
+            ""Id"" TEXT NOT NULL CONSTRAINT ""PK_PracticeRequirements"" PRIMARY KEY,
+            ""SectionId"" TEXT NOT NULL,
+            ""Code"" TEXT NOT NULL,
+            ""Title"" TEXT NOT NULL,
+            ""Description"" TEXT NOT NULL DEFAULT '',
+            ""Kind"" INTEGER NOT NULL,
+            ""ParamsJson"" TEXT NOT NULL DEFAULT '{{}}',
+            ""Order"" INTEGER NOT NULL DEFAULT 0,
+            ""IsOptional"" INTEGER NOT NULL DEFAULT 0,
+            ""RewardBuyingPower"" INTEGER NOT NULL DEFAULT 0,
+            ""ConceptSlugsJson"" TEXT NOT NULL DEFAULT '[]',
+            ""Archived"" INTEGER NOT NULL DEFAULT 0,
+            ""CreatedAt"" TEXT NOT NULL,
+            ""UpdatedAt"" TEXT NOT NULL,
+            FOREIGN KEY (""SectionId"") REFERENCES ""Sections"" (""Id"") ON DELETE CASCADE
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS ""IX_PracticeRequirements_SectionId_Code""
+            ON ""PracticeRequirements"" (""SectionId"", ""Code"");
+        CREATE INDEX IF NOT EXISTS ""IX_PracticeRequirements_Archived""
+            ON ""PracticeRequirements"" (""Archived"");
+
+        CREATE TABLE IF NOT EXISTS ""UserStageProgress"" (
+            ""Id"" TEXT NOT NULL CONSTRAINT ""PK_UserStageProgress"" PRIMARY KEY,
+            ""UserId"" TEXT NOT NULL,
+            ""SectionId"" TEXT NOT NULL,
+            ""Status"" INTEGER NOT NULL DEFAULT 0,
+            ""LessonsCompletedCount"" INTEGER NOT NULL DEFAULT 0,
+            ""PracticeFulfilledCount"" INTEGER NOT NULL DEFAULT 0,
+            ""StartedAt"" TEXT,
+            ""CompletedAt"" TEXT,
+            ""UpdatedAt"" TEXT NOT NULL,
+            FOREIGN KEY (""UserId"")    REFERENCES ""Users""    (""Id"") ON DELETE CASCADE,
+            FOREIGN KEY (""SectionId"") REFERENCES ""Sections"" (""Id"") ON DELETE CASCADE
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS ""IX_UserStageProgress_UserId_SectionId""
+            ON ""UserStageProgress"" (""UserId"", ""SectionId"");
+
+        CREATE TABLE IF NOT EXISTS ""UserLessonProgress"" (
+            ""Id"" TEXT NOT NULL CONSTRAINT ""PK_UserLessonProgress"" PRIMARY KEY,
+            ""UserId"" TEXT NOT NULL,
+            ""LessonId"" TEXT NOT NULL,
+            ""Started"" INTEGER NOT NULL DEFAULT 0,
+            ""RecallAttempted"" INTEGER NOT NULL DEFAULT 0,
+            ""QuizPassed"" INTEGER NOT NULL DEFAULT 0,
+            ""FirstOpenedAt"" TEXT,
+            ""LastInteractionAt"" TEXT,
+            ""UpdatedAt"" TEXT NOT NULL,
+            FOREIGN KEY (""UserId"")   REFERENCES ""Users""   (""Id"") ON DELETE CASCADE,
+            FOREIGN KEY (""LessonId"") REFERENCES ""Lessons"" (""Id"") ON DELETE CASCADE
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS ""IX_UserLessonProgress_UserId_LessonId""
+            ON ""UserLessonProgress"" (""UserId"", ""LessonId"");
+
+        CREATE TABLE IF NOT EXISTS ""UserConceptMastery"" (
+            ""Id"" TEXT NOT NULL CONSTRAINT ""PK_UserConceptMastery"" PRIMARY KEY,
+            ""UserId"" TEXT NOT NULL,
+            ""ConceptId"" TEXT NOT NULL,
+            ""Level"" INTEGER NOT NULL DEFAULT 0,
+            ""SourcesJson"" TEXT NOT NULL DEFAULT '[]',
+            ""UpdatedAt"" TEXT NOT NULL,
+            FOREIGN KEY (""UserId"")    REFERENCES ""Users""    (""Id"") ON DELETE CASCADE,
+            FOREIGN KEY (""ConceptId"") REFERENCES ""Concepts"" (""Id"") ON DELETE CASCADE
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS ""IX_UserConceptMastery_UserId_ConceptId""
+            ON ""UserConceptMastery"" (""UserId"", ""ConceptId"");
+
+        CREATE TABLE IF NOT EXISTS ""UserPracticeFulfillments"" (
+            ""Id"" TEXT NOT NULL CONSTRAINT ""PK_UserPracticeFulfillments"" PRIMARY KEY,
+            ""UserId"" TEXT NOT NULL,
+            ""PracticeRequirementId"" TEXT NOT NULL,
+            ""FulfilledAt"" TEXT NOT NULL,
+            ""EvidenceJson"" TEXT NOT NULL DEFAULT '{{}}',
+            ""IdempotencyKey"" TEXT NOT NULL,
+            FOREIGN KEY (""UserId"") REFERENCES ""Users"" (""Id"") ON DELETE CASCADE,
+            FOREIGN KEY (""PracticeRequirementId"") REFERENCES ""PracticeRequirements"" (""Id"") ON DELETE CASCADE
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS ""IX_UserPracticeFulfillments_UserId_PracticeRequirementId""
+            ON ""UserPracticeFulfillments"" (""UserId"", ""PracticeRequirementId"");
+        CREATE UNIQUE INDEX IF NOT EXISTS ""IX_UserPracticeFulfillments_IdempotencyKey""
+            ON ""UserPracticeFulfillments"" (""IdempotencyKey"");
+
+        CREATE TABLE IF NOT EXISTS ""TradeEvents"" (
+            ""Id"" TEXT NOT NULL CONSTRAINT ""PK_TradeEvents"" PRIMARY KEY,
+            ""UserId"" TEXT NOT NULL,
+            ""Type"" INTEGER NOT NULL,
+            ""Symbol"" TEXT NOT NULL DEFAULT '',
+            ""AssetClass"" TEXT NOT NULL DEFAULT '',
+            ""Qty"" REAL NOT NULL DEFAULT 0,
+            ""Price"" REAL,
+            ""OccurredAt"" TEXT NOT NULL,
+            ""IdempotencyKey"" TEXT NOT NULL,
+            ""PayloadJson"" TEXT NOT NULL DEFAULT '{{}}',
+            FOREIGN KEY (""UserId"") REFERENCES ""Users"" (""Id"") ON DELETE CASCADE
+        );
+        CREATE INDEX IF NOT EXISTS ""IX_TradeEvents_UserId_OccurredAt""
+            ON ""TradeEvents"" (""UserId"", ""OccurredAt"");
+        CREATE UNIQUE INDEX IF NOT EXISTS ""IX_TradeEvents_IdempotencyKey""
+            ON ""TradeEvents"" (""IdempotencyKey"");
     ");
 
     // Импорт markdown-уроков: при первом запуске (пустая БД) либо явно по флагу
@@ -200,6 +355,7 @@ app.MapGet("/", () => Results.Ok(new { name = "aloria-api", version = "0.1.0", t
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
 app.MapLearningEndpoints();
+app.MapStagesEndpoints();
 app.MapQuizEndpoints();
 app.MapProgressEndpoints();
 app.MapAdminEndpoints();

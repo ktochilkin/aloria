@@ -41,5 +41,10 @@ flutter:
     - assets/images/
     - assets/icons/
     - assets/lessons/
-    - assets/lessons/trading-basics/
-    - assets/lessons/investing-basics/
+    - assets/lessons/why-market/
+    - assets/lessons/first-trade/
+    - assets/lessons/stocks/
+    - assets/lessons/bonds/
+    - assets/lessons/funds/
+    - assets/lessons/portfolio/
+    - assets/lessons/active-trading/
