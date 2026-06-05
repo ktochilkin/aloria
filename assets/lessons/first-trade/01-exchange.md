@@ -6,7 +6,7 @@ imageUrl: assets/images/lesson1_exchange.jpg
 estimatedMinutes: 3
 group: С чего начать
 academicDefinition: Биржа — это организованная торговая площадка, которая обеспечивает взаимодействие участников рынка и предоставляет инфраструктуру для заключения сделок с финансовыми инструментами по установленным правилам.
-introduces: [exchange, broker, order, orderbook]
+introduces: [exchange, broker, order]
 roleHint: introduce
 ---
 
