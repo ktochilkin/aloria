@@ -6,12 +6,16 @@ import 'package:aloria/features/learn/presentation/widgets/lesson_inflation_eros
 import 'package:aloria/features/learn/presentation/widgets/lesson_leverage_seesaw.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_liquidity_orderbook.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_orderbook_2col.dart';
+import 'package:aloria/features/learn/presentation/widgets/lesson_pack_bondfund.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_pack_bonds.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_pack_charts.dart';
+import 'package:aloria/features/learn/presentation/widgets/lesson_pack_charts2.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_pack_engine.dart';
+import 'package:aloria/features/learn/presentation/widgets/lesson_pack_engine2.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_pack_games.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_pack_gauges.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_pack_price.dart';
+import 'package:aloria/features/learn/presentation/widgets/lesson_pack_slidergames.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_predict_candle.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_rate_price_seesaw.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_risk_fork.dart';
@@ -75,6 +79,27 @@ const Map<String, LessonBlockBuilder> lessonBlockBuilders = {
   'session-clock': _sessionClock,
   'sort-by-risk': _sortByRisk,
   'scam-sorter': _scamSorter,
+  // волна 4 — ещё 20 из каталога
+  'market-maker': _marketMaker,
+  'macro-shock': _macroShock,
+  'order-status': _orderStatus,
+  'buying-power': _buyingPower,
+  'spread-roundtrip': _spreadRoundtrip,
+  'depth-mountain': _depthMountain,
+  'timeframe-zoom': _timeframeZoom,
+  'volatility-twin': _volatilityTwin,
+  'log-vs-linear': _logVsLinear,
+  'gold-vs-stocks': _goldVsStocks,
+  'bond-to-rubles': _bondToRubles,
+  'rating-yield': _ratingYield,
+  'ter-race': _terRace,
+  'tax-saldo': _taxSaldo,
+  'future-vs-option': _futureVsOption,
+  'start-early': _startEarly,
+  'phone-vs-garage': _phoneVsGarage,
+  'portfolio-mixer': _portfolioMixer,
+  'rebalance-drift': _rebalanceDrift,
+  'read-the-tape': _readTheTape,
 };
 
 Widget _orderbookLiquidity(BuildContext context, Color tint) =>
@@ -216,6 +241,65 @@ Widget _sortByRisk(BuildContext context, Color tint) =>
 
 Widget _scamSorter(BuildContext context, Color tint) =>
     LessonScamSorter(tint: tint);
+
+Widget _marketMaker(BuildContext context, Color tint) =>
+    LessonMarketMakerReveal(tint: tint);
+
+Widget _macroShock(BuildContext context, Color tint) =>
+    LessonMacroShock(tint: tint);
+
+Widget _orderStatus(BuildContext context, Color tint) =>
+    LessonOrderStatusJourney(tint: tint);
+
+Widget _buyingPower(BuildContext context, Color tint) =>
+    LessonBuyingPowerMeter(tint: tint);
+
+Widget _spreadRoundtrip(BuildContext context, Color tint) =>
+    LessonSpreadRoundtrip(tint: tint);
+
+Widget _depthMountain(BuildContext context, Color tint) =>
+    LessonDepthMountain(tint: tint);
+
+Widget _timeframeZoom(BuildContext context, Color tint) =>
+    LessonTimeframeZoom(tint: tint);
+
+Widget _volatilityTwin(BuildContext context, Color tint) =>
+    LessonVolatilityTwin(tint: tint);
+
+Widget _logVsLinear(BuildContext context, Color tint) =>
+    LessonLogVsLinear(tint: tint);
+
+Widget _goldVsStocks(BuildContext context, Color tint) =>
+    LessonGoldVsStocks(tint: tint);
+
+Widget _bondToRubles(BuildContext context, Color tint) =>
+    LessonBondToRubles(tint: tint);
+
+Widget _ratingYield(BuildContext context, Color tint) =>
+    LessonRatingYield(tint: tint);
+
+Widget _terRace(BuildContext context, Color tint) => LessonTerRace(tint: tint);
+
+Widget _taxSaldo(BuildContext context, Color tint) =>
+    LessonTaxSaldo(tint: tint);
+
+Widget _futureVsOption(BuildContext context, Color tint) =>
+    LessonFutureVsOption(tint: tint);
+
+Widget _startEarly(BuildContext context, Color tint) =>
+    LessonStartEarly(tint: tint);
+
+Widget _phoneVsGarage(BuildContext context, Color tint) =>
+    LessonPhoneVsGarage(tint: tint);
+
+Widget _portfolioMixer(BuildContext context, Color tint) =>
+    LessonPortfolioMixer(tint: tint);
+
+Widget _rebalanceDrift(BuildContext context, Color tint) =>
+    LessonRebalanceDrift(tint: tint);
+
+Widget _readTheTape(BuildContext context, Color tint) =>
+    LessonReadTheTape(tint: tint);
 
 /// Сегмент тела урока: либо markdown-текст, либо именованный блок-директива.
 sealed class LessonSegment {
