@@ -12,8 +12,9 @@ import 'package:aloria/features/learn/presentation/widgets/lesson_pack_engine.da
 import 'package:aloria/features/learn/presentation/widgets/lesson_pack_engine2.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_pack_games.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_pack_gauges.dart';
-import 'package:aloria/features/learn/presentation/widgets/lesson_pack_price.dart';
+import 'package:aloria/features/learn/presentation/widgets/lesson_pack_new.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_pack_slidergames.dart';
+import 'package:aloria/features/learn/presentation/widgets/lesson_rework.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_scam_flags.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_static_blocks.dart';
 import 'package:flutter/material.dart';
@@ -65,6 +66,12 @@ const Map<String, LessonBlockBuilder> lessonBlockBuilders = {
   'start-early': _startEarly,
   'phone-vs-garage': _phoneVsGarage,
   'read-the-tape': _readTheTape,
+  // новые
+  'order-builder': _orderBuilder,
+  'candle-from-trades': _candleFromTrades,
+  'diversification-dice': _diversificationDice,
+  'spread-gauge': _spreadGauge,
+  'if-then-rule': _ifThenRule,
 };
 
 Widget _calloutDemo(BuildContext context, Color tint) =>
@@ -115,13 +122,13 @@ Widget _limitOrWait(BuildContext context, Color tint) =>
     LessonLimitOrWait(tint: tint);
 
 Widget _matchingMini(BuildContext context, Color tint) =>
-    LessonMatchingMini(tint: tint);
+    LessonMatchBook(tint: tint);
 
 Widget _bookVsTape(BuildContext context, Color tint) =>
     LessonBookVsTape(tint: tint);
 
 Widget _marginCall(BuildContext context, Color tint) =>
-    LessonMarginCall(tint: tint);
+    LessonMarginCallDial(tint: tint);
 
 Widget _compoundRace(BuildContext context, Color tint) =>
     LessonCompoundRace(tint: tint);
@@ -136,10 +143,10 @@ Widget _nkdSawtooth(BuildContext context, Color tint) =>
     LessonNkdSawtooth(tint: tint);
 
 Widget _ytmGauge(BuildContext context, Color tint) =>
-    LessonYtmGauge(tint: tint);
+    LessonYtmDial(tint: tint);
 
 Widget _rateMoveGauge(BuildContext context, Color tint) =>
-    LessonRateMoveGauge(tint: tint);
+    LessonRateReaction(tint: tint);
 
 Widget _realYield(BuildContext context, Color tint) =>
     LessonRealYield(tint: tint);
@@ -182,6 +189,21 @@ Widget _phoneVsGarage(BuildContext context, Color tint) =>
 
 Widget _readTheTape(BuildContext context, Color tint) =>
     LessonReadTheTape(tint: tint);
+
+Widget _orderBuilder(BuildContext context, Color tint) =>
+    LessonOrderBuilder(tint: tint);
+
+Widget _candleFromTrades(BuildContext context, Color tint) =>
+    LessonCandleFromTrades(tint: tint);
+
+Widget _diversificationDice(BuildContext context, Color tint) =>
+    LessonDiversificationDice(tint: tint);
+
+Widget _spreadGauge(BuildContext context, Color tint) =>
+    LessonSpreadGauge(tint: tint);
+
+Widget _ifThenRule(BuildContext context, Color tint) =>
+    LessonIfThenRule(tint: tint);
 
 /// Сегмент тела урока: либо markdown-текст, либо именованный блок-директива.
 sealed class LessonSegment {
