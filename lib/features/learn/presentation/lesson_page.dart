@@ -5,6 +5,7 @@ import 'package:aloria/features/learn/data/learning_api_client.dart';
 import 'package:aloria/features/learn/data/learning_content_cache.dart';
 import 'package:aloria/features/learn/domain/models.dart';
 import 'package:aloria/features/learn/presentation/widgets/learning_widgets.dart';
+import 'package:aloria/features/learn/presentation/widgets/lesson_blocks.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_quiz_block.dart';
 import 'package:aloria/features/learn/presentation/widgets/recall_card.dart';
 import 'package:aloria/features/learn/presentation/widgets/server_quiz_block.dart';
@@ -333,53 +334,73 @@ class _LessonViewState extends ConsumerState<_LessonView> {
               _effectiveLesson.body,
               catalog,
             );
-            return MarkdownBody(
-              data: processed,
-              selectable: true,
-              styleSheet:
-                  MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-                p: text.bodyMedium?.copyWith(height: 1.55),
-                h1: text.titleMedium?.copyWith(fontSize: 22),
-                h2: text.titleMedium?.copyWith(fontSize: 19),
-                h3: text.titleMedium?.copyWith(fontSize: 17),
-                blockquote: text.bodyMedium?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                  fontStyle: FontStyle.italic,
-                ),
-                blockquoteDecoration: BoxDecoration(
-                  color: widget.section.tint.withValues(alpha: 0.08),
-                  border: Border(
-                    left: BorderSide(color: widget.section.tint, width: 3),
+            // Текстовые сегменты рендерим одинаково; директивы `:::block`
+            // превращаются в интерактивные виджеты из реестра.
+            Widget markdown(String data) => MarkdownBody(
+                  data: data,
+                  selectable: true,
+                  styleSheet:
+                      MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+                    p: text.bodyMedium?.copyWith(height: 1.55),
+                    h1: text.titleMedium?.copyWith(fontSize: 22),
+                    h2: text.titleMedium?.copyWith(fontSize: 19),
+                    h3: text.titleMedium?.copyWith(fontSize: 17),
+                    blockquote: text.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                      fontStyle: FontStyle.italic,
+                    ),
+                    blockquoteDecoration: BoxDecoration(
+                      color: widget.section.tint.withValues(alpha: 0.08),
+                      border: Border(
+                        left: BorderSide(color: widget.section.tint, width: 3),
+                      ),
+                      borderRadius: const BorderRadius.only(
+                        topRight: Radius.circular(8),
+                        bottomRight: Radius.circular(8),
+                      ),
+                    ),
+                    listBullet: text.bodyMedium,
+                    // Ненавязчивая ссылка: обычный цвет текста, заметное, но
+                    // мягкое подчёркивание приглушённым цветом — намёк
+                    // «можно нажать» без яркого акцента.
+                    a: TextStyle(
+                      color: scheme.onSurface,
+                      decoration: TextDecoration.underline,
+                      decorationColor: scheme.onSurfaceVariant,
+                      decorationThickness: 2,
+                    ),
                   ),
-                  borderRadius: const BorderRadius.only(
-                    topRight: Radius.circular(8),
-                    bottomRight: Radius.circular(8),
+                  onTapLink: (label, href, _) {
+                    if (href == null) return;
+                    const linkScheme = 'aloria-concept://';
+                    if (href.startsWith(linkScheme)) {
+                      final slug = href.substring(linkScheme.length);
+                      _showConceptSheet(context, slug, label);
+                    }
+                  },
+                  sizedImageBuilder: (config) => _MarkdownImage(
+                    uri: config.uri,
+                    alt: config.alt,
+                    fallbackTint: widget.section.tint,
                   ),
-                ),
-                listBullet: text.bodyMedium,
-                // Ненавязчивая ссылка: обычный цвет текста, заметное, но
-                // мягкое подчёркивание приглушённым цветом — намёк
-                // «можно нажать» без яркого акцента.
-                a: TextStyle(
-                  color: scheme.onSurface,
-                  decoration: TextDecoration.underline,
-                  decorationColor: scheme.onSurfaceVariant,
-                  decorationThickness: 2,
-                ),
-              ),
-              onTapLink: (label, href, _) {
-                if (href == null) return;
-                const scheme = 'aloria-concept://';
-                if (href.startsWith(scheme)) {
-                  final slug = href.substring(scheme.length);
-                  _showConceptSheet(context, slug, label);
-                }
-              },
-              sizedImageBuilder: (config) => _MarkdownImage(
-                uri: config.uri,
-                alt: config.alt,
-                fallbackTint: widget.section.tint,
-              ),
+                );
+
+            final segments = parseLessonSegments(processed);
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final segment in segments)
+                  if (segment is LessonText)
+                    markdown(segment.markdown)
+                  else if (segment is LessonBlock)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      child: lessonBlockBuilders[segment.name]!(
+                        context,
+                        widget.section.tint,
+                      ),
+                    ),
+              ],
             );
           }),
           if (_effectiveLesson.hasServerQuiz) ...[
