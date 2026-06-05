@@ -1,4 +1,8 @@
+import 'package:aloria/features/learn/presentation/widgets/lesson_compound_growth.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_liquidity_orderbook.dart';
+import 'package:aloria/features/learn/presentation/widgets/lesson_rate_price_seesaw.dart';
+import 'package:aloria/features/learn/presentation/widgets/lesson_risk_fork.dart';
+import 'package:aloria/features/learn/presentation/widgets/lesson_scam_flags.dart';
 import 'package:flutter/material.dart';
 
 /// Строит интерактивный/визуальный блок урока по имени директивы.
@@ -9,10 +13,25 @@ typedef LessonBlockBuilder = Widget Function(BuildContext context, Color tint);
 /// директивы рендерится обычным markdown.
 const Map<String, LessonBlockBuilder> lessonBlockBuilders = {
   'orderbook-liquidity': _orderbookLiquidity,
+  'compound-growth': _compoundGrowth,
+  'rate-price-seesaw': _ratePriceSeesaw,
+  'risk-fork': _riskFork,
+  'scam-flags': _scamFlags,
 };
 
 Widget _orderbookLiquidity(BuildContext context, Color tint) =>
     LessonLiquidityOrderbook(tint: tint);
+
+Widget _compoundGrowth(BuildContext context, Color tint) =>
+    LessonCompoundGrowth(tint: tint);
+
+Widget _ratePriceSeesaw(BuildContext context, Color tint) =>
+    LessonRatePriceSeesaw(tint: tint);
+
+Widget _riskFork(BuildContext context, Color tint) => LessonRiskFork(tint: tint);
+
+Widget _scamFlags(BuildContext context, Color tint) =>
+    LessonScamFlags(tint: tint);
 
 /// Сегмент тела урока: либо markdown-текст, либо именованный блок-директива.
 sealed class LessonSegment {
