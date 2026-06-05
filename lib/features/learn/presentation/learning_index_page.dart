@@ -25,6 +25,9 @@ class LearningPage extends ConsumerWidget {
     final sectionsAsync = ref.watch(learningSectionsProvider);
     // Тихая синхронизация локального прогресса с сервером.
     ref.watch(learningProgressSyncProvider);
+    // Фоновый прогрев кэша тел уроков — чтобы офлайн работал для любого
+    // урока, а не только для уже открытых.
+    ref.watch(lessonBodiesPrewarmProvider);
 
     return Scaffold(
       appBar: AppBar(

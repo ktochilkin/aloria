@@ -69,6 +69,56 @@ final lessonBodyProvider = FutureProvider.family<Lesson?, String>(
   },
 );
 
+/// Фоновый прогрев кэша тел уроков. Когда список этапов загружен (онлайн),
+/// тихо в фоне догружает тело каждого урока через /lessons/{id} и кладёт
+/// в локальный кэш. Благодаря этому при пропаже интернета любой урок
+/// открывается из кэша, а не только те, что пользователь уже листал.
+///
+/// Грузим последовательно с микропаузами, чтобы не забивать сеть и не
+/// мешать активной загрузке текущего урока. Best-effort: ошибки тихо
+/// проглатываются — прогрев не должен ничего ломать.
+final lessonBodiesPrewarmProvider = Provider<void>((ref) {
+  final sectionsAsync = ref.watch(learningSectionsProvider);
+  final sections = sectionsAsync.asData?.value;
+  if (sections == null) return;
+
+  Future.microtask(() async {
+    LearningContentCache cache;
+    try {
+      cache = LearningContentCache(
+        await ref.read(_sharedPreferencesProvider.future),
+      );
+    } catch (_) {
+      return; // нет хранилища — прогревать некуда
+    }
+
+    final service = ref.read(learningContentServiceProvider);
+
+    for (final section in sections) {
+      for (final lesson in section.lessons) {
+        final serverId = lesson.serverId;
+        if (serverId == null) continue;
+
+        // Уже в кэше с телом — пропускаем (не дёргаем сеть зря).
+        final cached = cache.loadLessonBody(serverId);
+        if (cached != null && cached.body.isNotEmpty) continue;
+
+        try {
+          final full = await service.loadLesson(serverId);
+          if (full != null && full.body.isNotEmpty) {
+            await cache.saveLessonBody(serverId, full);
+          }
+        } catch (_) {
+          // Сеть отвалилась — прекращаем прогрев, продолжим в следующий раз.
+          return;
+        }
+        // Микропауза, чтобы не грузить сеть пачкой и не мешать UI.
+        await Future<void>.delayed(const Duration(milliseconds: 120));
+      }
+    }
+  });
+});
+
 /// Каталог концепций — slug → {title, shortDefinition, iconName}.
 /// Используется для подстановки видимых названий в inline-линки `[[slug]]`
 /// внутри markdown тела урока. Кэшируется на сессию.
