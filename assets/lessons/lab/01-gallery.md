@@ -1,360 +1,256 @@
 ---
 id: blocks_gallery
 title: Лаборатория блоков
-description: Все интерактивные блоки в одном месте — для отбора и встраивания в уроки.
+description: Отобранные блоки после ревью — сгруппированы по оценке. Для доработки и встраивания.
 imageUrl:
 estimatedMinutes: 5
 group: Демо
 ---
 
-Это рабочая витрина, не урок курса. Здесь собраны все интерактивные блоки: под каждым — **название блока** (директива), **в какой урок** просится и **на какую тему**. Полистай, отметь, что заходит, — потом встроим в нужные уроки.
+39 блоков, прошедших ревью (оценка 1–5). Сгруппированы по оценке: сверху — лучшие, снизу — те, где идея ок, а реализацию надо переделать. Полные вердикты с заметками — `docs/block-verdicts.md`.
 
-## Ритм и выделение
+## ⭐ Топ (5)
 
-### callout — врезка-выноска
+### candle-anatomy — собери свечу
 
-`:::callout` · урок: любой · тема: разбить стену текста, выделить мысль/предупреждение/«в Aloria»
+`:::candle-anatomy` · свечи · идея супер, реализация хорошая
+
+:::candle-anatomy
+
+### sort-by-risk — расставь по риску
+
+`:::sort-by-risk` · виды риска
+
+:::sort-by-risk
+
+## Хорошие (4)
+
+### callout — врезка
+
+`:::callout`
 
 :::callout
 
 ### number-accent — крупное число
 
-`:::number-accent` · урок: активные фонды, налоги, сложный процент · тема: вынести ключевую цифру из абзаца
+`:::number-accent`
 
 :::number-accent
 
-## Сравнение и структура
-
 ### compare-cards — карточки сравнения
 
-`:::compare-cards` · урок: облигации (акция vs облигация), типы фондов, виды риска · тема: сопоставить два-три варианта
+`:::compare-cards`
 
 :::compare-cards
 
-### flow-broker — схема-поток
+### real-yield — реальная доходность
 
-`:::flow-broker` · урок: что такое биржа · тема: цепочка «ты → брокер → биржа»
+`:::real-yield` · доход − инфляция
 
-:::flow-broker
+:::real-yield
 
-### timeline-tplus — таймлайн дат
+### rubles-paper-flow — рубли ↔ бумага
 
-`:::timeline-tplus` · урок: режим расчётов T+, купоны/НКД · тема: показать промежуток между событиями
+`:::rubles-paper-flow` · прикольно, применить к другому уроку
 
-:::timeline-tplus
+:::rubles-paper-flow
 
-## Графики (переиспользуют график из торговли)
+### spread-roundtrip — стоимость спреда
 
-### compound-growth — кривая сложного процента
+`:::spread-roundtrip` · купил+продал = потерял спред
 
-`:::compound-growth` · урок: сложный процент · тема: рост во времени, загиб вверх
+:::spread-roundtrip
+
+### phone-vs-garage — срочная продажа
+
+`:::phone-vs-garage` · ликвидность · идея и реализация норм
+
+:::phone-vs-garage
+
+## Средние (3) — рабочие, полировать
+
+### orderbook-2col — стакан (СДЕЛАТЬ ИНТЕРАКТИВНЫМ)
+
+`:::orderbook-2col`
+
+:::orderbook-2col
+
+### compound-race — гонка сложного процента (улучшить)
+
+`:::compound-race`
+
+:::compound-race
+
+### compound-growth — кривая роста
+
+`:::compound-growth`
 
 :::compound-growth
 
 ### divgap-chart — дивидендный гэп
 
-`:::divgap-chart` · урок: дивиденды · тема: падение цены после отсечки на размер выплаты
+`:::divgap-chart`
 
 :::divgap-chart
 
-## Стакан (переиспользует стакан из торговли)
+### pnl-live — живой P&L
 
-### orderbook-2col — стакан как в торговле
-
-`:::orderbook-2col` · урок: стакан и лента, спред · тема: двухколоночный стакан на живой вид
-
-:::orderbook-2col
-
-### orderbook-liquidity — два стакана + продажа по рынку
-
-`:::orderbook-liquidity` · урок: кандидат на этап «чтение рынка» (для ликвидности стакан рановат) · тема: плотный vs редкий стакан, слиппедж при срочной продаже
-
-:::orderbook-liquidity
-
-## Интерактив со слайдером
-
-### rate-price-seesaw — качели «ставка ↔ цена»
-
-`:::rate-price-seesaw` · урок: почему цена облигации меняется · тема: обратная связь ставки и цены
-
-:::rate-price-seesaw
-
-### leverage-seesaw — усилитель плеча
-
-`:::leverage-seesaw` · урок: маржинальная торговля и плечо · тема: плечо усиливает прибыль и убыток одинаково
-
-:::leverage-seesaw
-
-### risk-fork — вилка исходов
-
-`:::risk-fork` · урок: что такое риск · тема: больше риска — шире диапазон в обе стороны
-
-:::risk-fork
-
-## Тренажёры
-
-### scam-flags — «красный флаг или нет?»
-
-`:::scam-flags` · урок: мошенничество и пирамиды · тема: тренировка распознавания схем
-
-:::scam-flags
-
-## Волна 2 — больше вариантов
-
-### allocation-pie — пирог портфеля
-
-`:::allocation-pie` · урок: диверсификация, риск-профиль · тема: двигаешь доли — пирог и размах просадки меняются
-
-:::allocation-pie
-
-### predict-candle — угадай свечу
-
-`:::predict-candle` · урок: наблюдение за рынком, сложный процент · тема: на коротком окне направление почти монетка
-
-:::predict-candle
-
-### index-vs-fund — индекс vs фонд
-
-`:::index-vs-fund` · урок: индексные фонды · тема: фонд повторяет индекс, разница — комиссия
-
-:::index-vs-fund
-
-### pnl-live — живой бумажный P&L
-
-`:::pnl-live` · урок: что значит «в плюсе/в минусе» · тема: цена пляшет, бумажный результат вместе с ней
+`:::pnl-live`
 
 :::pnl-live
 
 ### inflation-erosion — таяние денег
 
-`:::inflation-erosion` · урок: инфляция · тема: сумма та же, покупательная способность тает с годами
+`:::inflation-erosion`
 
 :::inflation-erosion
 
-## Волна 3 — топ-30 из каталога идей
+### leverage-seesaw — плечо
 
-### Песочница на стакане
+`:::leverage-seesaw`
 
-`:::eat-the-book` · reading-market/ликвидность · слайдер объёма проедает стакан, слиппедж вживую
+:::leverage-seesaw
 
-:::eat-the-book
+### scam-flags — красные флаги
 
-`:::limit-or-wait` · first-trade/заявка · цена лимитки: исполнится сразу или встанет в очередь
+`:::scam-flags`
 
-:::limit-or-wait
+:::scam-flags
 
-`:::matching-mini` · биржа · сводишь две заявки навстречу → сделка
+### flow-broker — ты → брокер → биржа
 
-:::matching-mini
+`:::flow-broker`
 
-`:::book-vs-tape` · стакан и лента · намерение (стакан) → факт (лента)
+:::flow-broker
 
-:::book-vs-tape
+### timeline-tplus — T → T+1
 
-`:::gap-stop` · стоп-заявки · гэп перепрыгивает стоп: маркет хуже, лимит завис
+`:::timeline-tplus`
 
-:::gap-stop
+:::timeline-tplus
 
-### Механика цены и риска
+### bond-yield-flip — цена ↔ доходность
 
-`:::expectations-gap` · поведение акций · цена живёт разрывом факт↔ожидания
-
-:::expectations-gap
-
-`:::free-lunch` · риск · рынок съедает безрисковый доход
-
-:::free-lunch
-
-`:::short-loss` · шорт · у убытка в шорте нет дна
-
-:::short-loss
-
-`:::margin-call` · плечо · до маржин-колла осталось
-
-:::margin-call
-
-`:::divgap-swipe` · дивиденды · дивиденд переезжает из цены в кошелёк
-
-:::divgap-swipe
-
-### Графики
-
-`:::compound-race` · сложный процент · гонка 4000 vs 17449
-
-:::compound-race
-
-`:::normalize-100` · чтение рынка · нормировка к 100% переворачивает картину
-
-:::normalize-100
-
-`:::drawdown-underwater` · портфель · подводный график просадок
-
-:::drawdown-underwater
-
-`:::risk-return-map` · риск · карта риск/доходность, зона мошенников
-
-:::risk-return-map
-
-`:::correlation-heatmap` · диверсификация · сетка корреляций, похожие = одна ставка
-
-:::correlation-heatmap
-
-### Облигации и фонды
-
-`:::bond-yield-flip` · цена облигации · цена ↔ доходность
+`:::bond-yield-flip`
 
 :::bond-yield-flip
 
-`:::coupon-cashflow` · облигации · лента купонных выплат
+### nkd-sawtooth — пила НКД
 
-:::coupon-cashflow
-
-`:::nkd-sawtooth` · НКД · пила накопленного купона
+`:::nkd-sawtooth`
 
 :::nkd-sawtooth
 
-`:::ytm-gauge` · доходность облигации · датчик YTM = купон + доход от цены
+### bond-to-rubles — стакан облигации в рублях
 
-:::ytm-gauge
-
-`:::fund-treemap` · фонды · рентген состава пая
-
-:::fund-treemap
-
-### Датчики и потоки
-
-`:::rate-move-gauge` · цена облигации · ставка ЦБ и реакция короткой/длинной бумаги
-
-:::rate-move-gauge
-
-`:::real-yield` · доходность · реальная доходность = доход − инфляция
-
-:::real-yield
-
-`:::rubles-paper-flow` · позиция · рубли ↔ бумага, сумма сохраняется
-
-:::rubles-paper-flow
-
-`:::donothing-fork` · зачем вкладывать · две ветки одной суммы
-
-:::donothing-fork
-
-`:::fee-leak` · активная торговля · капитал течёт в издержки от частых сделок
-
-:::fee-leak
-
-### Игры и интерактив
-
-`:::panic-button` · психология · цена решения на эмоциях
-
-:::panic-button
-
-`:::candle-anatomy` · свечи · собери свечу из OHLC
-
-:::candle-anatomy
-
-`:::session-clock` · сессия · часы биржи, когда идут торги
-
-:::session-clock
-
-`:::sort-by-risk` · виды риска · расставь инструменты по риску
-
-:::sort-by-risk
-
-`:::scam-sorter` · мошенничество · рассортируй настоящее и схемы
-
-:::scam-sorter
-
-## Волна 4 — ещё 20 из каталога
-
-### Движок-2
-
-`:::market-maker` · кто наполняет стакан · раскраска: маркетмейкер vs ученики
-
-:::market-maker
-
-`:::macro-shock` · что двигает цену · нажми событие → цена едет, сверь предсказание
-
-:::macro-shock
-
-`:::order-status` · статусы заявки · Активна→Исполнена/Отклонена/Отменена
-
-:::order-status
-
-`:::buying-power` · позиция · покупательная способность как потолок
-
-:::buying-power
-
-`:::spread-roundtrip` · спред · купил+продал по рынку = потерял спред
-
-:::spread-roundtrip
-
-### Графики-2
-
-`:::depth-mountain` · ликвидность · гора глубины стакана
-
-:::depth-mountain
-
-`:::timeframe-zoom` · свечи/масштаб · один ряд на разных таймфреймах
-
-:::timeframe-zoom
-
-`:::volatility-twin` · поведение акций · одна новость — две амплитуды
-
-:::volatility-twin
-
-`:::log-vs-linear` · сложный процент · лог-шкала выпрямляет клюшку
-
-:::log-vs-linear
-
-`:::gold-vs-stocks` · металлы · золото гасит просадку, в кризисе падает всё
-
-:::gold-vs-stocks
-
-### Облигации, фонды, налоги
-
-`:::bond-to-rubles` · стакан облигации · 98.5% → рубли + НКД
+`:::bond-to-rubles`
 
 :::bond-to-rubles
 
-`:::rating-yield` · виды облигаций · рейтинг ↓ → доходность и риск ↑
+### rating-yield — рейтинг ↔ доходность
+
+`:::rating-yield`
 
 :::rating-yield
 
-`:::ter-race` · выбор фонда · комиссия съедает фору за годы
+### tax-saldo — сальдирование
 
-:::ter-race
-
-`:::tax-saldo` · налоги · сальдо по сделкам + база дивидендов
+`:::tax-saldo`
 
 :::tax-saldo
 
-`:::future-vs-option` · деривативы · обязательство против права
+## Идея ок, реализацию переделать (1–2)
 
-:::future-vs-option
+### order-status — статусы заявки (реализация ужасна)
 
-### Слайдеры и игры
+`:::order-status`
 
-`:::start-early` · сложный процент · маленькая рано vs большая поздно
+:::order-status
+
+### matching-mini — сведи две заявки
+
+`:::matching-mini`
+
+:::matching-mini
+
+### book-vs-tape — стакан ↔ лента
+
+`:::book-vs-tape`
+
+:::book-vs-tape
+
+### eat-the-book — съешь стакан (мб на стандартном стакане)
+
+`:::eat-the-book`
+
+:::eat-the-book
+
+### limit-or-wait — исполнится или ждёт
+
+`:::limit-or-wait`
+
+:::limit-or-wait
+
+### margin-call — маржин-колл
+
+`:::margin-call`
+
+:::margin-call
+
+### ytm-gauge — датчик YTM (проверить формулу)
+
+`:::ytm-gauge`
+
+:::ytm-gauge
+
+### rate-move-gauge — ставка ↔ цена облигации
+
+`:::rate-move-gauge`
+
+:::rate-move-gauge
+
+### coupon-cashflow — лента купонов
+
+`:::coupon-cashflow`
+
+:::coupon-cashflow
+
+### donothing-fork — две ветки одной суммы
+
+`:::donothing-fork`
+
+:::donothing-fork
+
+### scam-sorter — рассортируй обман (улучшить)
+
+`:::scam-sorter`
+
+:::scam-sorter
+
+### allocation-pie — пирог портфеля
+
+`:::allocation-pie`
+
+:::allocation-pie
+
+### index-vs-fund — индекс vs фонд
+
+`:::index-vs-fund`
+
+:::index-vs-fund
+
+### start-early — рано vs много
+
+`:::start-early`
 
 :::start-early
 
-`:::phone-vs-garage` · ликвидность · срочность продажи: телефон vs гараж
+### read-the-tape — поймай агрессора (непонятно до конца)
 
-:::phone-vs-garage
-
-`:::portfolio-mixer` · риск-профиль · 3 ответа → раскладка портфеля
-
-:::portfolio-mixer
-
-`:::rebalance-drift` · ребалансировка · доли уплыли → вернуть к плану
-
-:::rebalance-drift
-
-`:::read-the-tape` · лента сделок · поймай агрессора-покупателя
+`:::read-the-tape`
 
 :::read-the-tape
 
 ---
 
-Это всё живьём в витрине (68 блоков). Полный каталог идей (~120) — `docs/block-ideas.md`.
+Отобрано 39 из 68. Удалённые идеи остаются в каталоге `docs/block-ideas.md`.
