@@ -29,7 +29,7 @@ class _LessonRatePriceSeesawState extends State<LessonRatePriceSeesaw> {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
     // Наклон коромысла: ставка выше купона → цена вниз (правый край опускается).
-    final tilt = ((_rate - _couponRate) * 4).clamp(-0.35, 0.35);
+    final tilt = ((_rate - _couponRate) * 2.4).clamp(-0.22, 0.22);
 
     return Container(
       decoration: BoxDecoration(
@@ -41,7 +41,7 @@ class _LessonRatePriceSeesawState extends State<LessonRatePriceSeesaw> {
       child: Column(
         children: [
           SizedBox(
-            height: 120,
+            height: 140,
             child: _Beam(
               tilt: tilt,
               tint: widget.tint,
@@ -132,9 +132,10 @@ class _Beam extends StatelessWidget {
             painter: _PivotPainter(color: tint.withValues(alpha: 0.6)),
           ),
         ),
-        // Балка с грузами.
+        // Балка с грузами. Горизонтальные поля, чтобы при наклоне концы
+        // не уходили за край.
         Padding(
-          padding: const EdgeInsets.only(bottom: 28),
+          padding: const EdgeInsets.only(bottom: 30, left: 24, right: 24),
           child: AnimatedRotation(
             turns: tilt / (2 * 3.14159),
             duration: const Duration(milliseconds: 200),

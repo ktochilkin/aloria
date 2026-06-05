@@ -62,6 +62,13 @@
       "subtitle": "Научиться активной торговле — для тех, кто этого хочет.",
       "icon": "show_chart",
       "tint": "primary"
+    },
+    {
+      "id": "lab",
+      "title": "Лаборатория блоков",
+      "subtitle": "Витрина интерактивных блоков для уроков.",
+      "icon": "category",
+      "tint": "primary"
     }
   ],
   "intro": {

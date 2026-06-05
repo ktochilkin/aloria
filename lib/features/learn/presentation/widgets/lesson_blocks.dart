@@ -1,8 +1,12 @@
 import 'package:aloria/features/learn/presentation/widgets/lesson_compound_growth.dart';
+import 'package:aloria/features/learn/presentation/widgets/lesson_divgap_chart.dart';
+import 'package:aloria/features/learn/presentation/widgets/lesson_leverage_seesaw.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_liquidity_orderbook.dart';
+import 'package:aloria/features/learn/presentation/widgets/lesson_orderbook_2col.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_rate_price_seesaw.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_risk_fork.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_scam_flags.dart';
+import 'package:aloria/features/learn/presentation/widgets/lesson_static_blocks.dart';
 import 'package:flutter/material.dart';
 
 /// Строит интерактивный/визуальный блок урока по имени директивы.
@@ -13,25 +17,57 @@ typedef LessonBlockBuilder = Widget Function(BuildContext context, Color tint);
 /// директивы рендерится обычным markdown.
 const Map<String, LessonBlockBuilder> lessonBlockBuilders = {
   'orderbook-liquidity': _orderbookLiquidity,
+  'orderbook-2col': _orderbook2col,
   'compound-growth': _compoundGrowth,
+  'divgap-chart': _divgapChart,
   'rate-price-seesaw': _ratePriceSeesaw,
+  'leverage-seesaw': _leverageSeesaw,
   'risk-fork': _riskFork,
   'scam-flags': _scamFlags,
+  'callout': _calloutDemo,
+  'number-accent': _numberAccent,
+  'compare-cards': _compareCards,
+  'flow-broker': _flowBroker,
+  'timeline-tplus': _timelineTplus,
 };
 
 Widget _orderbookLiquidity(BuildContext context, Color tint) =>
     LessonLiquidityOrderbook(tint: tint);
 
+Widget _orderbook2col(BuildContext context, Color tint) =>
+    LessonOrderbookTwoCol(tint: tint);
+
 Widget _compoundGrowth(BuildContext context, Color tint) =>
     LessonCompoundGrowth(tint: tint);
 
+Widget _divgapChart(BuildContext context, Color tint) =>
+    LessonDivGapChart(tint: tint);
+
 Widget _ratePriceSeesaw(BuildContext context, Color tint) =>
     LessonRatePriceSeesaw(tint: tint);
+
+Widget _leverageSeesaw(BuildContext context, Color tint) =>
+    LessonLeverageSeesaw(tint: tint);
 
 Widget _riskFork(BuildContext context, Color tint) => LessonRiskFork(tint: tint);
 
 Widget _scamFlags(BuildContext context, Color tint) =>
     LessonScamFlags(tint: tint);
+
+Widget _calloutDemo(BuildContext context, Color tint) =>
+    LessonCalloutDemo(tint: tint);
+
+Widget _numberAccent(BuildContext context, Color tint) =>
+    LessonNumberAccent(tint: tint);
+
+Widget _compareCards(BuildContext context, Color tint) =>
+    LessonCompareCards(tint: tint);
+
+Widget _flowBroker(BuildContext context, Color tint) =>
+    LessonFlowBroker(tint: tint);
+
+Widget _timelineTplus(BuildContext context, Color tint) =>
+    LessonTimelineTplus(tint: tint);
 
 /// Сегмент тела урока: либо markdown-текст, либо именованный блок-директива.
 sealed class LessonSegment {
