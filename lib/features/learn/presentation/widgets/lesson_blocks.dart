@@ -1,8 +1,12 @@
+import 'package:aloria/features/learn/presentation/widgets/lesson_allocation_pie.dart';
+import 'package:aloria/features/learn/presentation/widgets/lesson_charts_extra.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_compound_growth.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_divgap_chart.dart';
+import 'package:aloria/features/learn/presentation/widgets/lesson_inflation_erosion.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_leverage_seesaw.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_liquidity_orderbook.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_orderbook_2col.dart';
+import 'package:aloria/features/learn/presentation/widgets/lesson_predict_candle.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_rate_price_seesaw.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_risk_fork.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_scam_flags.dart';
@@ -29,6 +33,11 @@ const Map<String, LessonBlockBuilder> lessonBlockBuilders = {
   'compare-cards': _compareCards,
   'flow-broker': _flowBroker,
   'timeline-tplus': _timelineTplus,
+  'allocation-pie': _allocationPie,
+  'predict-candle': _predictCandle,
+  'index-vs-fund': _indexVsFund,
+  'pnl-live': _pnlLive,
+  'inflation-erosion': _inflationErosion,
 };
 
 Widget _orderbookLiquidity(BuildContext context, Color tint) =>
@@ -68,6 +77,20 @@ Widget _flowBroker(BuildContext context, Color tint) =>
 
 Widget _timelineTplus(BuildContext context, Color tint) =>
     LessonTimelineTplus(tint: tint);
+
+Widget _allocationPie(BuildContext context, Color tint) =>
+    LessonAllocationPie(tint: tint);
+
+Widget _predictCandle(BuildContext context, Color tint) =>
+    LessonPredictCandle(tint: tint);
+
+Widget _indexVsFund(BuildContext context, Color tint) =>
+    LessonIndexVsFund(tint: tint);
+
+Widget _pnlLive(BuildContext context, Color tint) => LessonPnlLive(tint: tint);
+
+Widget _inflationErosion(BuildContext context, Color tint) =>
+    LessonInflationErosion(tint: tint);
 
 /// Сегмент тела урока: либо markdown-текст, либо именованный блок-директива.
 sealed class LessonSegment {
