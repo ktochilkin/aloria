@@ -16,13 +16,16 @@ import 'package:aloria/features/market/presentation/widgets/instrument_avatar.da
 import 'package:aloria/features/market/presentation/widgets/news_widget.dart';
 import 'package:aloria/features/market/presentation/widgets/order_book_widget.dart';
 import 'package:aloria/features/market/presentation/widgets/quotes_list.dart';
-import 'package:aloria/features/settings/application/settings_controller.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 enum _FeedTab { news, tape, orderBook }
+
+/// Прокрутка, после которой верхняя карточка с ценой уходит из вида и цену
+/// дублируем в AppBar — чтобы котировка оставалась видна у формы заявки.
+const double _kQuoteRevealOffset = 90.0;
 
 final feedTabProvider = StateProvider.family<_FeedTab, String>((ref, symbol) {
   // Сохраняем состояние вкладки, чтобы не сбрасывалось
@@ -57,6 +60,7 @@ class _TradePageState extends ConsumerState<TradePage> {
   late final ScrollController _scrollController;
   bool _isLimit = false;
   bool _submitting = false;
+  bool _showAppBarPrice = false;
 
   /// Коучинг по отказам: id уже показанных отклонённых заявок и флаг «после
   /// отправки», чтобы не всплывать на исторических отказах из потока заявок.
@@ -70,12 +74,17 @@ class _TradePageState extends ConsumerState<TradePage> {
     // Создаем ScrollController с начальной позицией сразу
     final savedPosition = ref.read(scrollPositionProvider(widget.symbol));
     _scrollController = ScrollController(initialScrollOffset: savedPosition);
+    _showAppBarPrice = savedPosition > _kQuoteRevealOffset;
 
-    // Сохраняем позицию при прокрутке
+    // Сохраняем позицию при прокрутке и показываем цену в AppBar, когда верхняя
+    // карточка с ценой уже ушла за край — чтобы не дублировать её вверху.
     _scrollController.addListener(() {
-      if (_scrollController.hasClients) {
-        ref.read(scrollPositionProvider(widget.symbol).notifier).state =
-            _scrollController.offset;
+      if (!_scrollController.hasClients) return;
+      final offset = _scrollController.offset;
+      ref.read(scrollPositionProvider(widget.symbol).notifier).state = offset;
+      final show = offset > _kQuoteRevealOffset;
+      if (show != _showAppBarPrice) {
+        setState(() => _showAppBarPrice = show);
       }
     });
   }
@@ -157,11 +166,9 @@ class _TradePageState extends ConsumerState<TradePage> {
 
         showTopNotification(context, errorMessage, isError: true);
 
-        // Синхронный отказ (валидация при отправке): в режиме обучения
-        // показываем человеческое объяснение возможных причин.
-        if (e is DioException &&
-            e.response != null &&
-            ref.read(settingsControllerProvider).learningMode) {
+        // Синхронный отказ (валидация при отправке): всегда показываем
+        // человеческое объяснение возможных причин, независимо от режима.
+        if (e is DioException && e.response != null) {
           showOrderRejectionHelp(context, brokerMessage: errorMessage);
         }
       }
@@ -174,17 +181,16 @@ class _TradePageState extends ConsumerState<TradePage> {
   Widget build(BuildContext context) {
     // Асинхронный отказ приходит через поток заявок (OrdersGetAndSubscribeV2).
     // Реагируем только на новые отклонённые заявки по этому инструменту после
-    // отправки — в режиме обучения показываем объяснение причины.
+    // отправки — объяснение причины показываем всегда, не только в обучении.
     ref.listen<AsyncValue<List<ClientOrder>>>(ordersProvider, (_, next) {
       if (!_armedForRejections) return;
       final orders = next.valueOrNull;
       if (orders == null) return;
-      final learningMode = ref.read(settingsControllerProvider).learningMode;
       for (final o in orders) {
         if (o.symbol != widget.symbol) continue;
         if (o.status != OrderStatus.rejected) continue;
         if (!_coachedRejectionIds.add(o.id)) continue;
-        if (learningMode && mounted) {
+        if (mounted) {
           showOrderRejectionHelp(context, brokerMessage: o.comment);
         }
       }
@@ -210,6 +216,10 @@ class _TradePageState extends ConsumerState<TradePage> {
         ? '${widget.symbol} · $trimmedShort'
         : widget.symbol;
 
+    // Последняя цена дублируется в AppBar, чтобы котировка оставалась на виду,
+    // когда пользователь проскроллил вниз к форме заявки.
+    final latestPrice = feed.valueOrNull?.latest?.price;
+
     return Scaffold(
       // Клавиатуру уже учитывает внешний Scaffold нижней навигации (shell).
       // Без этого оба Scaffold'а поднимают контент над клавиатурой —
@@ -217,6 +227,20 @@ class _TradePageState extends ConsumerState<TradePage> {
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: Text(titleText, maxLines: 1, overflow: TextOverflow.ellipsis),
+        actions: [
+          if (latestPrice != null && _showAppBarPrice)
+            Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: Center(
+                child: Text(
+                  '${latestPrice.toStringAsFixed(2)} ₽',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ),
+            ),
+        ],
       ),
       body: GestureDetector(
         behavior: HitTestBehavior.translucent,
@@ -533,20 +557,23 @@ class _TradeBody extends StatelessWidget {
                   border: OutlineInputBorder(),
                 ),
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: priceController,
-                enabled: isLimit,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
+              // Поле цены имеет смысл только для лимитной заявки. Для рыночной
+              // прячем его целиком, чтобы не путать неактивным полем.
+              if (isLimit) ...[
+                const SizedBox(height: 12),
+                TextField(
+                  controller: priceController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => FocusScope.of(context).unfocus(),
+                  decoration: const InputDecoration(
+                    labelText: 'Цена',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-                textInputAction: TextInputAction.done,
-                onSubmitted: (_) => FocusScope.of(context).unfocus(),
-                decoration: const InputDecoration(
-                  labelText: 'Цена (для лимитной)',
-                  border: OutlineInputBorder(),
-                ),
-              ),
+              ],
               const SizedBox(height: 16),
               Row(
                 children: [

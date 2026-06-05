@@ -10,6 +10,7 @@ import 'package:aloria/features/learning_mode/presentation/explainable.dart';
 import 'package:aloria/features/market/application/orders_provider.dart';
 import 'package:aloria/features/market/application/portfolio_summary_provider.dart';
 import 'package:aloria/features/market/application/positions_provider.dart';
+import 'package:aloria/features/market/data/market_repository.dart';
 import 'package:aloria/features/market/domain/portfolio_order.dart';
 import 'package:aloria/features/market/domain/portfolio_summary.dart';
 import 'package:aloria/features/market/domain/position.dart';
@@ -226,9 +227,7 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
         }
 
         return AppListSection(
-          children: items
-              .map((p) => _PositionExpansionTile(position: p))
-              .toList(),
+          children: items.map((p) => _PositionTile(position: p)).toList(),
         );
       },
       loading: () => const Center(
@@ -287,6 +286,17 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
                 ? 'По рынку'
                 : (order.price != null ? order.price!.toStringAsFixed(2) : '—');
             return AppListTile(
+              // Заявка на вкладке «Портфель», а торговля инструментом — в ветке
+              // «Рынок». go_router переключает ветку и открывает инструмент;
+              // push не годится — отрисовал бы страницу в неактивной ветке.
+              onTap: () => context.go(
+                '/market/${order.symbol}',
+                extra: MarketSecurity(
+                  symbol: order.symbol,
+                  shortName: order.symbol,
+                  exchange: order.exchange,
+                ),
+              ),
               title: order.symbol,
               subtitleWidget: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -398,19 +408,6 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
                   onTopUp: _openTopUp,
                 ),
               ),
-              if (activeOrdersCount > 0) ...[
-                const SizedBox(height: 14),
-                Explainable(
-                  slug: 'portfolio.active-orders',
-                  child: _ActiveOrdersBanner(
-                    count: activeOrdersCount,
-                    onTap: () {
-                      ref.read(portfolioTabProvider.notifier).state =
-                          _PortfolioTab.orders;
-                    },
-                  ),
-                ),
-              ],
               const SizedBox(height: 18),
               Explainable(
                 slug: 'portfolio.tabs',
@@ -506,91 +503,6 @@ class _PortfolioTitleBar extends ConsumerWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _ActiveOrdersBanner extends StatelessWidget {
-  const _ActiveOrdersBanner({required this.count, required this.onTap});
-
-  final int count;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    final scheme = Theme.of(context).colorScheme;
-    final l = AppLocalizations.of(context)!;
-    return Material(
-      color: scheme.surface,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: context.palette.heroBorder),
-            boxShadow: [
-              BoxShadow(
-                color: context.palette.heroShadow,
-                offset: const Offset(0, 1),
-                blurRadius: 2,
-              ),
-              BoxShadow(
-                color: context.palette.heroShadow,
-                offset: const Offset(0, 6),
-                blurRadius: 20,
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.access_time_rounded,
-                  size: 20,
-                  color: AppColors.primary,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l.portfolioActiveOrders(count),
-                      style: text.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: scheme.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      l.portfolioActiveOrdersHint,
-                      style: text.bodySmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.chevron_right_rounded,
-                color: scheme.onSurfaceVariant,
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }
@@ -1523,8 +1435,8 @@ class _TabButton extends StatelessWidget {
   }
 }
 
-class _PositionExpansionTile extends StatelessWidget {
-  const _PositionExpansionTile({required this.position});
+class _PositionTile extends StatelessWidget {
+  const _PositionTile({required this.position});
 
   final Position position;
 
@@ -1537,100 +1449,222 @@ class _PositionExpansionTile extends StatelessWidget {
         ? position.symbol.substring(0, 2)
         : position.symbol;
 
-    return Theme(
-      data: theme.copyWith(dividerColor: Colors.transparent),
-      child: ExpansionTile(
-        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
-        title: Row(
+    return InkWell(
+      // Тап по позиции открывает окно с деталями; переход в торговлю — кнопкой
+      // внутри этого окна.
+      onTap: () => _showPositionDetails(context, position),
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
           children: [
             InstrumentAvatar(symbol: position.symbol, label: label, size: 36),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(position.symbol, style: text.titleMedium),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Средняя ${position.averagePrice.toStringAsFixed(2)} ${position.currency}',
+                    style: text.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '${position.quantity.toStringAsFixed(2)} шт.',
+                  style: text.bodyLarge,
+                ),
+                if (position.unrealisedPl != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    '${position.unrealisedPl! >= 0 ? '+' : ''}${position.unrealisedPl!.toStringAsFixed(2)} ${position.currency}',
+                    style: text.bodySmall?.copyWith(
+                      color: position.unrealisedPl! >= 0
+                          ? AppColors.success
+                          : AppColors.error,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ],
+            ),
             const SizedBox(width: 4),
-            Expanded(child: Text(position.symbol, style: text.titleMedium)),
+            Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
           ],
         ),
-        subtitle: Text(
-          'Средняя ${position.averagePrice.toStringAsFixed(2)} ${position.currency}',
-          style: text.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
-        ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
+      ),
+    );
+  }
+}
+
+/// Всплывашка со всей детальной информацией по позиции (раньше показывалась
+/// при раскрытии плитки). Открывается по иконке-вопросу, чтобы сам тап по
+/// позиции вёл в торговлю инструментом.
+Future<void> _showPositionDetails(BuildContext context, Position position) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Theme.of(context).colorScheme.surface,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (ctx) => _PositionDetailsSheet(
+      position: position,
+      onTrade: () {
+        Navigator.of(ctx).pop();
+        context.go(
+          '/market/${position.symbol}',
+          extra: MarketSecurity(
+            symbol: position.symbol,
+            shortName: position.symbol,
+            exchange: position.exchange,
+          ),
+        );
+      },
+    ),
+  );
+}
+
+class _PositionDetailsSheet extends StatelessWidget {
+  const _PositionDetailsSheet({required this.position, required this.onTrade});
+
+  final Position position;
+  final VoidCallback onTrade;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+    final label = position.symbol.length > 2
+        ? position.symbol.substring(0, 2)
+        : position.symbol;
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '${position.quantity.toStringAsFixed(2)} шт.',
-              style: text.bodyLarge,
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: scheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
             ),
-            if (position.unrealisedPl != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                '${position.unrealisedPl! >= 0 ? '+' : ''}${position.unrealisedPl!.toStringAsFixed(2)} ${position.currency}',
-                style: text.bodySmall?.copyWith(
-                  color: position.unrealisedPl! >= 0
-                      ? Colors.green
-                      : Colors.red,
-                  fontWeight: FontWeight.w600,
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                InstrumentAvatar(
+                  symbol: position.symbol,
+                  label: label,
+                  size: 40,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    position.symbol,
+                    style: text.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _infoRow(
+                      context,
+                      label: 'Тикер',
+                      value: position.symbol,
+                      description: 'Краткое название инструмента на бирже.',
+                    ),
+                    _infoRow(
+                      context,
+                      label: 'Количество',
+                      value: '${position.quantity} шт.',
+                      description: 'Количество ценных бумаг в вашем портфеле.',
+                    ),
+                    _infoRow(
+                      context,
+                      label: 'Средняя цена',
+                      value: '${position.averagePrice} ${position.currency}',
+                      description:
+                          'Цена покупки (усредненная, если было несколько сделок).',
+                    ),
+                    _infoRow(
+                      context,
+                      label: 'Текущая стоимость',
+                      value: '${position.currentVolume} ${position.currency}',
+                      description:
+                          'Рыночная стоимость всего пакета бумаг сейчас.',
+                    ),
+                    if (position.unrealisedPl != null)
+                      _infoRow(
+                        context,
+                        label: 'Нереализованная П/У',
+                        value:
+                            '${position.unrealisedPl! >= 0 ? '+' : ''}${position.unrealisedPl!.toStringAsFixed(2)} ${position.currency}',
+                        description:
+                            'Текущая доходность позиции (прибыль или убыток).',
+                      ),
+                    _infoRow(
+                      context,
+                      label: 'Биржа',
+                      value: position.exchange,
+                      description: 'Торговая площадка, где куплен инструмент.',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // RUB — это денежная позиция (кэш), а не торгуемый инструмент,
+            // поэтому кнопку перехода в торговлю для неё не показываем.
+            if (position.symbol.toUpperCase() != 'RUB') ...[
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: onTrade,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                  ),
+                  icon: const Icon(Icons.show_chart, size: 18),
+                  label: const Text('Торговать инструментом'),
                 ),
               ),
             ],
           ],
         ),
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Divider(),
-                const SizedBox(height: 8),
-                _buildInfoRow(
-                  context,
-                  label: 'Тикер',
-                  value: position.symbol,
-                  description: 'Краткое название инструмента на бирже.',
-                ),
-                _buildInfoRow(
-                  context,
-                  label: 'Количество',
-                  value: '${position.quantity} шт.',
-                  description: 'Количество ценных бумаг в вашем портфеле.',
-                ),
-                _buildInfoRow(
-                  context,
-                  label: 'Средняя цена',
-                  value: '${position.averagePrice} ${position.currency}',
-                  description:
-                      'Цена покупки (усредненная, если было несколько сделок).',
-                ),
-                _buildInfoRow(
-                  context,
-                  label: 'Текущая стоимость',
-                  value: '${position.currentVolume} ${position.currency}',
-                  description: 'Рыночная стоимость всего пакета бумаг сейчас.',
-                ),
-                if (position.unrealisedPl != null)
-                  _buildInfoRow(
-                    context,
-                    label: 'Нереализованная П/У',
-                    value:
-                        '${position.unrealisedPl! >= 0 ? '+' : ''}${position.unrealisedPl!.toStringAsFixed(2)} ${position.currency}',
-                    description:
-                        'Текущая доходность позиции (прибыль или убыток).',
-                  ),
-                _buildInfoRow(
-                  context,
-                  label: 'Биржа',
-                  value: position.exchange,
-                  description: 'Торговая площадка, где куплен инструмент.',
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
 
-  Widget _buildInfoRow(
+  Widget _infoRow(
     BuildContext context, {
     required String label,
     required String value,

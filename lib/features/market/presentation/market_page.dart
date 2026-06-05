@@ -1,3 +1,4 @@
+import 'package:aloria/core/theme/tokens.dart';
 import 'package:aloria/core/utils/layout_utils.dart';
 import 'package:aloria/features/market/application/market_controller.dart';
 import 'package:aloria/features/market/application/market_news_provider.dart';
@@ -152,104 +153,83 @@ class _MarketOverviewTab extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate((context, index) {
-                  if (index.isOdd) return const SizedBox(height: 12);
-
-                  final itemIndex = index ~/ 2;
-                  final item = items[itemIndex];
+                  final item = items[index];
                   final label = item.symbol.length > 2
                       ? item.symbol.substring(0, 2)
                       : item.symbol;
+                  final isLast = index == items.length - 1;
 
-                  return DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          scheme.surface.withValues(alpha: 0.96),
-                          scheme.surfaceContainerHighest.withValues(alpha: 0.9),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(
-                        color: scheme.outline.withValues(alpha: 0.6),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: scheme.primary.withValues(alpha: 0.08),
-                          blurRadius: 14,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(18),
-                      onTap: () =>
-                          context.push('/market/${item.symbol}', extra: item),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
-                        ),
-                        child: Row(
-                          children: [
-                            InstrumentAvatar(
-                              symbol: item.symbol,
-                              label: label,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(item.symbol, style: text.titleMedium),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    item.shortName,
-                                    style: text.bodyMedium?.copyWith(
-                                      color: scheme.onSurfaceVariant,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
+                  return Column(
+                    children: [
+                      InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () =>
+                            context.push('/market/${item.symbol}', extra: item),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: Row(
+                            children: [
+                              InstrumentAvatar(
+                                symbol: item.symbol,
+                                label: label,
                               ),
-                            ),
-                            if (item.lastPrice != null) ...[
                               const SizedBox(width: 12),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    item.lastPrice!.toStringAsFixed(2),
-                                    style: text.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  if (item.changePercent != null)
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(item.symbol, style: text.titleMedium),
+                                    const SizedBox(height: 4),
                                     Text(
-                                      '${item.changePercent! >= 0 ? '+' : ''}${item.changePercent!.toStringAsFixed(2)}%',
-                                      style: text.bodySmall?.copyWith(
-                                        color: item.changePercent! >= 0
-                                            ? Colors.green
-                                            : Colors.red,
-                                        fontWeight: FontWeight.w500,
+                                      item.shortName,
+                                      style: text.bodyMedium?.copyWith(
+                                        color: scheme.onSurfaceVariant,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (item.lastPrice != null) ...[
+                                const SizedBox(width: 12),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      item.lastPrice!.toStringAsFixed(2),
+                                      style: text.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.bold,
                                       ),
                                     ),
-                                ],
-                              ),
+                                    if (item.changePercent != null) ...[
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        '${item.changePercent! >= 0 ? '+' : ''}${item.changePercent!.toStringAsFixed(2)}%',
+                                        style: text.bodySmall?.copyWith(
+                                          color: item.changePercent! >= 0
+                                              ? AppColors.success
+                                              : AppColors.error,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ],
                             ],
-                            Icon(
-                              Icons.chevron_right,
-                              color: scheme.onSurfaceVariant,
-                            ),
-                          ],
+                          ),
                         ),
                       ),
-                    ),
+                      if (!isLast)
+                        Divider(
+                          height: 1,
+                          thickness: 1,
+                          color: scheme.outline.withValues(alpha: 0.22),
+                        ),
+                    ],
                   );
-                }, childCount: items.isEmpty ? 0 : (items.length * 2 - 1)),
+                }, childCount: items.length),
               ),
             ),
             SliverPadding(
