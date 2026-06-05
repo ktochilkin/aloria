@@ -6,6 +6,12 @@ import 'package:aloria/features/learn/presentation/widgets/lesson_inflation_eros
 import 'package:aloria/features/learn/presentation/widgets/lesson_leverage_seesaw.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_liquidity_orderbook.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_orderbook_2col.dart';
+import 'package:aloria/features/learn/presentation/widgets/lesson_pack_bonds.dart';
+import 'package:aloria/features/learn/presentation/widgets/lesson_pack_charts.dart';
+import 'package:aloria/features/learn/presentation/widgets/lesson_pack_engine.dart';
+import 'package:aloria/features/learn/presentation/widgets/lesson_pack_games.dart';
+import 'package:aloria/features/learn/presentation/widgets/lesson_pack_gauges.dart';
+import 'package:aloria/features/learn/presentation/widgets/lesson_pack_price.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_predict_candle.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_rate_price_seesaw.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_risk_fork.dart';
@@ -38,6 +44,37 @@ const Map<String, LessonBlockBuilder> lessonBlockBuilders = {
   'index-vs-fund': _indexVsFund,
   'pnl-live': _pnlLive,
   'inflation-erosion': _inflationErosion,
+  // топ-30 из каталога идей (docs/block-ideas.md)
+  'eat-the-book': _eatTheBook,
+  'limit-or-wait': _limitOrWait,
+  'matching-mini': _matchingMini,
+  'book-vs-tape': _bookVsTape,
+  'gap-stop': _gapStop,
+  'expectations-gap': _expectationsGap,
+  'free-lunch': _freeLunch,
+  'short-loss': _shortLoss,
+  'margin-call': _marginCall,
+  'divgap-swipe': _divgapSwipe,
+  'compound-race': _compoundRace,
+  'normalize-100': _normalize100,
+  'drawdown-underwater': _drawdownUnderwater,
+  'risk-return-map': _riskReturnMap,
+  'correlation-heatmap': _correlationHeatmap,
+  'bond-yield-flip': _bondYieldFlip,
+  'coupon-cashflow': _couponCashflow,
+  'nkd-sawtooth': _nkdSawtooth,
+  'ytm-gauge': _ytmGauge,
+  'fund-treemap': _fundTreemap,
+  'rate-move-gauge': _rateMoveGauge,
+  'real-yield': _realYield,
+  'rubles-paper-flow': _rublesPaperFlow,
+  'donothing-fork': _doNothingFork,
+  'fee-leak': _feeLeak,
+  'panic-button': _panicButton,
+  'candle-anatomy': _candleAnatomy,
+  'session-clock': _sessionClock,
+  'sort-by-risk': _sortByRisk,
+  'scam-sorter': _scamSorter,
 };
 
 Widget _orderbookLiquidity(BuildContext context, Color tint) =>
@@ -91,6 +128,94 @@ Widget _pnlLive(BuildContext context, Color tint) => LessonPnlLive(tint: tint);
 
 Widget _inflationErosion(BuildContext context, Color tint) =>
     LessonInflationErosion(tint: tint);
+
+Widget _eatTheBook(BuildContext context, Color tint) =>
+    LessonEatTheBook(tint: tint);
+
+Widget _limitOrWait(BuildContext context, Color tint) =>
+    LessonLimitOrWait(tint: tint);
+
+Widget _matchingMini(BuildContext context, Color tint) =>
+    LessonMatchingMini(tint: tint);
+
+Widget _bookVsTape(BuildContext context, Color tint) =>
+    LessonBookVsTape(tint: tint);
+
+Widget _gapStop(BuildContext context, Color tint) => LessonGapStop(tint: tint);
+
+Widget _expectationsGap(BuildContext context, Color tint) =>
+    LessonExpectationsGap(tint: tint);
+
+Widget _freeLunch(BuildContext context, Color tint) =>
+    LessonFreeLunch(tint: tint);
+
+Widget _shortLoss(BuildContext context, Color tint) =>
+    LessonShortLoss(tint: tint);
+
+Widget _marginCall(BuildContext context, Color tint) =>
+    LessonMarginCall(tint: tint);
+
+Widget _divgapSwipe(BuildContext context, Color tint) =>
+    LessonDivgapSwipe(tint: tint);
+
+Widget _compoundRace(BuildContext context, Color tint) =>
+    LessonCompoundRace(tint: tint);
+
+Widget _normalize100(BuildContext context, Color tint) =>
+    LessonNormalize100(tint: tint);
+
+Widget _drawdownUnderwater(BuildContext context, Color tint) =>
+    LessonDrawdownUnderwater(tint: tint);
+
+Widget _riskReturnMap(BuildContext context, Color tint) =>
+    LessonRiskReturnMap(tint: tint);
+
+Widget _correlationHeatmap(BuildContext context, Color tint) =>
+    LessonCorrelationHeatmap(tint: tint);
+
+Widget _bondYieldFlip(BuildContext context, Color tint) =>
+    LessonBondYieldFlip(tint: tint);
+
+Widget _couponCashflow(BuildContext context, Color tint) =>
+    LessonCouponCashflow(tint: tint);
+
+Widget _nkdSawtooth(BuildContext context, Color tint) =>
+    LessonNkdSawtooth(tint: tint);
+
+Widget _ytmGauge(BuildContext context, Color tint) =>
+    LessonYtmGauge(tint: tint);
+
+Widget _fundTreemap(BuildContext context, Color tint) =>
+    LessonFundTreemap(tint: tint);
+
+Widget _rateMoveGauge(BuildContext context, Color tint) =>
+    LessonRateMoveGauge(tint: tint);
+
+Widget _realYield(BuildContext context, Color tint) =>
+    LessonRealYield(tint: tint);
+
+Widget _rublesPaperFlow(BuildContext context, Color tint) =>
+    LessonRublesPaperFlow(tint: tint);
+
+Widget _doNothingFork(BuildContext context, Color tint) =>
+    LessonDoNothingFork(tint: tint);
+
+Widget _feeLeak(BuildContext context, Color tint) => LessonFeeLeak(tint: tint);
+
+Widget _panicButton(BuildContext context, Color tint) =>
+    LessonPanicButton(tint: tint);
+
+Widget _candleAnatomy(BuildContext context, Color tint) =>
+    LessonCandleAnatomy(tint: tint);
+
+Widget _sessionClock(BuildContext context, Color tint) =>
+    LessonSessionClock(tint: tint);
+
+Widget _sortByRisk(BuildContext context, Color tint) =>
+    LessonSortByRisk(tint: tint);
+
+Widget _scamSorter(BuildContext context, Color tint) =>
+    LessonScamSorter(tint: tint);
 
 /// Сегмент тела урока: либо markdown-текст, либо именованный блок-директива.
 sealed class LessonSegment {
