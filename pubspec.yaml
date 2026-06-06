@@ -10,8 +10,10 @@ dependencies:
   dio: ^5.5.0+1
   firebase_core: ^4.9.0
   firebase_messaging: ^16.2.2
+  fl_chart: ^0.69.2
   flutter:
     sdk: flutter
+  flutter_animate: ^4.5.0
   flutter_localizations:
     sdk: flutter
   flutter_markdown: ^0.7.4+1

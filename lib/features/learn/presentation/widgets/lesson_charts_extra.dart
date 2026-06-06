@@ -1,8 +1,10 @@
 import 'package:aloria/core/theme/tokens.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
-/// Две почти слипшиеся линии: индекс и индексный фонд, который его повторяет
-/// (чуть ниже из-за комиссии). Для урока про индексные фонды.
+/// Две почти слипшиеся линии (fl_chart): индекс и индексный фонд, который его
+/// повторяет чуть ниже из-за комиссии. Для урока про индексные фонды.
 class LessonIndexVsFund extends StatelessWidget {
   const LessonIndexVsFund({super.key, required this.tint});
 
@@ -15,6 +17,18 @@ class LessonIndexVsFund extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
+
+    List<FlSpot> spots(List<double> d) =>
+        [for (var i = 0; i < d.length; i++) FlSpot(i.toDouble(), d[i])];
+
+    LineChartBarData bar(List<double> d, Color c) => LineChartBarData(
+          spots: spots(d),
+          isCurved: true,
+          color: c,
+          barWidth: 2.5,
+          dotData: const FlDotData(show: false),
+        );
+
     return Container(
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
@@ -31,17 +45,31 @@ class LessonIndexVsFund extends StatelessWidget {
               const _Dot(color: AppColors.success, label: 'фонд (−комиссия)'),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           AspectRatio(
-            aspectRatio: 1.8,
-            child: CustomPaint(
-              painter: _TwoLinePainter(
-                a: _index,
-                b: _fund,
-                ca: tint,
-                cb: AppColors.success,
-                grid: scheme.outlineVariant.withValues(alpha: 0.4),
+            aspectRatio: 1.7,
+            child: LineChart(
+              LineChartData(
+                minY: 96,
+                maxY: 122,
+                gridData: FlGridData(
+                  drawVerticalLine: false,
+                  horizontalInterval: 8,
+                  getDrawingHorizontalLine: (_) => FlLine(
+                    color: scheme.outlineVariant.withValues(alpha: 0.4),
+                    strokeWidth: 1,
+                  ),
+                ),
+                titlesData: const FlTitlesData(show: false),
+                borderData: FlBorderData(show: false),
+                lineTouchData: const LineTouchData(enabled: false),
+                lineBarsData: [
+                  bar(_index, tint),
+                  bar(_fund, AppColors.success),
+                ],
               ),
+              duration: const Duration(milliseconds: 700),
+              curve: Curves.easeOutCubic,
             ),
           ),
           const SizedBox(height: 8),
@@ -55,7 +83,10 @@ class LessonIndexVsFund extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ).animate().fadeIn(duration: 350.ms).slideY(
+          begin: 0.06,
+          curve: Curves.easeOutCubic,
+        );
   }
 }
 
@@ -85,7 +116,9 @@ class _LessonPnlLiveState extends State<LessonPnlLive>
     _c = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 3500),
-    )..addListener(() => setState(() {}))..repeat();
+    )
+      ..addListener(() => setState(() {}))
+      ..repeat();
   }
 
   @override
@@ -158,7 +191,10 @@ class _LessonPnlLiveState extends State<LessonPnlLive>
           ),
         ],
       ),
-    );
+    ).animate().fadeIn(duration: 350.ms).slideY(
+          begin: 0.06,
+          curve: Curves.easeOutCubic,
+        );
   }
 }
 
@@ -186,62 +222,6 @@ class _Dot extends StatelessWidget {
   }
 }
 
-class _TwoLinePainter extends CustomPainter {
-  _TwoLinePainter({
-    required this.a,
-    required this.b,
-    required this.ca,
-    required this.cb,
-    required this.grid,
-  });
-
-  final List<double> a;
-  final List<double> b;
-  final Color ca;
-  final Color cb;
-  final Color grid;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final all = [...a, ...b];
-    final hi = all.reduce((x, y) => x > y ? x : y) + 1;
-    final lo = all.reduce((x, y) => x < y ? x : y) - 1;
-    final n = a.length - 1;
-
-    Offset pt(List<double> d, int i) => Offset(
-          size.width * i / n,
-          size.height * (1 - (d[i] - lo) / (hi - lo)),
-        );
-
-    final gridPaint = Paint()..color = grid..strokeWidth = 1;
-    for (var i = 0; i <= 3; i++) {
-      final yy = size.height * i / 3;
-      canvas.drawLine(Offset(0, yy), Offset(size.width, yy), gridPaint);
-    }
-
-    void line(List<double> d, Color c) {
-      final p = Path()..moveTo(pt(d, 0).dx, pt(d, 0).dy);
-      for (var i = 1; i <= n; i++) {
-        p.lineTo(pt(d, i).dx, pt(d, i).dy);
-      }
-      canvas.drawPath(
-        p,
-        Paint()
-          ..color = c
-          ..strokeWidth = 2.5
-          ..style = PaintingStyle.stroke
-          ..strokeJoin = StrokeJoin.round,
-      );
-    }
-
-    line(a, ca);
-    line(b, cb);
-  }
-
-  @override
-  bool shouldRepaint(_TwoLinePainter old) => false;
-}
-
 class _PnlPainter extends CustomPainter {
   _PnlPainter({
     required this.path,
@@ -263,7 +243,6 @@ class _PnlPainter extends CustomPainter {
     double y(double v) => size.height * (1 - (v - lo) / (hi - lo));
     final buyY = y(buy);
 
-    // Линия покупки.
     canvas.drawLine(
       Offset(0, buyY),
       Offset(size.width, buyY),
@@ -277,10 +256,8 @@ class _PnlPainter extends CustomPainter {
     Offset pt(int i) => Offset(size.width * i / n, y(path[i]));
 
     final linePath = Path()..moveTo(pt(0).dx, pt(0).dy);
-    final pts = <Offset>[pt(0)];
     for (var i = 1; i <= full; i++) {
       linePath.lineTo(pt(i).dx, pt(i).dy);
-      pts.add(pt(i));
     }
     Offset tip;
     if (full < n) {
@@ -289,12 +266,10 @@ class _PnlPainter extends CustomPainter {
       final b = pt(full + 1);
       tip = Offset(a.dx + (b.dx - a.dx) * f, a.dy + (b.dy - a.dy) * f);
       linePath.lineTo(tip.dx, tip.dy);
-      pts.add(tip);
     } else {
       tip = pt(n);
     }
 
-    // Заливка между ценой и линией покупки.
     final fill = Path.from(linePath)
       ..lineTo(tip.dx, buyY)
       ..lineTo(0, buyY)

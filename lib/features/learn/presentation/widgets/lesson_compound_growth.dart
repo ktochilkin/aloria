@@ -1,9 +1,10 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
-/// Учебный блок к уроку про сложный процент: анимированная кривая роста
-/// 1000 ₽ под 10% годовых за 30 лет. Первые годы линия почти прямая, потом
-/// загибается вверх. По нажатию «запустить» считается итог и выделяется
-/// «×17 за 30 лет» против ожидаемых ×4 при простом сложении.
+/// Учебный блок про сложный процент: кривая роста 1000 ₽ под 10% за 30 лет.
+/// На fl_chart — гладкая линия с градиент-заливкой, рост анимируется при
+/// запуске. Пунктир — простое сложение (+100/год) для контраста.
 class LessonCompoundGrowth extends StatefulWidget {
   const LessonCompoundGrowth({super.key, required this.tint});
 
@@ -13,50 +14,38 @@ class LessonCompoundGrowth extends StatefulWidget {
   State<LessonCompoundGrowth> createState() => _LessonCompoundGrowthState();
 }
 
-class _LessonCompoundGrowthState extends State<LessonCompoundGrowth>
-    with SingleTickerProviderStateMixin {
+class _LessonCompoundGrowthState extends State<LessonCompoundGrowth> {
   static const int _years = 30;
   static const double _start = 1000;
   static const double _rate = 0.10;
 
-  late final AnimationController _controller;
-
-  // Сложный процент год за годом.
   late final List<double> _compound = List.generate(
     _years + 1,
     (y) => _start * _pow(1 + _rate, y),
   );
-
-  // Простое сложение «по 100 в год» — для контраста.
   late final List<double> _simple = List.generate(
     _years + 1,
     (y) => _start + _start * _rate * y,
   );
 
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1600),
-    )..addListener(() => setState(() {}));
-  }
+  bool _revealed = false;
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
+  void _run() {
+    setState(() => _revealed = false);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() => _revealed = true);
+    });
   }
-
-  void _run() => _controller.forward(from: 0);
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
-    final t = _controller.value;
-    final shownYear = (t * _years).round();
-    final shownValue = _compound[shownYear];
+
+    List<FlSpot> spots(List<double> data) => [
+          for (var y = 0; y <= _years; y++)
+            FlSpot(y.toDouble(), _revealed ? data[y] : _start),
+        ];
 
     return Container(
       decoration: BoxDecoration(
@@ -71,26 +60,81 @@ class _LessonCompoundGrowthState extends State<LessonCompoundGrowth>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _Legend(color: widget.tint, label: 'сложный процент'),
-              _Legend(
-                color: scheme.onSurfaceVariant,
-                label: 'простое сложение',
-                dashed: true,
-              ),
+              _legend(widget.tint, 'сложный процент', false),
+              _legend(scheme.onSurfaceVariant, 'простое сложение', true),
             ],
           ),
           const SizedBox(height: 12),
           AspectRatio(
-            aspectRatio: 1.6,
-            child: CustomPaint(
-              painter: _GrowthPainter(
-                compound: _compound,
-                simple: _simple,
-                progress: t,
-                line: widget.tint,
-                ghost: scheme.onSurfaceVariant,
-                grid: scheme.outlineVariant.withValues(alpha: 0.4),
+            aspectRatio: 1.55,
+            child: LineChart(
+              LineChartData(
+                minX: 0,
+                maxX: _years.toDouble(),
+                minY: 0,
+                maxY: _compound.last * 1.05,
+                gridData: FlGridData(
+                  drawVerticalLine: false,
+                  horizontalInterval: 5000,
+                  getDrawingHorizontalLine: (_) => FlLine(
+                    color: scheme.outlineVariant.withValues(alpha: 0.4),
+                    strokeWidth: 1,
+                  ),
+                ),
+                titlesData: FlTitlesData(
+                  leftTitles: const AxisTitles(
+                    
+                  ),
+                  topTitles: const AxisTitles(
+                    
+                  ),
+                  rightTitles: const AxisTitles(
+                    
+                  ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      interval: 10,
+                      getTitlesWidget: (v, meta) => Text(
+                        '${v.toInt()}',
+                        style: text.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                borderData: FlBorderData(show: false),
+                lineTouchData: const LineTouchData(enabled: false),
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: spots(_simple),
+                    color: scheme.onSurfaceVariant.withValues(alpha: 0.5),
+                    dashArray: [5, 4],
+                    dotData: const FlDotData(show: false),
+                  ),
+                  LineChartBarData(
+                    spots: spots(_compound),
+                    isCurved: true,
+                    color: widget.tint,
+                    barWidth: 3,
+                    dotData: const FlDotData(show: false),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          widget.tint.withValues(alpha: 0.28),
+                          widget.tint.withValues(alpha: 0.0),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
+              duration: const Duration(milliseconds: 900),
+              curve: Curves.easeOutCubic,
             ),
           ),
           const SizedBox(height: 12),
@@ -102,13 +146,13 @@ class _LessonCompoundGrowthState extends State<LessonCompoundGrowth>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'через $shownYear ${_yearWord(shownYear)}',
+                      'через 30 лет',
                       style: text.bodySmall?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
                     Text(
-                      '${_money(shownValue)} ₽',
+                      _revealed ? '${_money(_compound.last)} ₽' : '1 000 ₽',
                       style: text.titleMedium?.copyWith(
                         fontSize: 26,
                         fontWeight: FontWeight.w800,
@@ -118,8 +162,25 @@ class _LessonCompoundGrowthState extends State<LessonCompoundGrowth>
                   ],
                 ),
               ),
-              if (t > 0.97)
-                _AccentChip(text: '×17, а не ×4', color: widget.tint),
+              if (_revealed)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: widget.tint.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '×17, а не ×4',
+                    style: text.labelLarge?.copyWith(
+                      color: widget.tint,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ).animate().fadeIn(duration: 400.ms).scale(
+                      begin: const Offset(0.8, 0.8),
+                      curve: Curves.easeOutBack,
+                    ),
             ],
           ),
           const SizedBox(height: 12),
@@ -128,24 +189,18 @@ class _LessonCompoundGrowthState extends State<LessonCompoundGrowth>
             child: FilledButton.icon(
               onPressed: _run,
               icon: const Icon(Icons.play_arrow, size: 18),
-              label: Text(t > 0.97 ? 'Ещё раз' : 'Запустить 30 лет'),
+              label: Text(_revealed ? 'Ещё раз' : 'Запустить 30 лет'),
             ),
           ),
         ],
       ),
-    );
+    ).animate().fadeIn(duration: 350.ms).slideY(
+          begin: 0.06,
+          curve: Curves.easeOutCubic,
+        );
   }
-}
 
-class _Legend extends StatelessWidget {
-  const _Legend({required this.color, required this.label, this.dashed = false});
-
-  final Color color;
-  final String label;
-  final bool dashed;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _legend(Color color, String label, bool dashed) {
     final text = Theme.of(context).textTheme;
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -170,130 +225,6 @@ class _Legend extends StatelessWidget {
   }
 }
 
-class _AccentChip extends StatelessWidget {
-  const _AccentChip({required this.text, required this.color});
-
-  final String text;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        text,
-        style: t.labelLarge?.copyWith(color: color, fontWeight: FontWeight.w800),
-      ),
-    );
-  }
-}
-
-class _GrowthPainter extends CustomPainter {
-  _GrowthPainter({
-    required this.compound,
-    required this.simple,
-    required this.progress,
-    required this.line,
-    required this.ghost,
-    required this.grid,
-  });
-
-  final List<double> compound;
-  final List<double> simple;
-  final double progress;
-  final Color line;
-  final Color ghost;
-  final Color grid;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final maxV = compound.last;
-    final n = compound.length - 1;
-
-    Offset point(List<double> data, int i) {
-      final x = size.width * (i / n);
-      final y = size.height * (1 - data[i] / maxV);
-      return Offset(x, y);
-    }
-
-    // Сетка.
-    final gridPaint = Paint()
-      ..color = grid
-      ..strokeWidth = 1;
-    for (var i = 0; i <= 4; i++) {
-      final y = size.height * i / 4;
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
-    }
-
-    // Призрак простого сложения (пунктир, всегда целиком).
-    final ghostPaint = Paint()
-      ..color = ghost.withValues(alpha: 0.5)
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
-    final ghostPath = Path()..moveTo(point(simple, 0).dx, point(simple, 0).dy);
-    for (var i = 1; i <= n; i++) {
-      ghostPath.lineTo(point(simple, i).dx, point(simple, i).dy);
-    }
-    _drawDashed(canvas, ghostPath, ghostPaint);
-
-    // Кривая сложного процента, раскрывается слева направо.
-    final shown = (n * progress).clamp(0, n).toDouble();
-    final full = shown.floor();
-    final linePaint = Paint()
-      ..color = line
-      ..strokeWidth = 3
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-    final path = Path()..moveTo(point(compound, 0).dx, point(compound, 0).dy);
-    for (var i = 1; i <= full; i++) {
-      path.lineTo(point(compound, i).dx, point(compound, i).dy);
-    }
-    if (full < n) {
-      final frac = shown - full;
-      final a = point(compound, full);
-      final b = point(compound, full + 1);
-      path.lineTo(a.dx + (b.dx - a.dx) * frac, a.dy + (b.dy - a.dy) * frac);
-    }
-    canvas.drawPath(path, linePaint);
-
-    // Точка на кончике.
-    final tip = full < n
-        ? Offset(
-            point(compound, full).dx +
-                (point(compound, full + 1).dx - point(compound, full).dx) *
-                    (shown - full),
-            point(compound, full).dy +
-                (point(compound, full + 1).dy - point(compound, full).dy) *
-                    (shown - full),
-          )
-        : point(compound, n);
-    canvas.drawCircle(tip, 4, Paint()..color = line);
-  }
-
-  void _drawDashed(Canvas canvas, Path path, Paint paint) {
-    for (final metric in path.computeMetrics()) {
-      var dist = 0.0;
-      while (dist < metric.length) {
-        final next = dist + 5;
-        canvas.drawPath(
-          metric.extractPath(dist, next.clamp(0, metric.length)),
-          paint,
-        );
-        dist = next + 4;
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(_GrowthPainter old) => old.progress != progress;
-}
-
 double _pow(double base, int exp) {
   var r = 1.0;
   for (var i = 0; i < exp; i++) {
@@ -310,13 +241,4 @@ String _money(double v) {
     buf.write(s[i]);
   }
   return buf.toString();
-}
-
-String _yearWord(int y) {
-  final m10 = y % 10;
-  final m100 = y % 100;
-  if (m100 >= 11 && m100 <= 14) return 'лет';
-  if (m10 == 1) return 'год';
-  if (m10 >= 2 && m10 <= 4) return 'года';
-  return 'лет';
 }
