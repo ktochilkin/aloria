@@ -1,9 +1,9 @@
-import 'package:aloria/core/theme/tokens.dart';
+import 'package:aloria/features/learn/presentation/widgets/blocks/block_kit.dart';
 import 'package:flutter/material.dart';
 
 /// Учебный блок к уроку про инфляцию: «таяние денег». Сумма на счёте та же,
 /// но покупательная способность с годами тает. Слайдер лет — реальная
-/// стоимость сжимается. Для урока про инфляцию.
+/// стоимость сжимается. Собран на block_kit (стиль «воздух»).
 class LessonInflationErosion extends StatefulWidget {
   const LessonInflationErosion({super.key, required this.tint});
 
@@ -34,13 +34,10 @@ class _LessonInflationErosionState extends State<LessonInflationErosion> {
     final real = _real;
     final lostPct = (1 - real / _amount) * 100;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Таяние денег',
+      subtitle: '1000 ₽ под инфляцию 7% в год',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -50,37 +47,28 @@ class _LessonInflationErosionState extends State<LessonInflationErosion> {
             frac: 1,
             color: scheme.onSurfaceVariant,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: BlockSpacing.m),
           _MoneyBar(
             label: 'реально можно купить',
             value: real,
             frac: real / _amount,
-            color: real / _amount < 0.6 ? AppColors.error : widget.tint,
+            color: real / _amount < 0.6
+                ? BlockChartColors.error
+                : widget.tint,
             animate: true,
           ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Icon(Icons.schedule, size: 16, color: widget.tint),
-              const SizedBox(width: 6),
-              Text(
-                'Прошло лет',
-                style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-              ),
-              const Spacer(),
-              Text(
-                '${_years.round()}',
-                style: text.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-              ),
-            ],
-          ),
-          Slider(
+          const SizedBox(height: BlockSpacing.l),
+          BlockSlider(
+            tint: widget.tint,
+            label: 'Прошло лет',
+            valueLabel: '${_years.round()}',
             value: _years,
+            min: 0,
             max: 20,
             divisions: 20,
-            activeColor: widget.tint,
             onChanged: (v) => setState(() => _years = v),
           ),
+          const SizedBox(height: BlockSpacing.s),
           Text(
             'Сумма та же, но за ${_years.round()} лет инфляция 7% в год съела '
             '${lostPct.round()}% покупательной способности.',
@@ -134,9 +122,9 @@ class _MoneyBar extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: BlockSpacing.xs),
         ClipRRect(
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BlockRadii.innerBr,
           child: Stack(
             children: [
               Container(height: 18, color: scheme.surface),

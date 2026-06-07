@@ -1,10 +1,13 @@
-import 'package:aloria/core/theme/tokens.dart';
+import 'package:aloria/features/learn/presentation/widgets/blocks/block_kit.dart';
 import 'package:flutter/material.dart';
 
 /// Учебный блок к уроку про мошенничество: мини-тренажёр «красный флаг или
 /// нет?». Несколько реальных по форме предложений; пользователь решает сам,
 /// потом раскрывается разбор. Превращает пассивный список красных флагов в
 /// тренировку самого навыка.
+///
+/// Собран на block_kit (стиль «воздух»): каждое предложение — отдельная
+/// [LessonBlockCard], ответы — BlockButton, вердикт — BlockChip(tone).
 class LessonScamFlags extends StatefulWidget {
   const LessonScamFlags({super.key, required this.tint});
 
@@ -44,7 +47,7 @@ class _LessonScamFlagsState extends State<LessonScamFlags> {
     return Column(
       children: [
         for (var i = 0; i < _offers.length; i++) ...[
-          if (i > 0) const SizedBox(height: 10),
+          if (i > 0) const SizedBox(height: BlockSpacing.m),
           _FlagCard(
             offer: _offers[i],
             answeredScam: _answers[i],
@@ -80,18 +83,12 @@ class _FlagCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
     final answered = answeredScam != null;
     final correct = answered && answeredScam == offer.isScam;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      padding: const EdgeInsets.all(14),
+    return LessonBlockCard(
+      tint: tint,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -102,29 +99,31 @@ class _FlagCard extends StatelessWidget {
               height: 1.4,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: BlockSpacing.m),
           if (!answered)
             Row(
               children: [
                 Expanded(
-                  child: OutlinedButton.icon(
+                  child: BlockButton(
+                    tint: tint,
+                    label: 'Красный флаг',
+                    icon: Icons.flag,
                     onPressed: () => onAnswer(true),
-                    icon: const Icon(Icons.flag, size: 16),
-                    label: const Text('Красный флаг'),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: BlockSpacing.s),
                 Expanded(
-                  child: OutlinedButton.icon(
+                  child: BlockButton(
+                    tint: tint,
+                    label: 'Нормально',
+                    icon: Icons.check,
                     onPressed: () => onAnswer(false),
-                    icon: const Icon(Icons.check, size: 16),
-                    label: const Text('Нормально'),
                   ),
                 ),
               ],
             )
           else
-            _Verdict(offer: offer, correct: correct),
+            _Verdict(offer: offer, correct: correct, tint: tint),
         ],
       ),
     );
@@ -132,40 +131,39 @@ class _FlagCard extends StatelessWidget {
 }
 
 class _Verdict extends StatelessWidget {
-  const _Verdict({required this.offer, required this.correct});
+  const _Verdict({
+    required this.offer,
+    required this.correct,
+    required this.tint,
+  });
 
   final _Offer offer;
   final bool correct;
+  final Color tint;
 
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
-    final verdictColor = offer.isScam ? AppColors.error : AppColors.success;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Icon(
-              correct ? Icons.check_circle : Icons.cancel,
-              size: 18,
-              color: correct ? AppColors.success : AppColors.error,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              correct ? 'Верно — ' : 'Не совсем — ',
-              style: text.labelLarge?.copyWith(fontWeight: FontWeight.w800),
-            ),
-            Text(
-              offer.isScam ? 'красный флаг' : 'нормальное предложение',
-              style: text.labelLarge?.copyWith(
-                fontWeight: FontWeight.w800,
-                color: verdictColor,
+            Expanded(
+              child: Text(
+                correct ? 'Верно' : 'Не совсем',
+                style: text.labelLarge?.copyWith(fontWeight: FontWeight.w800),
               ),
+            ),
+            const SizedBox(width: BlockSpacing.s),
+            BlockChip(
+              text: offer.isScam ? 'красный флаг' : 'нормальное предложение',
+              tint: tint,
+              tone: offer.isScam ? BlockTone.error : BlockTone.success,
             ),
           ],
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: BlockSpacing.s),
         Text(
           offer.why,
           style: text.bodySmall?.copyWith(height: 1.45),

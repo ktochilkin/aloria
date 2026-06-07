@@ -1,10 +1,13 @@
 import 'dart:math' as math;
 
 import 'package:aloria/core/theme/tokens.dart';
+import 'package:aloria/features/learn/presentation/widgets/blocks/block_kit.dart';
 import 'package:flutter/material.dart';
 
 /// Gauge ставки ЦБ: слайдер ставки + предсказание вверх/вниз.
 /// Показывает обратную реакцию цены короткой и длинной облигации (дюрация).
+/// Собран на block_kit (стиль «воздух»): карточка-обёртка, слайдер — BlockSlider,
+/// число-итог — NumberAccent. Сама дуга-датчик рисуется CustomPainter'ом.
 class LessonRateMoveGauge extends StatefulWidget {
   const LessonRateMoveGauge({super.key, required this.tint});
 
@@ -78,23 +81,18 @@ class _LessonRateMoveGaugeState extends State<LessonRateMoveGauge>
     final shortMove = -_shortDur * _delta * t;
     final longMove = -_longDur * _delta * t;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Ставка ЦБ и цены облигаций',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Ставка ЦБ и цены облигаций', style: text.titleSmall),
-          const SizedBox(height: 4),
-          Text(
-            'Ставка ${_rate.toStringAsFixed(0)}%',
-            style: text.headlineSmall?.copyWith(color: widget.tint),
+          NumberAccent(
+            value: 'Ставка ${_rate.toStringAsFixed(0)}%',
+            label: 'ключевая ставка',
+            tint: widget.tint,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: BlockSpacing.s),
           SizedBox(
             height: 96,
             child: CustomPaint(
@@ -106,22 +104,23 @@ class _LessonRateMoveGaugeState extends State<LessonRateMoveGauge>
               ),
             ),
           ),
-          Slider(
+          BlockSlider(
+            tint: widget.tint,
+            label: 'Ставка',
+            valueLabel: '${_rate.toStringAsFixed(0)}%',
             value: _rate,
             min: _minRate,
             max: _maxRate,
             divisions: (_maxRate - _minRate).round(),
-            activeColor: widget.tint,
-            label: '${_rate.toStringAsFixed(0)}%',
             onChanged: (v) => setState(() {
               _rate = v;
               _resolved = false;
               _delta = 0;
             }),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: BlockSpacing.xs),
           Text('Куда пойдёт ставка?', style: text.bodySmall),
-          const SizedBox(height: 6),
+          const SizedBox(height: BlockSpacing.s),
           Row(
             children: [
               Expanded(
@@ -133,7 +132,7 @@ class _LessonRateMoveGaugeState extends State<LessonRateMoveGauge>
                   onTap: () => _predict(1),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: BlockSpacing.s),
               Expanded(
                 child: _DirButton(
                   label: 'Вниз',
@@ -143,7 +142,7 @@ class _LessonRateMoveGaugeState extends State<LessonRateMoveGauge>
                   onTap: () => _predict(-1),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: BlockSpacing.s),
               FilledButton(
                 onPressed: _guess == 0 ? null : _apply,
                 style: FilledButton.styleFrom(backgroundColor: widget.tint),
@@ -151,17 +150,17 @@ class _LessonRateMoveGaugeState extends State<LessonRateMoveGauge>
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: BlockSpacing.m),
           _BondReaction(
             title: 'Короткая (дюрация ${_shortDur.toStringAsFixed(1)})',
             move: _resolved ? shortMove : 0,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: BlockSpacing.s),
           _BondReaction(
             title: 'Длинная (дюрация ${_longDur.toStringAsFixed(1)})',
             move: _resolved ? longMove : 0,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: BlockSpacing.s),
           Text(
             'Длинная облигация реагирует сильнее: больше дюрация — больше движение цены.',
             style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
@@ -218,7 +217,7 @@ class _BondReaction extends StatelessWidget {
     final up = move >= 0;
     final color = move == 0
         ? scheme.onSurfaceVariant
-        : (up ? AppColors.success : AppColors.error);
+        : (up ? BlockChartColors.success : BlockChartColors.error);
     final mag = (move.abs() / 60).clamp(0.0, 1.0);
 
     return Column(
@@ -236,7 +235,7 @@ class _BondReaction extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: BlockSpacing.xs),
         ClipRRect(
           borderRadius: BorderRadius.circular(4),
           child: LinearProgressIndicator(
@@ -303,7 +302,9 @@ class _RateGaugePainter extends CustomPainter {
 }
 
 /// Реальная доходность: номинальная − инфляция. Gauge уходит в красное,
-/// когда инфляция обгоняет доходность.
+/// когда инфляция обгоняет доходность. Собран на block_kit: карточка-обёртка,
+/// слайдеры — BlockSlider, число-итог — NumberAccent. Полоса-датчик рисуется
+/// CustomPainter'ом.
 class LessonRealYield extends StatefulWidget {
   const LessonRealYield({super.key, required this.tint});
 
@@ -323,28 +324,23 @@ class _LessonRealYieldState extends State<LessonRealYield> {
     final text = Theme.of(context).textTheme;
     final real = _nominal - _inflation;
     final positive = real >= 0;
-    final color = positive ? AppColors.success : AppColors.error;
+    final color = positive ? BlockChartColors.success : BlockChartColors.error;
 
     // Шкала реальной доходности от -10 до +10.
     final norm = ((real + 10) / 20).clamp(0.0, 1.0);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Реальная доходность',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Реальная доходность', style: text.titleSmall),
-          const SizedBox(height: 4),
-          Text(
-            '${real >= 0 ? '+' : ''}${real.toStringAsFixed(1)}% годовых',
-            style: text.headlineSmall?.copyWith(color: color),
+          NumberAccent(
+            value: '${real >= 0 ? '+' : ''}${real.toStringAsFixed(1)}%',
+            label: 'годовых сверх инфляции',
+            tint: color,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: BlockSpacing.m),
           SizedBox(
             height: 22,
             child: CustomPaint(
@@ -356,26 +352,28 @@ class _LessonRealYieldState extends State<LessonRealYield> {
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          _LabeledSlider(
+          const SizedBox(height: BlockSpacing.l),
+          BlockSlider(
+            tint: widget.tint,
             label: 'Номинальная доходность',
+            valueLabel: '${_nominal.toStringAsFixed(0)}%',
             value: _nominal,
             min: 0,
             max: 25,
-            suffix: '%',
-            tint: widget.tint,
+            divisions: 25,
             onChanged: (v) => setState(() => _nominal = v),
           ),
-          _LabeledSlider(
+          BlockSlider(
+            tint: AppColors.warning,
             label: 'Инфляция',
+            valueLabel: '${_inflation.toStringAsFixed(0)}%',
             value: _inflation,
             min: 0,
             max: 25,
-            suffix: '%',
-            tint: AppColors.warning,
+            divisions: 25,
             onChanged: (v) => setState(() => _inflation = v),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: BlockSpacing.s),
           Text(
             positive
                 ? 'Деньги растут быстрее цен — капитал прибавляет.'
@@ -384,56 +382,6 @@ class _LessonRealYieldState extends State<LessonRealYield> {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _LabeledSlider extends StatelessWidget {
-  const _LabeledSlider({
-    required this.label,
-    required this.value,
-    required this.min,
-    required this.max,
-    required this.suffix,
-    required this.tint,
-    required this.onChanged,
-  });
-
-  final String label;
-  final double value;
-  final double min;
-  final double max;
-  final String suffix;
-  final Color tint;
-  final ValueChanged<double> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(child: Text(label, style: text.bodySmall)),
-            Text(
-              '${value.toStringAsFixed(0)}$suffix',
-              style: text.bodyMedium?.copyWith(
-                color: tint,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-        Slider(
-          value: value,
-          min: min,
-          max: max,
-          divisions: (max - min).round(),
-          activeColor: tint,
-          onChanged: onChanged,
-        ),
-      ],
     );
   }
 }
@@ -460,7 +408,7 @@ class _RealYieldBarPainter extends CustomPainter {
 
     final mid = size.width / 2;
     final fill = Paint()
-      ..color = positive ? AppColors.success : AppColors.error;
+      ..color = positive ? BlockChartColors.success : BlockChartColors.error;
     final x = size.width * value;
     final Rect fillRect;
     if (x >= mid) {
@@ -483,7 +431,8 @@ class _RealYieldBarPainter extends CustomPainter {
 }
 
 /// Две колбы — Рубли и Бумага. Слайдер переливает между ними,
-/// сумма сохраняется. Уровень жидкости анимирован.
+/// сумма сохраняется. Уровень жидкости анимирован. Собран на block_kit:
+/// карточка-обёртка, слайдер — BlockSlider. Колбы рисуются CustomPainter'ом.
 class LessonRublesPaperFlow extends StatefulWidget {
   const LessonRublesPaperFlow({super.key, required this.tint});
 
@@ -536,27 +485,16 @@ class _LessonRublesPaperFlowState extends State<LessonRublesPaperFlow>
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
     final paper = _total * _paperShare;
     final cash = _total - paper;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Рубли и бумага',
+      subtitle: 'Покупаешь бумагу — рублей становится меньше. Сумма не исчезает.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Рубли и бумага', style: text.titleSmall),
-          const SizedBox(height: 4),
-          Text(
-            'Покупаешь бумагу — рублей становится меньше. Сумма не исчезает.',
-            style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 16),
           SizedBox(
             height: 140,
             child: Row(
@@ -567,12 +505,12 @@ class _LessonRublesPaperFlowState extends State<LessonRublesPaperFlow>
                     label: 'Рубли',
                     amount: cash,
                     fill: 1 - _paperShare,
-                    color: AppColors.success,
+                    color: BlockChartColors.success,
                   ),
                 ),
-                const SizedBox(width: 24),
+                const SizedBox(width: BlockSpacing.xl),
                 Icon(Icons.swap_horiz, color: scheme.onSurfaceVariant),
-                const SizedBox(width: 24),
+                const SizedBox(width: BlockSpacing.xl),
                 Expanded(
                   child: _Flask(
                     label: 'Бумага',
@@ -584,13 +522,15 @@ class _LessonRublesPaperFlowState extends State<LessonRublesPaperFlow>
               ],
             ),
           ),
-          const SizedBox(height: 16),
-          Text('Доля в бумаге', style: text.bodySmall),
-          Slider(
+          const SizedBox(height: BlockSpacing.l),
+          BlockSlider(
+            tint: widget.tint,
+            label: 'Доля в бумаге',
+            valueLabel: '${(_targetShare * 100).toStringAsFixed(0)}%',
             value: _targetShare,
+            min: 0,
+            max: 1,
             divisions: 20,
-            activeColor: widget.tint,
-            label: '${(_targetShare * 100).toStringAsFixed(0)}%',
             onChanged: _setTarget,
           ),
         ],
@@ -630,7 +570,7 @@ class _Flask extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: BlockSpacing.s),
         Text(label, style: text.bodySmall),
         Text(
           '${(amount / 1000).toStringAsFixed(1)} тыс ₽',
@@ -701,6 +641,8 @@ class _FlaskPainter extends CustomPainter {
 
 /// Развилка «ничего не делать»: оставить лежать (узкая линия вниз — инфляция)
 /// против отдать в работу (веер исходов вверх и вниз). Тап раскрывает ветку.
+/// Собран на block_kit: карточка-обёртка, итоги-плашки — BlockChip. Сама
+/// развилка-веер рисуется CustomPainter'ом.
 class LessonDoNothingFork extends StatefulWidget {
   const LessonDoNothingFork({super.key, required this.tint});
 
@@ -757,25 +699,14 @@ class _LessonDoNothingForkState extends State<LessonDoNothingFork>
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Что будет с 100 тыс ₽ за 3 года',
+      subtitle: 'Оба варианта несут риск. «Ничего не делать» — тоже выбор.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Что будет с 100 тыс ₽ за 3 года', style: text.titleSmall),
-          const SizedBox(height: 4),
-          Text(
-            'Оба варианта несут риск. «Ничего не делать» — тоже выбор.',
-            style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 12),
           SizedBox(
             height: 150,
             child: CustomPaint(
@@ -791,7 +722,7 @@ class _LessonDoNothingForkState extends State<LessonDoNothingFork>
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: BlockSpacing.m),
           Row(
             children: [
               Expanded(
@@ -804,7 +735,7 @@ class _LessonDoNothingForkState extends State<LessonDoNothingFork>
                   child: Text(_expandIdle ? 'Лежит ✓' : 'Оставить лежать'),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: BlockSpacing.s),
               Expanded(
                 child: OutlinedButton(
                   onPressed: _toggleWork,
@@ -818,21 +749,22 @@ class _LessonDoNothingForkState extends State<LessonDoNothingFork>
             ],
           ),
           if (_expandIdle) ...[
-            const SizedBox(height: 10),
-            Text(
-              'Лежит: ${(_amount * _idleOutcome / 1000).toStringAsFixed(0)} тыс ₽ '
-              '— инфляция тихо съедает четверть.',
-              style: text.bodySmall?.copyWith(color: AppColors.warning),
+            const SizedBox(height: BlockSpacing.m),
+            BlockChip(
+              text: 'Лежит: ${(_amount * _idleOutcome / 1000).toStringAsFixed(0)} '
+                  'тыс ₽ — инфляция тихо съедает четверть.',
+              tint: AppColors.warning,
+              tone: BlockTone.error,
             ),
           ],
           if (_expandWork) ...[
-            const SizedBox(height: 10),
-            Text(
-              'В работе: от '
-              '${(_amount * _workOutcomes.last / 1000).toStringAsFixed(0)} до '
-              '${(_amount * _workOutcomes.first / 1000).toStringAsFixed(0)} тыс ₽ '
-              '— шире и вверх, и вниз.',
-              style: text.bodySmall?.copyWith(color: widget.tint),
+            const SizedBox(height: BlockSpacing.m),
+            BlockChip(
+              text: 'В работе: от '
+                  '${(_amount * _workOutcomes.last / 1000).toStringAsFixed(0)} до '
+                  '${(_amount * _workOutcomes.first / 1000).toStringAsFixed(0)} '
+                  'тыс ₽ — шире и вверх, и вниз.',
+              tint: widget.tint,
             ),
           ],
         ],
@@ -921,7 +853,9 @@ class _ForkPainter extends CustomPainter {
 }
 
 /// Утечка капитала на издержках: слайдер числа сделок в месяц,
-/// капли утекают в накопитель комиссий и спреда.
+/// капли утекают в накопитель комиссий и спреда. Собран на block_kit:
+/// карточка-обёртка, слайдер — BlockSlider, итог — BlockChip. Бак с каплями
+/// рисуется CustomPainter'ом.
 class LessonFeeLeak extends StatefulWidget {
   const LessonFeeLeak({super.key, required this.tint});
 
@@ -960,7 +894,6 @@ class _LessonFeeLeakState extends State<LessonFeeLeak>
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
 
     // Годовая утечка от оборота.
     final annualLeakShare = _tradesPerMonth * 12 * _ticketCost;
@@ -970,25 +903,15 @@ class _LessonFeeLeakState extends State<LessonFeeLeak>
     // Интенсивность капель растёт с числом сделок.
     final dropCount = (_tradesPerMonth / 3).clamp(1, 12).round();
 
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Издержки частой торговли',
+      subtitle: 'За год утекает '
+          '${(annualLeak / 1000).toStringAsFixed(1)} тыс ₽ '
+          '(${(annualLeakShare * 100).toStringAsFixed(1)}% капитала).',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Издержки частой торговли', style: text.titleSmall),
-          const SizedBox(height: 4),
-          Text(
-            'За год утекает '
-            '${(annualLeak / 1000).toStringAsFixed(1)} тыс ₽ '
-            '(${(annualLeakShare * 100).toStringAsFixed(1)}% капитала).',
-            style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 12),
           SizedBox(
             height: 150,
             child: CustomPaint(
@@ -1002,33 +925,23 @@ class _LessonFeeLeakState extends State<LessonFeeLeak>
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: Text('Сделок в месяц', style: text.bodySmall),
-              ),
-              Text(
-                _tradesPerMonth.toStringAsFixed(0),
-                style: text.bodyMedium?.copyWith(
-                  color: widget.tint,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          Slider(
+          const SizedBox(height: BlockSpacing.l),
+          BlockSlider(
+            tint: widget.tint,
+            label: 'Сделок в месяц',
+            valueLabel: _tradesPerMonth.toStringAsFixed(0),
             value: _tradesPerMonth,
+            min: 0,
             max: 60,
             divisions: 60,
-            activeColor: widget.tint,
-            label: _tradesPerMonth.toStringAsFixed(0),
             onChanged: (v) => setState(() => _tradesPerMonth = v),
           ),
-          Text(
-            'Остаётся работать на тебя: '
-            '${(remaining / 1000).toStringAsFixed(1)} тыс ₽.',
-            style: text.bodySmall?.copyWith(color: AppColors.warning),
+          const SizedBox(height: BlockSpacing.s),
+          BlockChip(
+            text: 'Остаётся работать на тебя: '
+                '${(remaining / 1000).toStringAsFixed(1)} тыс ₽.',
+            tint: AppColors.warning,
+            tone: BlockTone.error,
           ),
         ],
       ),
@@ -1086,7 +999,7 @@ class _LeakPainter extends CustomPainter {
     // Накопитель издержек.
     canvas.drawRRect(
       RRect.fromRectAndRadius(sinkRect, radius),
-      Paint()..color = AppColors.error.withValues(alpha: 0.2),
+      Paint()..color = BlockChartColors.error.withValues(alpha: 0.2),
     );
     final sinkLevel = (1 - capitalLevel).clamp(0.0, 1.0);
     final sinkTop = sinkRect.bottom - sinkRect.height * sinkLevel;
@@ -1094,13 +1007,13 @@ class _LeakPainter extends CustomPainter {
     canvas.clipRRect(RRect.fromRectAndRadius(sinkRect, radius));
     canvas.drawRect(
       Rect.fromLTRB(sinkRect.left, sinkTop, sinkRect.right, sinkRect.bottom),
-      Paint()..color = AppColors.error.withValues(alpha: 0.7),
+      Paint()..color = BlockChartColors.error.withValues(alpha: 0.7),
     );
     canvas.restore();
     canvas.drawRRect(
       RRect.fromRectAndRadius(sinkRect, radius),
       Paint()
-        ..color = AppColors.error
+        ..color = BlockChartColors.error
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2,
     );
@@ -1108,7 +1021,7 @@ class _LeakPainter extends CustomPainter {
     // Капли от бака к накопителю.
     final from = Offset(capRect.right, capRect.center.dy);
     final to = Offset(sinkRect.left, sinkRect.top);
-    final dropPaint = Paint()..color = AppColors.error;
+    final dropPaint = Paint()..color = BlockChartColors.error;
     for (var i = 0; i < dropCount; i++) {
       final local = (phase + i / dropCount) % 1.0;
       final pos = Offset.lerp(from, to, local)!;

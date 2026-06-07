@@ -1,9 +1,11 @@
-import 'package:aloria/core/theme/tokens.dart';
+import 'package:aloria/features/learn/presentation/widgets/blocks/block_kit.dart';
 import 'package:flutter/material.dart';
 
 /// Учебный блок к уроку про дивиденды: график дивидендного гэпа. Цена идёт
 /// ровно, а на следующий торговый день после «последнего дня с дивидендом»
-/// проседает примерно на размер выплаты. Для урока про дивиденды.
+/// проседает примерно на размер выплаты. Собран на block_kit («воздух»);
+/// сам график — кастомный painter (нужен видимый разрыв линии и пунктир гэпа,
+/// чего гладкая линия не передаёт).
 class LessonDivGapChart extends StatelessWidget {
   const LessonDivGapChart({super.key, required this.tint});
 
@@ -19,41 +21,26 @@ class LessonDivGapChart extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      padding: const EdgeInsets.fromLTRB(14, 16, 14, 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AspectRatio(
-            aspectRatio: 1.7,
-            child: CustomPaint(
-              painter: _DivGapPainter(
-                points: _points,
-                gapIndex: 5,
-                line: tint,
-                drop: AppColors.error,
-                grid: scheme.outlineVariant.withValues(alpha: 0.4),
-                labelStyle: text.bodySmall!.copyWith(
-                  color: AppColors.error,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+    return LessonBlockCard(
+      tint: tint,
+      title: 'Дивидендный гэп',
+      subtitle: 'Компания не стала хуже — часть стоимости просто ушла из неё '
+          'деньгами в виде дивиденда.',
+      child: AspectRatio(
+        aspectRatio: 1.7,
+        child: CustomPaint(
+          painter: _DivGapPainter(
+            points: _points,
+            gapIndex: 5,
+            line: tint,
+            drop: BlockChartColors.error,
+            grid: BlockChartColors.grid(scheme),
+            labelStyle: text.bodySmall!.copyWith(
+              color: BlockChartColors.error,
+              fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Компания не стала хуже — часть стоимости просто ушла из неё '
-            'деньгами в виде дивиденда.',
-            style: text.bodySmall?.copyWith(
-              color: scheme.onSurfaceVariant,
-              height: 1.4,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -89,7 +76,9 @@ class _DivGapPainter extends CustomPainter {
     }
 
     // Сетка.
-    final gridPaint = Paint()..color = grid..strokeWidth = 1;
+    final gridPaint = Paint()
+      ..color = grid
+      ..strokeWidth = 1;
     for (var i = 0; i <= 3; i++) {
       final y = size.height * i / 3;
       canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);

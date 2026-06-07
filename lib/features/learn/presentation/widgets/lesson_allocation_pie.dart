@@ -1,12 +1,14 @@
 import 'dart:math' as math;
 
-import 'package:aloria/core/theme/tokens.dart';
+import 'package:aloria/features/learn/presentation/widgets/blocks/block_kit.dart';
 import 'package:flutter/material.dart';
 
 /// Учебный блок к урокам про портфель/диверсификацию: интерактивный пирог.
 /// Пользователь двигает доли (акции / облигации / золото), пирог
 /// перерисовывается, а индикатор «устойчивость» растёт, когда добавляешь
 /// спокойную часть. Показывает, как состав влияет на размах просадки.
+/// Собран на block_kit (стиль «воздух»): карточка-обёртка, слайдеры —
+/// BlockSlider, легенда — BlockLegend; пирог рисуется своим painter'ом.
 class LessonAllocationPie extends StatefulWidget {
   const LessonAllocationPie({super.key, required this.tint});
 
@@ -17,18 +19,20 @@ class LessonAllocationPie extends StatefulWidget {
 }
 
 class _LessonAllocationPieState extends State<LessonAllocationPie> {
+  static const Color _gold = Color(0xFFE6B450);
+
   double _stocks = 60;
   double _bonds = 30;
-  double _gold = 10;
+  double _goldShare = 10;
 
-  double get _total => _stocks + _bonds + _gold;
+  double get _total => _stocks + _bonds + _goldShare;
 
   // Грубо: акции волатильнее, облигации/золото гасят размах.
   double get _drawdown {
     final t = _total <= 0 ? 1 : _total;
     final s = _stocks / t;
     final b = _bonds / t;
-    final g = _gold / t;
+    final g = _goldShare / t;
     return (s * 45 + b * 8 + g * 18).clamp(0, 45);
   }
 
@@ -37,22 +41,22 @@ class _LessonAllocationPieState extends State<LessonAllocationPie> {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
     final t = _total <= 0 ? 1 : _total;
+    const bondsColor = BlockChartColors.success;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Состав портфеля',
+      subtitle: 'Больше спокойной части (облигации, золото) — меньше размах '
+          'просадки, но и потолок роста ниже.',
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
             height: 150,
             child: CustomPaint(
               painter: _PiePainter(
-                fractions: [_stocks / t, _bonds / t, _gold / t],
-                colors: [widget.tint, AppColors.success, const Color(0xFFE6B450)],
+                fractions: [_stocks / t, _bonds / t, _goldShare / t],
+                colors: [widget.tint, bondsColor, _gold],
                 bg: scheme.surface,
               ),
               child: Center(
@@ -70,8 +74,8 @@ class _LessonAllocationPieState extends State<LessonAllocationPie> {
                       style: text.titleMedium?.copyWith(
                         fontWeight: FontWeight.w800,
                         color: _drawdown > 25
-                            ? AppColors.error
-                            : AppColors.success,
+                            ? BlockChartColors.error
+                            : BlockChartColors.success,
                       ),
                     ),
                   ],
@@ -79,86 +83,42 @@ class _LessonAllocationPieState extends State<LessonAllocationPie> {
               ),
             ),
           ),
-          const SizedBox(height: 10),
-          _AllocSlider(
+          const SizedBox(height: BlockSpacing.m),
+          BlockLegend(items: [
+            (widget.tint, 'акции'),
+            (bondsColor, 'облигации'),
+            (_gold, 'золото'),
+          ]),
+          const SizedBox(height: BlockSpacing.m),
+          BlockSlider(
+            tint: widget.tint,
             label: 'Акции',
+            valueLabel: '${_stocks.round()}',
             value: _stocks,
-            color: widget.tint,
+            min: 0,
+            max: 100,
             onChanged: (v) => setState(() => _stocks = v),
           ),
-          _AllocSlider(
+          BlockSlider(
+            tint: bondsColor,
             label: 'Облигации',
+            valueLabel: '${_bonds.round()}',
             value: _bonds,
-            color: AppColors.success,
+            min: 0,
+            max: 100,
             onChanged: (v) => setState(() => _bonds = v),
           ),
-          _AllocSlider(
+          BlockSlider(
+            tint: _gold,
             label: 'Золото',
-            value: _gold,
-            color: const Color(0xFFE6B450),
-            onChanged: (v) => setState(() => _gold = v),
-          ),
-          Text(
-            'Больше спокойной части (облигации, золото) — меньше размах '
-            'просадки, но и потолок роста ниже.',
-            textAlign: TextAlign.center,
-            style: text.bodySmall?.copyWith(
-              color: scheme.onSurfaceVariant,
-              height: 1.4,
-            ),
+            valueLabel: '${_goldShare.round()}',
+            value: _goldShare,
+            min: 0,
+            max: 100,
+            onChanged: (v) => setState(() => _goldShare = v),
           ),
         ],
       ),
-    );
-  }
-}
-
-class _AllocSlider extends StatelessWidget {
-  const _AllocSlider({
-    required this.label,
-    required this.value,
-    required this.color,
-    required this.onChanged,
-  });
-
-  final String label;
-  final double value;
-  final Color color;
-  final ValueChanged<double> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    return Row(
-      children: [
-        SizedBox(
-          width: 84,
-          child: Row(
-            children: [
-              Container(width: 10, height: 10, decoration: BoxDecoration(
-                color: color, borderRadius: BorderRadius.circular(2))),
-              const SizedBox(width: 6),
-              Text(label, style: text.bodySmall),
-            ],
-          ),
-        ),
-        Expanded(
-          child: Slider(
-            value: value,
-            max: 100,
-            activeColor: color,
-            onChanged: onChanged,
-          ),
-        ),
-        SizedBox(
-          width: 36,
-          child: Text(
-            '${value.round()}',
-            textAlign: TextAlign.right,
-            style: text.bodySmall?.copyWith(fontWeight: FontWeight.w700),
-          ),
-        ),
-      ],
     );
   }
 }

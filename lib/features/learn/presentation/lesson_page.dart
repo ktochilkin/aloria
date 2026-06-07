@@ -4,6 +4,7 @@ import 'package:aloria/features/learn/application/learning_providers.dart';
 import 'package:aloria/features/learn/data/learning_api_client.dart';
 import 'package:aloria/features/learn/data/learning_content_cache.dart';
 import 'package:aloria/features/learn/domain/models.dart';
+import 'package:aloria/features/learn/presentation/widgets/fading_header.dart';
 import 'package:aloria/features/learn/presentation/widgets/learning_widgets.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_blocks.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_quiz_block.dart';
@@ -107,6 +108,10 @@ class _LessonView extends ConsumerStatefulWidget {
 class _LessonViewState extends ConsumerState<_LessonView> {
   bool _markedThisOpen = false;
 
+  /// Фон страницы урока (светлая тема): лёгкий синий с уклоном в акцент —
+  /// карточки «всплывают» на нём за счёт тени, интерфейс читается цельным.
+  static const Color _lessonBgLight = Color(0xFFF3F6FE);
+
   /// Слитая версия урока: метаданные из списка + body, academicDefinition,
   /// recall* подгружаются отдельным запросом в [_loadedLesson]. Бэк не
   /// присылает body в /stages/{slug}, поэтому тело подгружается лениво.
@@ -142,6 +147,15 @@ class _LessonViewState extends ConsumerState<_LessonView> {
   }
 
   Lesson? _loadedLesson;
+
+  /// Затухание шапки урока по скроллу (0 — вверху, 1 — уехали).
+  final ValueNotifier<double> _headerFade = ValueNotifier(0);
+
+  @override
+  void dispose() {
+    _headerFade.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -230,9 +244,15 @@ class _LessonViewState extends ConsumerState<_LessonView> {
     final isRead = entry?.read ?? _markedThisOpen;
     final total = widget.section.lessons.length;
     final hasNext = widget.index + 1 < total;
+    final isLight = Theme.of(context).brightness == Brightness.light;
+    final lessonBg = isLight ? _lessonBgLight : null;
 
     return Scaffold(
-      appBar: AppBar(
+      backgroundColor: lessonBg,
+      extendBodyBehindAppBar: true,
+      appBar: FadingHeader(
+        fade: _headerFade,
+        baseColor: lessonBg,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
@@ -248,8 +268,11 @@ class _LessonViewState extends ConsumerState<_LessonView> {
           style: text.titleMedium?.copyWith(fontSize: 16),
         ),
       ),
-      body: ListView(
-        padding: EdgeInsets.fromLTRB(16, 8, 16, context.bottomNavBarPadding),
+      body: NotificationListener<ScrollNotification>(
+        onNotification: (n) => updateHeaderFade(_headerFade, n),
+        child: ListView(
+        padding: EdgeInsets.fromLTRB(
+            16, fadingHeaderTopInset(context), 16, context.bottomNavBarPadding),
         children: [
           _LessonProgressHeader(
             section: widget.section,
@@ -466,6 +489,7 @@ class _LessonViewState extends ConsumerState<_LessonView> {
           ),
           const SizedBox(height: 12),
         ],
+        ),
       ),
     );
   }

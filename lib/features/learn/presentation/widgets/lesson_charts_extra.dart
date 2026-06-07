@@ -1,10 +1,15 @@
-import 'package:aloria/core/theme/tokens.dart';
+import 'package:aloria/features/learn/presentation/widgets/blocks/block_kit.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 
 /// Две почти слипшиеся линии (fl_chart): индекс и индексный фонд, который его
 /// повторяет чуть ниже из-за комиссии. Для урока про индексные фонды.
+///
+/// Собран на block_kit (стиль «воздух»): карточка-обёртка [LessonBlockCard],
+/// легенда — [BlockLegend], палитра графика — из кита. Оставлен на конфиге
+/// fl_chart: смысл блока — две сплошные цветные линии, которые почти сливаются,
+/// а [blockLineChart] рисует вторую кривую нейтральным пунктиром (потерялся бы
+/// смысл «фонд почти повторяет индекс той же линией»).
 class LessonIndexVsFund extends StatelessWidget {
   const LessonIndexVsFund({super.key, required this.tint});
 
@@ -16,7 +21,6 @@ class LessonIndexVsFund extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
 
     List<FlSpot> spots(List<double> d) =>
         [for (var i = 0; i < d.length; i++) FlSpot(i.toDouble(), d[i])];
@@ -29,23 +33,18 @@ class LessonIndexVsFund extends StatelessWidget {
           dotData: const FlDotData(show: false),
         );
 
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+    return LessonBlockCard(
+      tint: tint,
+      title: 'Фонд повторяет индекс',
+      subtitle: 'разница — это комиссия, она накапливается',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              _Dot(color: tint, label: 'индекс'),
-              const SizedBox(width: 14),
-              const _Dot(color: AppColors.success, label: 'фонд (−комиссия)'),
-            ],
-          ),
-          const SizedBox(height: 12),
+          BlockLegend(items: [
+            (tint, 'индекс'),
+            (BlockChartColors.success, 'фонд (−комиссия)'),
+          ]),
+          const SizedBox(height: BlockSpacing.m),
           AspectRatio(
             aspectRatio: 1.7,
             child: LineChart(
@@ -56,7 +55,7 @@ class LessonIndexVsFund extends StatelessWidget {
                   drawVerticalLine: false,
                   horizontalInterval: 8,
                   getDrawingHorizontalLine: (_) => FlLine(
-                    color: scheme.outlineVariant.withValues(alpha: 0.4),
+                    color: BlockChartColors.grid(scheme),
                     strokeWidth: 1,
                   ),
                 ),
@@ -65,33 +64,27 @@ class LessonIndexVsFund extends StatelessWidget {
                 lineTouchData: const LineTouchData(enabled: false),
                 lineBarsData: [
                   bar(_index, tint),
-                  bar(_fund, AppColors.success),
+                  bar(_fund, BlockChartColors.success),
                 ],
               ),
-              duration: const Duration(milliseconds: 700),
-              curve: Curves.easeOutCubic,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Фонд повторяет индекс почти точь-в-точь — линии почти сливаются. '
-            'Разница накапливается из комиссии.',
-            style: text.bodySmall?.copyWith(
-              color: scheme.onSurfaceVariant,
-              height: 1.4,
+              duration: BlockMotion.chart,
+              curve: BlockMotion.curve,
             ),
           ),
         ],
       ),
-    ).animate().fadeIn(duration: 350.ms).slideY(
-          begin: 0.06,
-          curve: Curves.easeOutCubic,
-        );
+    );
   }
 }
 
 /// Живой P&L: цена покупки — горизонтальная линия, рыночная цена анимированно
 /// ходит, зона между ними подсвечивается зелёным/красным. Для урока про P&L.
+///
+/// Собран на block_kit (стиль «воздух»): карточка-обёртка [LessonBlockCard],
+/// шапка с метрикой результата [BlockMetric]. График — кастомный
+/// [_PnlPainter] (заливка зоны между ценой покупки и текущей ценой, смена цвета
+/// при переходе через ноль), это не ложится в [blockLineChart], поэтому painter
+/// оставлен в палитре кита.
 class LessonPnlLive extends StatefulWidget {
   const LessonPnlLive({super.key, required this.tint});
 
@@ -130,7 +123,6 @@ class _LessonPnlLiveState extends State<LessonPnlLive>
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
     final progress = _c.value;
     final pos = progress * (_path.length - 1);
     final i = pos.floor();
@@ -141,34 +133,31 @@ class _LessonPnlLiveState extends State<LessonPnlLive>
     final pnl = price - _buy;
     final up = pnl >= 0;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+    return LessonBlockCard(
+      tint: widget.tint,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'куплено по ${_buy.toStringAsFixed(0)}',
-                style: text.bodySmall?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
+              BlockMetric(
+                label: 'результат',
+                value: 'куплено по ${_buy.toStringAsFixed(0)}',
               ),
               Text(
                 '${up ? '+' : ''}${pnl.toStringAsFixed(1)} ₽',
-                style: text.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: up ? AppColors.success : AppColors.error,
-                ),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: up
+                          ? BlockChartColors.success
+                          : BlockChartColors.error,
+                    ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: BlockSpacing.s),
           AspectRatio(
             aspectRatio: 1.9,
             child: CustomPaint(
@@ -176,48 +165,21 @@ class _LessonPnlLiveState extends State<LessonPnlLive>
                 path: _path,
                 buy: _buy,
                 progress: progress,
-                grid: scheme.outlineVariant.withValues(alpha: 0.4),
+                grid: BlockChartColors.grid(scheme),
               ),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: BlockSpacing.s),
           Text(
             'Пока не продал — это «бумажный» результат: он всё время пляшет '
             'вместе с ценой.',
-            style: text.bodySmall?.copyWith(
-              color: scheme.onSurfaceVariant,
-              height: 1.4,
-            ),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                  height: 1.4,
+                ),
           ),
         ],
       ),
-    ).animate().fadeIn(duration: 350.ms).slideY(
-          begin: 0.06,
-          curve: Curves.easeOutCubic,
-        );
-  }
-}
-
-class _Dot extends StatelessWidget {
-  const _Dot({required this.color, required this.label});
-
-  final Color color;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(width: 14, height: 3, color: color),
-        const SizedBox(width: 6),
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-        ),
-      ],
     );
   }
 }
@@ -278,14 +240,14 @@ class _PnlPainter extends CustomPainter {
     canvas.drawPath(
       fill,
       Paint()
-        ..color = (up ? AppColors.success : AppColors.error)
+        ..color = (up ? BlockChartColors.success : BlockChartColors.error)
             .withValues(alpha: 0.15),
     );
 
     canvas.drawPath(
       linePath,
       Paint()
-        ..color = up ? AppColors.success : AppColors.error
+        ..color = up ? BlockChartColors.success : BlockChartColors.error
         ..strokeWidth = 2.5
         ..style = PaintingStyle.stroke
         ..strokeJoin = StrokeJoin.round,
@@ -293,7 +255,7 @@ class _PnlPainter extends CustomPainter {
     canvas.drawCircle(
       tip,
       4,
-      Paint()..color = up ? AppColors.success : AppColors.error,
+      Paint()..color = up ? BlockChartColors.success : BlockChartColors.error,
     );
   }
 

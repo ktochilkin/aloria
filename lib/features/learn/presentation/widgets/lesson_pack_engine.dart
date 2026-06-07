@@ -1,4 +1,5 @@
 import 'package:aloria/core/theme/tokens.dart';
+import 'package:aloria/features/learn/presentation/widgets/blocks/block_kit.dart';
 import 'package:flutter/material.dart';
 
 /// Один уровень mock-стакана: цена и объём (в лотах).
@@ -7,27 +8,6 @@ class _Level {
 
   final double price;
   final int volume;
-}
-
-/// Общая обёртка учебного блока: единый фон, скругление и рамка.
-class _Frame extends StatelessWidget {
-  const _Frame({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-      child: child,
-    );
-  }
 }
 
 /// Маленький цветной бар-индикатор объёма для строки стакана.
@@ -118,20 +98,16 @@ class _LessonEatTheBookState extends State<LessonEatTheBook> {
     final best = _asks.first.price;
     final slippage = (avg - best) / best * 100;
 
-    return _Frame(
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Покупка по рынку',
+      subtitle: 'Чем больше объём, тем глубже ты «съедаешь» стакан.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Покупка по рынку', style: text.titleSmall),
-          const SizedBox(height: 4),
-          Text(
-            'Чем больше объём, тем глубже ты «съедаешь» стакан.',
-            style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 12),
           for (var i = 0; i < _asks.length; i++)
             Padding(
-              padding: const EdgeInsets.only(bottom: 4),
+              padding: const EdgeInsets.only(bottom: BlockSpacing.xs),
               child: Row(
                 children: [
                   SizedBox(
@@ -141,7 +117,7 @@ class _LessonEatTheBookState extends State<LessonEatTheBook> {
                       style: text.bodySmall?.copyWith(
                         color: eaten[i]
                             ? scheme.onSurfaceVariant
-                            : AppColors.error,
+                            : BlockChartColors.error,
                         decoration:
                             eaten[i] ? TextDecoration.lineThrough : null,
                       ),
@@ -156,45 +132,45 @@ class _LessonEatTheBookState extends State<LessonEatTheBook> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: BlockSpacing.s),
                   Expanded(
                     child: _VolumeBar(
                       fraction: _asks[i].volume / maxVol,
-                      color: AppColors.error,
+                      color: BlockChartColors.error,
                       dimmed: eaten[i],
                     ),
                   ),
                 ],
               ),
             ),
-          const SizedBox(height: 8),
+          const SizedBox(height: BlockSpacing.s),
+          BlockSlider(
+            tint: widget.tint,
+            label: 'Лотов',
+            valueLabel: '${_lots.round()}',
+            value: _lots,
+            min: 1,
+            max: 30,
+            divisions: 29,
+            onChanged: (v) => setState(() => _lots = v),
+          ),
+          const SizedBox(height: BlockSpacing.m),
           Row(
             children: [
-              Text('Лотов: ${_lots.round()}', style: text.bodySmall),
               Expanded(
-                child: Slider(
-                  value: _lots,
-                  min: 1,
-                  max: 30,
-                  divisions: 29,
-                  activeColor: widget.tint,
-                  label: '${_lots.round()}',
-                  onChanged: (v) => setState(() => _lots = v),
+                child: BlockMetric(
+                  label: 'Средняя',
+                  value: '${avg.toStringAsFixed(2)} ₽',
+                  color: widget.tint,
                 ),
               ),
-            ],
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Средняя: ${avg.toStringAsFixed(2)} ₽',
-                style: text.bodyMedium?.copyWith(color: widget.tint),
-              ),
-              Text(
-                'Проскальзывание: ${slippage.toStringAsFixed(2)}%',
-                style: text.bodyMedium?.copyWith(
-                  color: slippage > 0.6 ? AppColors.warning : AppColors.success,
+              Expanded(
+                child: BlockMetric(
+                  label: 'Проскальзывание',
+                  value: '${slippage.toStringAsFixed(2)}%',
+                  color: slippage > 0.6
+                      ? AppColors.warning
+                      : BlockChartColors.success,
                 ),
               ),
             ],
@@ -241,7 +217,7 @@ class _LessonLimitOrWaitState extends State<LessonLimitOrWait> {
 
     Widget row(_Level level, Color color, bool highlight) {
       return Padding(
-        padding: const EdgeInsets.only(bottom: 4),
+        padding: const EdgeInsets.only(bottom: BlockSpacing.xs),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
           decoration: BoxDecoration(
@@ -266,7 +242,7 @@ class _LessonLimitOrWaitState extends State<LessonLimitOrWait> {
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: BlockSpacing.s),
               Expanded(
                 child: _VolumeBar(
                   fraction: level.volume / maxVol,
@@ -281,23 +257,19 @@ class _LessonLimitOrWaitState extends State<LessonLimitOrWait> {
 
     final placedInBids = !immediate;
 
-    return _Frame(
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Лимитка: сразу или в очередь',
+      subtitle: 'Цена лимитки решает: пересекаем спред или ждём встречную.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Лимитка: сразу или в очередь', style: text.titleSmall),
-          const SizedBox(height: 4),
-          Text(
-            'Цена лимитки решает: пересекаем спред или ждём встречную.',
-            style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 12),
           for (final a in _asks)
-            row(a, AppColors.error, immediate && a.price == _bestAsk),
-          const Divider(height: 8),
+            row(a, BlockChartColors.error, immediate && a.price == _bestAsk),
+          const Divider(height: BlockSpacing.s),
           if (placedInBids)
             Padding(
-              padding: const EdgeInsets.only(bottom: 4),
+              padding: const EdgeInsets.only(bottom: BlockSpacing.xs),
               child: Row(
                 children: [
                   SizedBox(
@@ -316,39 +288,27 @@ class _LessonLimitOrWaitState extends State<LessonLimitOrWait> {
                 ],
               ),
             ),
-          for (final b in _bids) row(b, AppColors.success, false),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Text('${_price.toStringAsFixed(1)} ₽', style: text.bodySmall),
-              Expanded(
-                child: Slider(
-                  value: _price,
-                  min: 99.5,
-                  max: 102.0,
-                  divisions: 5,
-                  activeColor: widget.tint,
-                  label: _price.toStringAsFixed(1),
-                  onChanged: (v) => setState(() => _price = v),
-                ),
-              ),
-            ],
+          for (final b in _bids) row(b, BlockChartColors.success, false),
+          const SizedBox(height: BlockSpacing.s),
+          BlockSlider(
+            tint: widget.tint,
+            label: 'Цена лимитки',
+            valueLabel: '${_price.toStringAsFixed(1)} ₽',
+            value: _price,
+            min: 99.5,
+            max: 102.0,
+            divisions: 5,
+            onChanged: (v) => setState(() => _price = v),
           ),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            decoration: BoxDecoration(
-              color: (immediate ? AppColors.success : AppColors.warning)
-                  .withValues(alpha: 0.16),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              immediate
+          const SizedBox(height: BlockSpacing.s),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: BlockChip(
+              text: immediate
                   ? 'исполнится сразу'
                   : 'встанет в очередь, ждёт встречную',
-              style: text.bodyMedium?.copyWith(
-                color: immediate ? AppColors.success : AppColors.warning,
-              ),
+              tint: widget.tint,
+              tone: immediate ? BlockTone.success : BlockTone.accent,
             ),
           ),
         ],
@@ -395,17 +355,19 @@ class _LessonMatchingMiniState extends State<LessonMatchingMini>
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
     final matched = _buy >= _sell;
 
+    // Карточка стороны заявки со статусом-чипом (Активна/Исполнена) —
+    // кастомная плашка движка, оставлена как есть.
     Widget card(String title, double price, Color color) {
       return Expanded(
         child: Container(
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.all(BlockSpacing.m),
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BlockRadii.innerBr,
             border: Border.all(color: color.withValues(alpha: 0.5)),
           ),
           child: Column(
@@ -417,11 +379,11 @@ class _LessonMatchingMiniState extends State<LessonMatchingMini>
                 '${price.toStringAsFixed(0)} ₽',
                 style: text.titleMedium?.copyWith(color: color),
               ),
-              Text(
-                matched ? 'Исполнена' : 'Активна',
-                style: text.bodySmall?.copyWith(
-                  color: matched ? AppColors.success : color,
-                ),
+              const SizedBox(height: BlockSpacing.s),
+              BlockChip(
+                text: matched ? 'Исполнена' : 'Активна',
+                tint: color,
+                tone: matched ? BlockTone.success : BlockTone.accent,
               ),
             ],
           ),
@@ -429,88 +391,64 @@ class _LessonMatchingMiniState extends State<LessonMatchingMini>
       );
     }
 
-    return _Frame(
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Как встречаются заявки',
+      subtitle: 'Сделка происходит, когда покупатель готов платить не меньше, '
+          'чем хочет продавец.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Как встречаются заявки', style: text.titleSmall),
-          const SizedBox(height: 4),
-          Text(
-            'Сделка происходит, когда покупатель готов платить не меньше, '
-            'чем хочет продавец.',
-            style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                card('Покупатель', _buy, BlockChartColors.success),
+                const SizedBox(width: BlockSpacing.m),
+                card('Продавец', _sell, BlockChartColors.error),
+              ],
+            ),
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              card('Покупатель', _buy, AppColors.success),
-              const SizedBox(width: 10),
-              card('Продавец', _sell, AppColors.error),
-            ],
+          const SizedBox(height: BlockSpacing.m),
+          BlockSlider(
+            tint: BlockChartColors.success,
+            label: 'Покупка',
+            valueLabel: _buy.toStringAsFixed(0),
+            value: _buy,
+            min: 95,
+            max: 105,
+            divisions: 10,
+            onChanged: (v) => setState(() {
+              _buy = v;
+              _check();
+            }),
           ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              SizedBox(
-                width: 70,
-                child: Text(
-                  'Покупка',
-                  style:
-                      text.bodySmall?.copyWith(color: AppColors.success),
-                ),
-              ),
-              Expanded(
-                child: Slider(
-                  value: _buy,
-                  min: 95,
-                  max: 105,
-                  divisions: 10,
-                  activeColor: AppColors.success,
-                  label: _buy.toStringAsFixed(0),
-                  onChanged: (v) => setState(() {
-                    _buy = v;
-                    _check();
-                  }),
-                ),
-              ),
-            ],
+          BlockSlider(
+            tint: BlockChartColors.error,
+            label: 'Продажа',
+            valueLabel: _sell.toStringAsFixed(0),
+            value: _sell,
+            min: 95,
+            max: 105,
+            divisions: 10,
+            onChanged: (v) => setState(() {
+              _sell = v;
+              _check();
+            }),
           ),
-          Row(
-            children: [
-              SizedBox(
-                width: 70,
-                child: Text(
-                  'Продажа',
-                  style: text.bodySmall?.copyWith(color: AppColors.error),
-                ),
-              ),
-              Expanded(
-                child: Slider(
-                  value: _sell,
-                  min: 95,
-                  max: 105,
-                  divisions: 10,
-                  activeColor: AppColors.error,
-                  label: _sell.toStringAsFixed(0),
-                  onChanged: (v) => setState(() {
-                    _sell = v;
-                    _check();
-                  }),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
+          const SizedBox(height: BlockSpacing.s),
           if (matched)
             Opacity(
               opacity: (0.4 + _flash.value * 0.6).clamp(0.0, 1.0),
               child: Container(
                 width: double.infinity,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: BlockSpacing.m,
+                  vertical: BlockSpacing.m,
+                ),
                 decoration: BoxDecoration(
                   color: widget.tint.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BlockRadii.innerBr,
                 ),
                 child: Row(
                   children: [
@@ -597,131 +535,117 @@ class _LessonBookVsTapeState extends State<LessonBookVsTape>
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
 
-    return _Frame(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Стакан и лента сделок', style: text.titleSmall),
-          const SizedBox(height: 4),
-          Text(
-            'Стакан — намерения. Лента — факт. Рыночная заявка превращает '
-            'одно в другое.',
-            style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 12),
-          IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Стакан (asks)', style: text.bodySmall),
-                      const SizedBox(height: 6),
-                      for (var i = 0; i < _asks.length; i++)
-                        Opacity(
-                          opacity: i == 0
-                              ? (1 - _link.value).clamp(0.3, 1.0)
-                              : 1,
-                          child: Padding(
-                            padding: const EdgeInsets.only(bottom: 4),
-                            child: Row(
-                              children: [
-                                SizedBox(
-                                  width: 48,
-                                  child: Text(
-                                    _asks[i].price.toStringAsFixed(1),
-                                    style: text.bodySmall
-                                        ?.copyWith(color: AppColors.error),
-                                  ),
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Стакан и лента сделок',
+      subtitle: 'Стакан — намерения. Лента — факт. Рыночная заявка превращает '
+          'одно в другое.',
+      footer: BlockButton(
+        tint: widget.tint,
+        label: _asks.isEmpty ? 'Сбросить' : 'Прилетела рыночная',
+        icon: Icons.flash_on,
+        fullWidth: false,
+        onPressed: _marketHit,
+      ),
+      // Кастомная визуализация движка: два столбца (стакан/лента) со
+      // связкой-анимацией снятия уровня — суть блока, не упрощаем.
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Стакан (asks)', style: text.bodySmall),
+                  const SizedBox(height: 6),
+                  for (var i = 0; i < _asks.length; i++)
+                    Opacity(
+                      opacity:
+                          i == 0 ? (1 - _link.value).clamp(0.3, 1.0) : 1,
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: BlockSpacing.xs),
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 48,
+                              child: Text(
+                                _asks[i].price.toStringAsFixed(1),
+                                style: text.bodySmall?.copyWith(
+                                  color: BlockChartColors.error,
                                 ),
-                                Text(
-                                  '${_asks[i].volume}',
-                                  style: text.bodySmall?.copyWith(
-                                    color: scheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              ],
+                              ),
+                            ),
+                            Text(
+                              '${_asks[i].volume}',
+                              style: text.bodySmall?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  if (_asks.isEmpty)
+                    Text(
+                      'уровни сняты',
+                      style: text.bodySmall
+                          ?.copyWith(color: scheme.onSurfaceVariant),
+                    ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: BlockSpacing.s),
+              child: Icon(
+                Icons.east,
+                size: 18,
+                color: widget.tint.withValues(
+                  alpha: (0.3 + _link.value * 0.7).clamp(0.0, 1.0),
+                ),
+              ),
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Лента', style: text.bodySmall),
+                  const SizedBox(height: 6),
+                  if (_tape.isEmpty)
+                    Text(
+                      'пока пусто',
+                      style: text.bodySmall
+                          ?.copyWith(color: scheme.onSurfaceVariant),
+                    ),
+                  for (var i = 0; i < _tape.length; i++)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: BlockSpacing.xs),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 48,
+                            child: Text(
+                              _tape[i].price.toStringAsFixed(1),
+                              style: text.bodySmall?.copyWith(
+                                color:
+                                    i == 0 ? widget.tint : scheme.onSurface,
+                              ),
                             ),
                           ),
-                        ),
-                      if (_asks.isEmpty)
-                        Text(
-                          'уровни сняты',
-                          style: text.bodySmall
-                              ?.copyWith(color: scheme.onSurfaceVariant),
-                        ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Icon(
-                    Icons.east,
-                    size: 18,
-                    color: widget.tint.withValues(
-                      alpha: (0.3 + _link.value * 0.7).clamp(0.0, 1.0),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Лента', style: text.bodySmall),
-                      const SizedBox(height: 6),
-                      if (_tape.isEmpty)
-                        Text(
-                          'пока пусто',
-                          style: text.bodySmall
-                              ?.copyWith(color: scheme.onSurfaceVariant),
-                        ),
-                      for (var i = 0; i < _tape.length; i++)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
-                          child: Row(
-                            children: [
-                              SizedBox(
-                                width: 48,
-                                child: Text(
-                                  _tape[i].price.toStringAsFixed(1),
-                                  style: text.bodySmall?.copyWith(
-                                    color: i == 0
-                                        ? widget.tint
-                                        : scheme.onSurface,
-                                  ),
-                                ),
-                              ),
-                              Text(
-                                '${_tape[i].volume}',
-                                style: text.bodySmall?.copyWith(
-                                  color: scheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ],
+                          Text(
+                            '${_tape[i].volume}',
+                            style: text.bodySmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
                           ),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: FilledButton.tonalIcon(
-              style: FilledButton.styleFrom(
-                backgroundColor: widget.tint.withValues(alpha: 0.18),
-                foregroundColor: widget.tint,
+                        ],
+                      ),
+                    ),
+                ],
               ),
-              onPressed: _marketHit,
-              icon: const Icon(Icons.flash_on, size: 18),
-              label: Text(_asks.isEmpty ? 'Сбросить' : 'Прилетела рыночная'),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -770,20 +694,25 @@ class _LessonGapStopState extends State<LessonGapStop> {
     } else {
       result = 'Стоп-лимит на ${_stop.toStringAsFixed(1)} ₽ не исполнен: '
           'цена ушла ниже лимита, заявка висит.';
-      resultColor = AppColors.error;
+      resultColor = BlockChartColors.error;
     }
 
-    return _Frame(
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Гэп и стоп-заявка',
+      subtitle:
+          'На открытии цена может прыгнуть мимо стопа. Тип стопа решает исход.',
+      footer: BlockButton(
+        tint: widget.tint,
+        label: _gapped ? 'Сброс' : 'Открытие гэпом',
+        fullWidth: false,
+        onPressed: () => setState(() => _gapped = !_gapped),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Гэп и стоп-заявка', style: text.titleSmall),
-          const SizedBox(height: 4),
-          Text(
-            'На открытии цена может прыгнуть мимо стопа. Тип стопа решает исход.',
-            style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 12),
+          // Кастомный painter: линия цены, пунктир стопа, прыжок гэпом вниз —
+          // суть блока, не заменяется blockLineChart.
           SizedBox(
             height: 120,
             width: double.infinity,
@@ -793,34 +722,26 @@ class _LessonGapStopState extends State<LessonGapStop> {
                 stop: _stop,
                 gapTo: _gapped ? _gapTo : null,
                 lineColor: lineColor,
-                gridColor: scheme.outlineVariant.withValues(alpha: 0.5),
+                gridColor: BlockChartColors.grid(scheme),
                 stopColor: AppColors.warning,
                 fillColor: triggered
-                    ? (_isMarket ? AppColors.warning : AppColors.error)
+                    ? (_isMarket ? AppColors.warning : BlockChartColors.error)
                     : scheme.onSurfaceVariant,
               ),
             ),
           ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Text(
-                'Стоп: ${_stop.toStringAsFixed(1)}',
-                style: text.bodySmall,
-              ),
-              Expanded(
-                child: Slider(
-                  value: _stop,
-                  min: 90,
-                  max: 99,
-                  divisions: 18,
-                  activeColor: widget.tint,
-                  label: _stop.toStringAsFixed(1),
-                  onChanged: (v) => setState(() => _stop = v),
-                ),
-              ),
-            ],
+          const SizedBox(height: BlockSpacing.s),
+          BlockSlider(
+            tint: widget.tint,
+            label: 'Стоп',
+            valueLabel: _stop.toStringAsFixed(1),
+            value: _stop,
+            min: 90,
+            max: 99,
+            divisions: 18,
+            onChanged: (v) => setState(() => _stop = v),
           ),
+          const SizedBox(height: BlockSpacing.s),
           Row(
             children: [
               ChoiceChip(
@@ -829,25 +750,16 @@ class _LessonGapStopState extends State<LessonGapStop> {
                 selectedColor: widget.tint.withValues(alpha: 0.25),
                 onSelected: (_) => setState(() => _isMarket = true),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: BlockSpacing.s),
               ChoiceChip(
                 label: const Text('Стоп-лимит'),
                 selected: !_isMarket,
                 selectedColor: widget.tint.withValues(alpha: 0.25),
                 onSelected: (_) => setState(() => _isMarket = false),
               ),
-              const Spacer(),
-              FilledButton.tonal(
-                style: FilledButton.styleFrom(
-                  backgroundColor: widget.tint.withValues(alpha: 0.18),
-                  foregroundColor: widget.tint,
-                ),
-                onPressed: () => setState(() => _gapped = !_gapped),
-                child: Text(_gapped ? 'Сброс' : 'Открытие гэпом'),
-              ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: BlockSpacing.s),
           Text(result, style: text.bodySmall?.copyWith(color: resultColor)),
         ],
       ),

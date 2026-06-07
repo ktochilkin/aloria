@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:aloria/core/theme/tokens.dart';
+import 'package:aloria/features/learn/presentation/widgets/blocks/block_kit.dart';
 import 'package:flutter/material.dart';
 
 /// Облигация: чистая цена в процентах, НКД и грязная цена сделки.
@@ -27,52 +27,38 @@ class _LessonBondToRublesState extends State<LessonBondToRubles> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Цена облигации в рублях',
+      subtitle:
+          'Цена в стакане — в процентах от номинала. К ней прибавляется НКД.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Цена облигации в рублях', style: text.titleSmall),
-          const SizedBox(height: 4),
-          Text(
-            'Цена в стакане — в процентах от номинала. К ней прибавляется НКД.',
-            style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 12),
-          _sliderRow(
-            context,
+          BlockSlider(
+            tint: widget.tint,
             label: 'Цена',
-            value: '${_pricePercent.toStringAsFixed(1)} %',
-            slider: Slider(
-              min: 95,
-              max: 103,
-              divisions: 80,
-              value: _pricePercent,
-              onChanged: (v) => setState(() => _pricePercent = v),
-            ),
+            valueLabel: '${_pricePercent.toStringAsFixed(1)} %',
+            value: _pricePercent,
+            min: 95,
+            max: 103,
+            divisions: 80,
+            onChanged: (v) => setState(() => _pricePercent = v),
           ),
-          _sliderRow(
-            context,
+          const SizedBox(height: BlockSpacing.s),
+          BlockSlider(
+            tint: widget.tint,
             label: 'Дней с купона',
-            value: '${_daysFromCoupon.round()} дн.',
-            slider: Slider(
-              max: _couponPeriodDays.toDouble(),
-              divisions: _couponPeriodDays,
-              value: _daysFromCoupon,
-              onChanged: (v) => setState(() => _daysFromCoupon = v),
-            ),
+            valueLabel: '${_daysFromCoupon.round()} дн.',
+            value: _daysFromCoupon,
+            min: 0,
+            max: _couponPeriodDays.toDouble(),
+            divisions: _couponPeriodDays,
+            onChanged: (v) => setState(() => _daysFromCoupon = v),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: BlockSpacing.m),
           _row(context, 'Чистая цена', '${_cleanRub.toStringAsFixed(2)} ₽'),
-          const SizedBox(height: 6),
+          const SizedBox(height: BlockSpacing.s),
           _row(
             context,
             'НКД',
@@ -88,41 +74,6 @@ class _LessonBondToRublesState extends State<LessonBondToRubles> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _sliderRow(
-    BuildContext context, {
-    required String label,
-    required String value,
-    required Slider slider,
-  }) {
-    final text = Theme.of(context).textTheme;
-    final scheme = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(label, style: text.bodySmall),
-            Text(
-              value,
-              style: text.bodySmall?.copyWith(
-                color: scheme.onSurface,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-        SliderTheme(
-          data: SliderThemeData(
-            activeTrackColor: widget.tint,
-            thumbColor: widget.tint,
-          ),
-          child: slider,
-        ),
-      ],
     );
   }
 
@@ -202,23 +153,14 @@ class _RatingYieldBodyState extends State<_RatingYieldBody> {
     final text = Theme.of(context).textTheme;
     final premium = _current.yield - _best.yield;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Рейтинг и доходность',
+      subtitle:
+          'Ниже рейтинг — выше шанс дефолта. Рынок требует за это надбавку.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Рейтинг и доходность', style: text.titleSmall),
-          const SizedBox(height: 4),
-          Text(
-            'Ниже рейтинг — выше шанс дефолта. Рынок требует за это надбавку.',
-            style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 12),
           Align(
             child: Text(
               _current.label,
@@ -228,41 +170,42 @@ class _RatingYieldBodyState extends State<_RatingYieldBody> {
               ),
             ),
           ),
-          SliderTheme(
-            data: SliderThemeData(
-              activeTrackColor: widget.tint,
-              thumbColor: widget.tint,
-            ),
-            child: Slider(
-              max: (widget.steps.length - 1).toDouble(),
-              divisions: widget.steps.length - 1,
-              value: _index,
-              onChanged: (v) => setState(() => _index = v),
-            ),
+          BlockSlider(
+            tint: widget.tint,
+            label: 'Рейтинг',
+            valueLabel: _current.label,
+            value: _index,
+            min: 0,
+            max: (widget.steps.length - 1).toDouble(),
+            divisions: widget.steps.length - 1,
+            onChanged: (v) => setState(() => _index = v),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: BlockSpacing.s),
           _metric(
             context,
             'Доходность к погашению',
             '${_current.yield.toStringAsFixed(1)} %',
             widget.tint,
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: BlockSpacing.m),
           _bar(
             context,
             'Вероятность дефолта',
             _current.defaultProb,
             22.0,
-            AppColors.error,
+            BlockChartColors.error,
             '${_current.defaultProb.toStringAsFixed(1)} %',
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: BlockSpacing.m),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(
+              horizontal: BlockSpacing.m,
+              vertical: BlockSpacing.s,
+            ),
             decoration: BoxDecoration(
-              color: widget.tint.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
+              color: BlockTint.soft(widget.tint),
+              borderRadius: BlockRadii.innerBr,
             ),
             child: Text(
               'Премия = плата за риск: +${premium.toStringAsFixed(1)} % к AAA',
@@ -325,7 +268,7 @@ class _RatingYieldBodyState extends State<_RatingYieldBody> {
             ),
           ],
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: BlockSpacing.xs),
         ClipRRect(
           borderRadius: BorderRadius.circular(6),
           child: LinearProgressIndicator(
@@ -371,23 +314,21 @@ class _LessonTerRaceState extends State<LessonTerRace> {
     final high = _finalValue(_terHigh);
     final gap = low - high;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Комиссия фонда (TER) на дистанции',
+      subtitle:
+          'Небольшая разница в комиссии за годы превращается в крупную сумму.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Комиссия фонда (TER) на дистанции', style: text.titleSmall),
-          const SizedBox(height: 4),
-          Text(
-            'Небольшая разница в комиссии за годы превращается в крупную сумму.',
-            style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 12),
+          BlockLegend(items: [
+            (widget.tint, 'дёшевый фонд'),
+            (BlockChartColors.error, 'дорогой фонд'),
+          ]),
+          const SizedBox(height: BlockSpacing.m),
+          // Кастомная визуализация (две экспоненты в одном масштабе) —
+          // оставлена на CustomPaint, палитра переведена на токены блоков.
           AspectRatio(
             aspectRatio: 1.9,
             child: CustomPaint(
@@ -398,47 +339,72 @@ class _LessonTerRaceState extends State<LessonTerRace> {
                 marketReturn: _marketReturn,
                 years: _years,
                 lowColor: widget.tint,
-                highColor: AppColors.error,
-                gridColor: scheme.outlineVariant.withValues(alpha: 0.4),
+                highColor: BlockChartColors.error,
+                gridColor: BlockChartColors.grid(scheme),
               ),
             ),
           ),
-          const SizedBox(height: 10),
-          _slider(context, 'TER дёшевого фонда', '${_terLow.toStringAsFixed(2)} %',
-              _terLow, 0.1, 1.0, (v) => setState(() => _terLow = v)),
-          _slider(context, 'TER дорогого фонда', '${_terHigh.toStringAsFixed(2)} %',
-              _terHigh, 1.0, 3.0, (v) => setState(() => _terHigh = v)),
-          _slider(context, 'Доходность рынка', '${_marketReturn.toStringAsFixed(0)} %',
-              _marketReturn, 5, 18, (v) => setState(() => _marketReturn = v)),
-          _slider(context, 'Срок', '${_years.round()} лет', _years, 10, 20,
-              (v) => setState(() => _years = v)),
-          const SizedBox(height: 8),
+          const SizedBox(height: BlockSpacing.m),
+          BlockSlider(
+            tint: widget.tint,
+            label: 'TER дёшевого фонда',
+            valueLabel: '${_terLow.toStringAsFixed(2)} %',
+            value: _terLow,
+            min: 0.1,
+            max: 1.0,
+            onChanged: (v) => setState(() => _terLow = v),
+          ),
+          BlockSlider(
+            tint: widget.tint,
+            label: 'TER дорогого фонда',
+            valueLabel: '${_terHigh.toStringAsFixed(2)} %',
+            value: _terHigh,
+            min: 1.0,
+            max: 3.0,
+            onChanged: (v) => setState(() => _terHigh = v),
+          ),
+          BlockSlider(
+            tint: widget.tint,
+            label: 'Доходность рынка',
+            valueLabel: '${_marketReturn.toStringAsFixed(0)} %',
+            value: _marketReturn,
+            min: 5,
+            max: 18,
+            onChanged: (v) => setState(() => _marketReturn = v),
+          ),
+          BlockSlider(
+            tint: widget.tint,
+            label: 'Срок',
+            valueLabel: '${_years.round()} лет',
+            value: _years,
+            min: 10,
+            max: 20,
+            onChanged: (v) => setState(() => _years = v),
+          ),
+          const SizedBox(height: BlockSpacing.s),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(
+              horizontal: BlockSpacing.m,
+              vertical: BlockSpacing.m,
+            ),
             decoration: BoxDecoration(
-              color: widget.tint.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
+              color: BlockTint.soft(widget.tint),
+              borderRadius: BlockRadii.innerBr,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Разница в итоговой сумме',
-                  style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+                BlockMetric(
+                  label: 'Разница в итоговой сумме',
+                  value: '${_rub(gap)} ₽',
+                  color: widget.tint,
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  '${_rub(gap)} ₽',
-                  style: text.titleMedium?.copyWith(
-                    color: widget.tint,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 2),
+                const SizedBox(height: BlockSpacing.xs),
                 Text(
                   'Дёшевый: ${_rub(low)} ₽  ·  Дорогой: ${_rub(high)} ₽',
-                  style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+                  style:
+                      text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
                 ),
               ],
             ),
@@ -456,49 +422,6 @@ class _LessonTerRaceState extends State<LessonTerRace> {
       buffer.write(whole[i]);
     }
     return buffer.toString();
-  }
-
-  Widget _slider(
-    BuildContext context,
-    String label,
-    String value,
-    double current,
-    double min,
-    double max,
-    ValueChanged<double> onChanged,
-  ) {
-    final text = Theme.of(context).textTheme;
-    final scheme = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(label, style: text.bodySmall),
-            Text(
-              value,
-              style: text.bodySmall?.copyWith(
-                color: scheme.onSurface,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-        SliderTheme(
-          data: SliderThemeData(
-            activeTrackColor: widget.tint,
-            thumbColor: widget.tint,
-          ),
-          child: Slider(
-            min: min,
-            max: max,
-            value: current,
-            onChanged: onChanged,
-          ),
-        ),
-      ],
-    );
   }
 }
 
@@ -602,39 +525,51 @@ class _LessonTaxSaldoState extends State<LessonTaxSaldo> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Налог: сальдо по сделкам и дивиденды',
+      subtitle:
+          'Прибыль и убыток по сделкам сальдируются. Дивиденды — отдельная база.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Налог: сальдо по сделкам и дивиденды', style: text.titleSmall),
-          const SizedBox(height: 4),
-          Text(
-            'Прибыль и убыток по сделкам сальдируются. Дивиденды — отдельная база.',
-            style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+          BlockSlider(
+            tint: widget.tint,
+            label: 'Прибыль по бумаге А',
+            valueLabel: '${_rub(_profitA)} ₽',
+            value: _profitA,
+            min: 0,
+            max: 100000,
+            divisions: 100,
+            onChanged: (v) => setState(() => _profitA = v),
           ),
-          const SizedBox(height: 12),
-          _field(context, 'Прибыль по бумаге А', '${_rub(_profitA)} ₽',
-              _profitA, 0, 100000, (v) => setState(() => _profitA = v)),
-          _field(context, 'Убыток по бумаге Б', '${_rub(_lossB)} ₽',
-              _lossB, 0, 100000, (v) => setState(() => _lossB = v)),
-          _field(context, 'Дивиденды', '${_rub(_dividends)} ₽',
-              _dividends, 0, 50000, (v) => setState(() => _dividends = v)),
-          const SizedBox(height: 10),
+          BlockSlider(
+            tint: widget.tint,
+            label: 'Убыток по бумаге Б',
+            valueLabel: '${_rub(_lossB)} ₽',
+            value: _lossB,
+            min: 0,
+            max: 100000,
+            divisions: 100,
+            onChanged: (v) => setState(() => _lossB = v),
+          ),
+          BlockSlider(
+            tint: widget.tint,
+            label: 'Дивиденды',
+            valueLabel: '${_rub(_dividends)} ₽',
+            value: _dividends,
+            min: 0,
+            max: 50000,
+            divisions: 100,
+            onChanged: (v) => setState(() => _dividends = v),
+          ),
+          const SizedBox(height: BlockSpacing.s),
           _row(context, 'База по сделкам (А − Б)', '${_rub(_tradeBase)} ₽'),
-          const SizedBox(height: 6),
+          const SizedBox(height: BlockSpacing.s),
           _row(context, 'Налог по сделкам', '${_rub(_tradeTax)} ₽'),
-          const SizedBox(height: 6),
+          const SizedBox(height: BlockSpacing.s),
           _row(context, 'База по дивидендам', '${_rub(_dividends)} ₽'),
-          const SizedBox(height: 6),
+          const SizedBox(height: BlockSpacing.s),
           _row(context, 'Налог с дивидендов', '${_rub(_divTax)} ₽'),
           const Divider(height: 18),
           _row(
@@ -642,7 +577,7 @@ class _LessonTaxSaldoState extends State<LessonTaxSaldo> {
             'Брокер удержит всего',
             '${_rub(_totalTax)} ₽',
             bold: true,
-            valueColor: AppColors.error,
+            valueColor: BlockChartColors.error,
           ),
         ],
       ),
@@ -657,50 +592,6 @@ class _LessonTaxSaldoState extends State<LessonTaxSaldo> {
       buffer.write(whole[i]);
     }
     return buffer.toString();
-  }
-
-  Widget _field(
-    BuildContext context,
-    String label,
-    String value,
-    double current,
-    double min,
-    double max,
-    ValueChanged<double> onChanged,
-  ) {
-    final text = Theme.of(context).textTheme;
-    final scheme = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(label, style: text.bodySmall),
-            Text(
-              value,
-              style: text.bodySmall?.copyWith(
-                color: scheme.onSurface,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-        SliderTheme(
-          data: SliderThemeData(
-            activeTrackColor: widget.tint,
-            thumbColor: widget.tint,
-          ),
-          child: Slider(
-            min: min,
-            max: max,
-            divisions: 100,
-            value: current,
-            onChanged: onChanged,
-          ),
-        ),
-      ],
-    );
   }
 
   Widget _row(
@@ -751,27 +642,17 @@ class _LessonFutureVsOptionState extends State<LessonFutureVsOption> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
     final result = _isOption ? _optionResult : _futureResult;
     final positive = result >= 0;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Фьючерс или опцион?',
+      subtitle:
+          'Фьючерс зеркалит цену в обе стороны. Опцион (call) ограничивает убыток премией.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Фьючерс или опцион?', style: text.titleSmall),
-          const SizedBox(height: 4),
-          Text(
-            'Фьючерс зеркалит цену в обе стороны. Опцион (call) ограничивает убыток премией.',
-            style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 12),
           SegmentedButton<bool>(
             segments: const [
               ButtonSegment(value: false, label: Text('Фьючерс')),
@@ -780,7 +661,9 @@ class _LessonFutureVsOptionState extends State<LessonFutureVsOption> {
             selected: {_isOption},
             onSelectionChanged: (s) => setState(() => _isOption = s.first),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: BlockSpacing.m),
+          // Кастомная диаграмма выплат (излом по страйку + маркер спота) —
+          // оставлена на CustomPaint, палитра переведена на токены блоков.
           AspectRatio(
             aspectRatio: 1.7,
             child: CustomPaint(
@@ -790,60 +673,53 @@ class _LessonFutureVsOptionState extends State<LessonFutureVsOption> {
                 spot: _spot,
                 isOption: _isOption,
                 lineColor: widget.tint,
-                positiveColor: AppColors.success,
-                negativeColor: AppColors.error,
+                positiveColor: BlockChartColors.success,
+                negativeColor: BlockChartColors.error,
                 axisColor: scheme.outlineVariant.withValues(alpha: 0.6),
-                gridColor: scheme.outlineVariant.withValues(alpha: 0.3),
+                gridColor: BlockChartColors.grid(scheme),
               ),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: BlockSpacing.m),
+          BlockSlider(
+            tint: widget.tint,
+            label: 'Цена актива',
+            valueLabel: _spot.toStringAsFixed(0),
+            value: _spot,
+            min: 80,
+            max: 120,
+            divisions: 80,
+            onChanged: (v) => setState(() => _spot = v),
+          ),
+          const SizedBox(height: BlockSpacing.xs),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Цена актива', style: text.bodySmall),
-              Text(
-                _spot.toStringAsFixed(0),
-                style: text.bodySmall?.copyWith(
-                  color: scheme.onSurface,
-                  fontWeight: FontWeight.w600,
+              Expanded(
+                child: BlockMetric(
+                  label: 'Итог по позиции',
+                  value: '${result >= 0 ? '+' : ''}${result.toStringAsFixed(1)}',
+                  color: positive
+                      ? BlockChartColors.success
+                      : BlockChartColors.error,
                 ),
+              ),
+              BlockChip(
+                text: positive ? 'в плюсе' : 'в минусе',
+                tint: widget.tint,
+                tone: positive ? BlockTone.success : BlockTone.error,
               ),
             ],
           ),
-          SliderTheme(
-            data: SliderThemeData(
-              activeTrackColor: widget.tint,
-              thumbColor: widget.tint,
-            ),
-            child: Slider(
-              min: 80,
-              max: 120,
-              divisions: 80,
-              value: _spot,
-              onChanged: (v) => setState(() => _spot = v),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Итог по позиции', style: text.bodyMedium),
-              Text(
-                '${result >= 0 ? '+' : ''}${result.toStringAsFixed(1)}',
-                style: text.titleMedium?.copyWith(
-                  color: positive ? AppColors.success : AppColors.error,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
+          const SizedBox(height: BlockSpacing.xs),
           Text(
             _isOption
                 ? 'Максимальный убыток ограничен премией: −${_premium.toStringAsFixed(0)}'
                 : 'Убыток и прибыль не ограничены — симметрия',
-            style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+            style: Theme.of(context)
+                .textTheme
+                .bodySmall
+                ?.copyWith(color: scheme.onSurfaceVariant),
           ),
         ],
       ),

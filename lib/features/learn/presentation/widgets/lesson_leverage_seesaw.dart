@@ -1,9 +1,10 @@
-import 'package:aloria/core/theme/tokens.dart';
+import 'package:aloria/features/learn/presentation/widgets/blocks/block_kit.dart';
 import 'package:flutter/material.dart';
 
 /// Учебный блок к уроку про плечо: слайдер плеча 1×…3× синхронно усиливает
 /// обе стороны. Актив сходил на ±5% — твой результат на ±(5×плечо)%. Показывает,
-/// что плечо усиливает прибыль и убыток в равной мере.
+/// что плечо усиливает прибыль и убыток в равной мере. Собран на block_kit
+/// (стиль «воздух»): карточка-обёртка, BlockSlider, тонированные полосы качелей.
 class LessonLeverageSeesaw extends StatefulWidget {
   const LessonLeverageSeesaw({super.key, required this.tint});
 
@@ -23,14 +24,12 @@ class _LessonLeverageSeesawState extends State<LessonLeverageSeesaw> {
     final text = Theme.of(context).textTheme;
     final yours = _assetMove * _leverage;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Плечо усиливает обе стороны',
+      subtitle: 'Актив сходил на ±5% — твой результат на ±(5×плечо)%',
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const _Bar(
             label: 'актив сходил на',
@@ -38,35 +37,20 @@ class _LessonLeverageSeesawState extends State<LessonLeverageSeesaw> {
             max: 15,
             muted: true,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: BlockSpacing.m),
           _Bar(label: 'твой результат', value: yours, max: 15, muted: false),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Icon(Icons.expand, size: 16, color: widget.tint),
-              const SizedBox(width: 6),
-              Text(
-                'Плечо',
-                style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-              ),
-              const Spacer(),
-              Text(
-                '${_leverage.toStringAsFixed(0)}×',
-                style: text.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: widget.tint,
-                ),
-              ),
-            ],
-          ),
-          Slider(
+          const SizedBox(height: BlockSpacing.l),
+          BlockSlider(
+            tint: widget.tint,
+            label: 'Плечо',
+            valueLabel: '${_leverage.toStringAsFixed(0)}×',
             value: _leverage,
             min: 1,
             max: 3,
             divisions: 2,
-            activeColor: widget.tint,
             onChanged: (v) => setState(() => _leverage = v),
           ),
+          const SizedBox(height: BlockSpacing.s),
           Text(
             'И прибыль, и убыток растут в ${_leverage.toStringAsFixed(0)} раза — '
             'плечо усиливает обе стороны одинаково.',
@@ -102,10 +86,11 @@ class _Bar extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final frac = (value / max).clamp(0.0, 1.0);
     final up = muted
-        ? AppColors.success.withValues(alpha: 0.4)
-        : AppColors.success;
-    final down =
-        muted ? AppColors.error.withValues(alpha: 0.4) : AppColors.error;
+        ? BlockChartColors.success.withValues(alpha: 0.4)
+        : BlockChartColors.success;
+    final down = muted
+        ? BlockChartColors.error.withValues(alpha: 0.4)
+        : BlockChartColors.error;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -114,7 +99,7 @@ class _Bar extends StatelessWidget {
           label,
           style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: BlockSpacing.s),
         Row(
           children: [
             Expanded(
@@ -125,7 +110,7 @@ class _Bar extends StatelessWidget {
                 alignEnd: false,
               ),
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: BlockSpacing.xs),
             Expanded(
               child: _Half(
                 frac: frac,

@@ -1,9 +1,12 @@
 import 'package:aloria/core/theme/tokens.dart';
+import 'package:aloria/features/learn/presentation/widgets/blocks/block_kit.dart';
 import 'package:flutter/material.dart';
 
 /// Набор простых (нестейтовых) учебных блоков: врезки, крупное число,
 /// карточки-сравнения, схема-поток, таймлайн. Все на демо-данных — это
 /// кандидаты для встраивания в уроки, оформление можно параметризовать позже.
+/// Собраны на block_kit («воздух»): каждый блок — в [LessonBlockCard],
+/// примитивы (число/легенда) из кита, кастомные плашки оставлены внутри карты.
 
 /// Три варианта врезки-выноски: пояснение, предупреждение, «в Aloria».
 class LessonCalloutDemo extends StatelessWidget {
@@ -13,29 +16,33 @@ class LessonCalloutDemo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        _Callout(
-          icon: Icons.lightbulb_outline,
-          color: tint,
-          title: 'Важно',
-          text: 'Короткая мысль, которую нужно выделить из потока текста.',
-        ),
-        const SizedBox(height: 10),
-        const _Callout(
-          icon: Icons.warning_amber_rounded,
-          color: AppColors.error,
-          title: 'Осторожно',
-          text: 'Предупреждение о риске или частой ошибке новичка.',
-        ),
-        const SizedBox(height: 10),
-        const _Callout(
-          icon: Icons.school_outlined,
-          color: AppColors.success,
-          title: 'В Aloria',
-          text: 'Как это устроено в учебной среде: деньги учебные, рынок живой.',
-        ),
-      ],
+    return LessonBlockCard(
+      tint: tint,
+      child: Column(
+        children: [
+          _Callout(
+            icon: Icons.lightbulb_outline,
+            color: tint,
+            title: 'Важно',
+            text: 'Короткая мысль, которую нужно выделить из потока текста.',
+          ),
+          const SizedBox(height: BlockSpacing.s),
+          const _Callout(
+            icon: Icons.warning_amber_rounded,
+            color: AppColors.error,
+            title: 'Осторожно',
+            text: 'Предупреждение о риске или частой ошибке новичка.',
+          ),
+          const SizedBox(height: BlockSpacing.s),
+          const _Callout(
+            icon: Icons.school_outlined,
+            color: AppColors.success,
+            title: 'В Aloria',
+            text:
+                'Как это устроено в учебной среде: деньги учебные, рынок живой.',
+          ),
+        ],
+      ),
     );
   }
 }
@@ -59,7 +66,7 @@ class _Callout extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BlockRadii.innerBr,
         border: Border(left: BorderSide(color: color, width: 3)),
       ),
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
@@ -67,7 +74,7 @@ class _Callout extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, size: 18, color: color),
-          const SizedBox(width: 10),
+          const SizedBox(width: BlockSpacing.s),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -98,31 +105,12 @@ class LessonNumberAccent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: tint.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-      child: Column(
-        children: [
-          Text(
-            '70–90%',
-            style: t.displaySmall?.copyWith(
-              fontWeight: FontWeight.w900,
-              color: tint,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'активных фондов проигрывают индексу на горизонте 5–10 лет',
-            textAlign: TextAlign.center,
-            style: t.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
-          ),
-        ],
+    return LessonBlockCard(
+      tint: tint,
+      child: NumberAccent(
+        value: '70–90%',
+        label: 'активных фондов проигрывают индексу на горизонте 5–10 лет',
+        tint: tint,
       ),
     );
   }
@@ -136,36 +124,39 @@ class LessonCompareCards extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Expanded(
-            child: _CompareCard(
-              accent: AppColors.success,
-              title: 'Акция',
-              subtitle: 'доля в бизнесе',
-              rows: [
-                ('Доход', 'рост цены + дивиденды'),
-                ('Риск', 'выше'),
-                ('Срок', 'бессрочно'),
-              ],
+    return LessonBlockCard(
+      tint: tint,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Expanded(
+              child: _CompareCard(
+                accent: AppColors.success,
+                title: 'Акция',
+                subtitle: 'доля в бизнесе',
+                rows: [
+                  ('Доход', 'рост цены + дивиденды'),
+                  ('Риск', 'выше'),
+                  ('Срок', 'бессрочно'),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: _CompareCard(
-              accent: tint,
-              title: 'Облигация',
-              subtitle: 'долг компании',
-              rows: const [
-                ('Доход', 'купоны'),
-                ('Риск', 'ниже'),
-                ('Срок', 'до погашения'),
-              ],
+            const SizedBox(width: BlockSpacing.s),
+            Expanded(
+              child: _CompareCard(
+                accent: tint,
+                title: 'Облигация',
+                subtitle: 'долг компании',
+                rows: const [
+                  ('Доход', 'купоны'),
+                  ('Риск', 'ниже'),
+                  ('Срок', 'до погашения'),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -191,10 +182,10 @@ class _CompareCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BlockRadii.innerBr,
         border: Border(top: BorderSide(color: accent, width: 3)),
       ),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(BlockSpacing.m),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -209,7 +200,7 @@ class _CompareCard extends StatelessWidget {
             subtitle,
             style: t.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: BlockSpacing.s),
           for (final r in rows) ...[
             Text(
               r.$1,
@@ -219,7 +210,7 @@ class _CompareCard extends StatelessWidget {
               r.$2,
               style: t.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: BlockSpacing.s),
           ],
         ],
       ),
@@ -236,12 +227,8 @@ class LessonFlowBroker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 8),
+    return LessonBlockCard(
+      tint: tint,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
@@ -270,14 +257,14 @@ class _Node extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(BlockSpacing.m),
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.14),
             shape: BoxShape.circle,
           ),
           child: Icon(icon, color: color, size: 24),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: BlockSpacing.s),
         Text(label, style: t.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
       ],
     );
@@ -304,12 +291,8 @@ class LessonTimelineTplus extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
+    return LessonBlockCard(
+      tint: tint,
       child: Column(
         children: [
           Row(
@@ -335,7 +318,7 @@ class LessonTimelineTplus extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: BlockSpacing.xs),
           Text(
             'Между «сделка прошла» и «всё рассчитано» — один рабочий день.',
             textAlign: TextAlign.center,
@@ -382,7 +365,7 @@ class _Stop extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: BlockSpacing.xs),
         Text(title, style: t.bodySmall?.copyWith(fontWeight: FontWeight.w700)),
         Text(
           sub,

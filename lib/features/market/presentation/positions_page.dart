@@ -208,16 +208,18 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  scheme.surface.withValues(alpha: 0.96),
-                  scheme.surfaceContainerHighest.withValues(alpha: 0.9),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: scheme.outline.withValues(alpha: 0.6)),
+              color: scheme.surface,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: scheme.brightness == Brightness.dark
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.10),
+                        blurRadius: 24,
+                        spreadRadius: -2,
+                        offset: const Offset(0, 12),
+                      ),
+                    ],
             ),
             child: Text(
               AppLocalizations.of(context)!.portfolioEmptyPositions,
@@ -258,16 +260,18 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  scheme.surface.withValues(alpha: 0.96),
-                  scheme.surfaceContainerHighest.withValues(alpha: 0.9),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: scheme.outline.withValues(alpha: 0.6)),
+              color: scheme.surface,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: scheme.brightness == Brightness.dark
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.10),
+                        blurRadius: 24,
+                        spreadRadius: -2,
+                        offset: const Offset(0, 12),
+                      ),
+                    ],
             ),
             child: Text(
               AppLocalizations.of(context)!.portfolioEmptyOrders,
@@ -562,7 +566,7 @@ class _PortfolioHero extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(color: context.palette.heroBorder),
         boxShadow: [
           BoxShadow(
@@ -577,10 +581,34 @@ class _PortfolioHero extends StatelessWidget {
           ),
         ],
       ),
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
         children: [
+          // Диагональный sheen: едва заметный перелив угол-в-угол —
+          // коралл сверху-слева, чистый центр, синий снизу-справа.
+          Positioned.fill(
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppColors.secondary.withValues(alpha: 0.12),
+                      Colors.transparent,
+                      AppColors.primary.withValues(alpha: 0.09),
+                    ],
+                    stops: const [0.0, 0.55, 1.0],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
           Text(
             AppLocalizations.of(context)!.portfolioEvaluationCaption,
             style: text.bodySmall?.copyWith(
@@ -663,6 +691,9 @@ class _PortfolioHero extends StatelessWidget {
               ),
             ),
           ],
+        ],
+            ),
+          ),
         ],
       ),
     );
@@ -1499,8 +1530,19 @@ class _PositionTile extends StatelessWidget {
                 ],
               ],
             ),
-            const SizedBox(width: 4),
-            Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
+            const SizedBox(width: 2),
+            SizedBox(
+              width: 14,
+              child: Transform.scale(
+                scaleX: 0.65,
+                scaleY: 1.7,
+                child: Icon(
+                  Icons.chevron_right,
+                  size: 22,
+                  color: scheme.onSurfaceVariant.withValues(alpha: 0.4),
+                ),
+              ),
+            ),
           ],
         ),
       ),

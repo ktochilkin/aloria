@@ -1,9 +1,12 @@
-import 'package:aloria/core/theme/tokens.dart';
+import 'package:aloria/features/learn/presentation/widgets/blocks/block_kit.dart';
 import 'package:flutter/material.dart';
 
 /// Интерактивный двухколоночный стакан (как в торговле): слева покупка, справа
 /// продажа. Слайдер «купить по рынку» съедает заявки на продажу от лучшей цены
-/// вверх и показывает среднюю цену исполнения и проскальзывание.
+/// вверх и показывает среднюю цену исполнения и проскальзывание. Собран на
+/// block_kit (стиль «воздух»): обёртка — LessonBlockCard, слайдер — BlockSlider,
+/// итог — BlockMetric/BlockChip. Сами строки стакана с барами глубины —
+/// доменная суть блока, оставлены как кастомная вёрстка.
 class LessonOrderbookTwoCol extends StatefulWidget {
   const LessonOrderbookTwoCol({super.key, required this.tint});
 
@@ -66,13 +69,10 @@ class _LessonOrderbookTwoColState extends State<LessonOrderbookTwoCol> {
     final avg = filled > 0 ? cost / filled : best;
     final slip = (avg - best) / best * 100;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Стакан',
+      subtitle: 'Заявки на покупку и продажу по уровням цены',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -80,16 +80,18 @@ class _LessonOrderbookTwoColState extends State<LessonOrderbookTwoCol> {
             children: [
               Expanded(
                 child: Text('Покупка',
-                    style: text.labelMedium?.copyWith(color: AppColors.success)),
+                    style: text.labelMedium
+                        ?.copyWith(color: BlockChartColors.success)),
               ),
               Expanded(
                 child: Text('Продажа',
                     textAlign: TextAlign.right,
-                    style: text.labelMedium?.copyWith(color: AppColors.error)),
+                    style: text.labelMedium
+                        ?.copyWith(color: BlockChartColors.error)),
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: BlockSpacing.s),
           for (var i = 0; i < _bids.length; i++)
             Row(
               children: [
@@ -97,60 +99,52 @@ class _LessonOrderbookTwoColState extends State<LessonOrderbookTwoCol> {
                   child: _Row(
                     level: _bids[i],
                     maxVol: maxVol,
-                    color: AppColors.success,
+                    color: BlockChartColors.success,
                     isAsk: false,
                     dimmed: false,
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: BlockSpacing.s),
                 Expanded(
                   child: _Row(
                     level: _asks[i],
                     maxVol: maxVol,
-                    color: AppColors.error,
+                    color: BlockChartColors.error,
                     isAsk: true,
                     dimmed: eaten[i],
                   ),
                 ),
               ],
             ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Text('Купить по рынку: ${_lots.round()} лот.',
-                  style: text.bodySmall),
-              Expanded(
-                child: Slider(
-                  value: _lots,
-                  max: 40,
-                  divisions: 40,
-                  activeColor: widget.tint,
-                  onChanged: (v) => setState(() => _lots = v),
-                ),
-              ),
-            ],
+          const SizedBox(height: BlockSpacing.m),
+          BlockSlider(
+            tint: widget.tint,
+            label: 'Купить по рынку',
+            valueLabel: '${_lots.round()} лот.',
+            value: _lots,
+            min: 0,
+            max: 40,
+            divisions: 40,
+            onChanged: (v) => setState(() => _lots = v),
           ),
+          const SizedBox(height: BlockSpacing.s),
           if (_lots >= 1)
             Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Icon(slip > 0.05 ? Icons.trending_down : Icons.check_circle_outline,
-                    size: 16,
-                    color: slip > 0.05 ? AppColors.error : AppColors.success),
-                const SizedBox(width: 6),
                 Expanded(
-                  child: Text.rich(
-                    TextSpan(children: [
-                      const TextSpan(text: 'Средняя '),
-                      TextSpan(
-                          text: avg.toStringAsFixed(2),
-                          style: const TextStyle(fontWeight: FontWeight.w800)),
-                      TextSpan(
-                          text: slip > 0.05
-                              ? '  ·  −${slip.toStringAsFixed(2)}% к лучшей цене'
-                              : '  ·  по лучшей цене'),
-                    ]),
-                    style: text.bodySmall,
+                  child: BlockMetric(
+                    label: 'средняя цена исполнения',
+                    value: avg.toStringAsFixed(2),
+                    color: widget.tint,
                   ),
+                ),
+                BlockChip(
+                  text: slip > 0.05
+                      ? '−${slip.toStringAsFixed(2)}% к лучшей'
+                      : 'по лучшей цене',
+                  tint: widget.tint,
+                  tone: slip > 0.05 ? BlockTone.error : BlockTone.success,
                 ),
               ],
             )
@@ -197,13 +191,13 @@ class _Row extends StatelessWidget {
                 child: Container(
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.16),
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BlockRadii.innerBr,
                   ),
                 ),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
+              padding: const EdgeInsets.symmetric(horizontal: BlockSpacing.s),
               child: Row(
                 mainAxisAlignment:
                     isAsk ? MainAxisAlignment.end : MainAxisAlignment.start,
@@ -212,11 +206,11 @@ class _Row extends StatelessWidget {
                     Text(level.price.toStringAsFixed(2),
                         style: text.bodySmall
                             ?.copyWith(fontWeight: FontWeight.w700)),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: BlockSpacing.xs),
                     Text('${level.vol}', style: text.bodySmall),
                   ] else ...[
                     Text('${level.vol}', style: text.bodySmall),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: BlockSpacing.xs),
                     Text(level.price.toStringAsFixed(2),
                         style: text.bodySmall
                             ?.copyWith(fontWeight: FontWeight.w700)),

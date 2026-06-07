@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:aloria/core/theme/tokens.dart';
+import 'package:aloria/features/learn/presentation/widgets/blocks/block_kit.dart';
 import 'package:flutter/material.dart';
 
 /// Урок: кто держит ликвидность в стакане.
@@ -40,25 +41,13 @@ class _LessonMarketMakerRevealState extends State<LessonMarketMakerReveal> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Кто держит стакан',
+      subtitle: 'Включай источники и смотри, чей объём стоит у спреда.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text('Кто держит стакан', style: text.titleMedium),
-          const SizedBox(height: 4),
-          Text(
-            'Включай источники и смотри, чей объём стоит у спреда.',
-            style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 12),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
             dense: true,
@@ -75,11 +64,11 @@ class _LessonMarketMakerRevealState extends State<LessonMarketMakerReveal> {
             onChanged: (bool v) => setState(() => _students = v),
             title: const Text('Заявки учеников'),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: BlockSpacing.s),
           ..._asks.map((_Level l) => _row(context, l, isAsk: true)),
           _spreadRow(context),
           ..._bids.map((_Level l) => _row(context, l, isAsk: false)),
-          const SizedBox(height: 12),
+          const SizedBox(height: BlockSpacing.m),
           _legend(context),
         ],
       ),
@@ -93,7 +82,7 @@ class _LessonMarketMakerRevealState extends State<LessonMarketMakerReveal> {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
     final double vol = _volumeOf(l);
-    final Color side = isAsk ? AppColors.error : AppColors.success;
+    final Color side = isAsk ? BlockChartColors.error : BlockChartColors.success;
     // Источник определяет «характер» бара: ММ ровный, ученики рваные.
     final bool makerOnly = _maker && (!_students || l.students == 0);
     return Padding(
@@ -328,20 +317,19 @@ class _LessonMacroShockState extends State<LessonMacroShock>
     final text = Theme.of(context).textTheme;
     final _Macro ev = _events[_selected];
     final bool correct = _guess == ev.direction;
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Новость двигает цену',
+      footer: BlockButton(
+        tint: widget.tint,
+        label: 'Проиграть событие',
+        onPressed: _guess == null ? null : _run,
       ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text('Новость двигает цену', style: text.titleMedium),
-          const SizedBox(height: 8),
           Wrap(
-            spacing: 8,
+            spacing: BlockSpacing.s,
             children: List<Widget>.generate(_events.length, (int i) {
               final bool sel = i == _selected;
               return ChoiceChip(
@@ -352,20 +340,20 @@ class _LessonMacroShockState extends State<LessonMacroShock>
               );
             }),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: BlockSpacing.m),
           Text(
             'Куда пойдёт цена?',
             style: text.bodyMedium,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: BlockSpacing.s),
           Row(
             children: <Widget>[
               _guessButton(context, 1, Icons.arrow_upward, 'Вверх'),
-              const SizedBox(width: 12),
+              const SizedBox(width: BlockSpacing.m),
               _guessButton(context, -1, Icons.arrow_downward, 'Вниз'),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: BlockSpacing.m),
           SizedBox(
             height: 90,
             width: double.infinity,
@@ -374,48 +362,28 @@ class _LessonMacroShockState extends State<LessonMacroShock>
                 progress: _controller.value,
                 direction: ev.direction,
                 line: widget.tint,
-                up: AppColors.success,
-                down: AppColors.error,
+                up: BlockChartColors.success,
+                down: BlockChartColors.error,
                 grid: scheme.outlineVariant,
               ),
             ),
           ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: widget.tint),
-              onPressed: _guess == null ? null : _run,
-              child: const Text('Проиграть событие'),
-            ),
-          ),
           if (_revealed) ...<Widget>[
-            const SizedBox(height: 10),
+            const SizedBox(height: BlockSpacing.m),
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(BlockSpacing.m),
               decoration: BoxDecoration(
-                color: scheme.surface.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(10),
+                color: scheme.surfaceContainerHighest,
+                borderRadius: BlockRadii.innerBr,
               ),
               child: Text(ev.news, style: text.bodyMedium),
             ),
-            const SizedBox(height: 8),
-            Row(
-              children: <Widget>[
-                Icon(
-                  correct ? Icons.check_circle : Icons.cancel,
-                  size: 18,
-                  color: correct ? AppColors.success : AppColors.error,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  correct ? 'Предсказание верное' : 'Цена пошла иначе',
-                  style: text.bodySmall?.copyWith(
-                    color: correct ? AppColors.success : AppColors.error,
-                  ),
-                ),
-              ],
+            const SizedBox(height: BlockSpacing.s),
+            BlockChip(
+              text: correct ? 'Предсказание верное' : 'Цена пошла иначе',
+              tint: widget.tint,
+              tone: correct ? BlockTone.success : BlockTone.error,
             ),
           ],
         ],
@@ -430,7 +398,7 @@ class _LessonMacroShockState extends State<LessonMacroShock>
     String label,
   ) {
     final bool sel = _guess == dir;
-    final Color c = dir > 0 ? AppColors.success : AppColors.error;
+    final Color c = dir > 0 ? BlockChartColors.success : BlockChartColors.error;
     return Expanded(
       child: OutlinedButton.icon(
         style: OutlinedButton.styleFrom(
@@ -554,21 +522,20 @@ class _LessonOrderStatusJourneyState extends State<LessonOrderStatusJourney> {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
     final _Scenario sc = _scenarios[_selected];
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Путь заявки',
+      footer: BlockButton(
+        tint: widget.tint,
+        label: 'Отправить заявку',
+        onPressed: _started ? null : () => setState(() => _started = true),
       ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text('Путь заявки', style: text.titleMedium),
-          const SizedBox(height: 8),
           Wrap(
-            spacing: 8,
-            runSpacing: 4,
+            spacing: BlockSpacing.s,
+            runSpacing: BlockSpacing.xs,
             children: List<Widget>.generate(_scenarios.length, (int i) {
               return ChoiceChip(
                 label: Text(_scenarios[i].label),
@@ -581,7 +548,7 @@ class _LessonOrderStatusJourneyState extends State<LessonOrderStatusJourney> {
               );
             }),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: BlockSpacing.l),
           Row(
             children: <Widget>[
               _statusChip(context, _Status.working, active: true),
@@ -593,28 +560,19 @@ class _LessonOrderStatusJourneyState extends State<LessonOrderStatusJourney> {
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: BlockSpacing.l),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(BlockSpacing.m),
             decoration: BoxDecoration(
-              color: scheme.surface.withValues(alpha: 0.6),
-              borderRadius: BorderRadius.circular(10),
+              color: scheme.surfaceContainerHighest,
+              borderRadius: BlockRadii.innerBr,
             ),
             child: Text(
               _started
                   ? sc.explanation
                   : 'Выбери сценарий и отправь заявку.',
               style: text.bodyMedium,
-            ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: widget.tint),
-              onPressed: _started ? null : () => setState(() => _started = true),
-              child: const Text('Отправить заявку'),
             ),
           ),
         ],
@@ -676,9 +634,9 @@ class _LessonOrderStatusJourneyState extends State<LessonOrderStatusJourney> {
       case _Status.working:
         return AppColors.warning;
       case _Status.filled:
-        return AppColors.success;
+        return BlockChartColors.success;
       case _Status.rejected:
-        return AppColors.error;
+        return BlockChartColors.error;
       case _Status.canceled:
         return Theme.of(context).colorScheme.onSurfaceVariant;
     }
@@ -723,23 +681,19 @@ class _LessonBuyingPowerMeterState extends State<LessonBuyingPowerMeter> {
     final double cost = _lots * _pricePerLot;
     final bool enough = cost <= _buyingPower;
     final double used = (cost / _buyingPower).clamp(0.0, 1.0);
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Покупательная способность',
+      subtitle:
+          'Доступно ${_money(_buyingPower)} · ${_pricePerLot.toStringAsFixed(0)} ₽/лот',
+      footer: BlockButton(
+        tint: widget.tint,
+        label: 'Купить',
+        onPressed: enough ? () {} : null,
       ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text('Покупательная способность', style: text.titleMedium),
-          const SizedBox(height: 4),
-          Text(
-            'Доступно ${_money(_buyingPower)} · ${_pricePerLot.toStringAsFixed(0)} ₽/лот',
-            style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: <Widget>[
@@ -747,25 +701,22 @@ class _LessonBuyingPowerMeterState extends State<LessonBuyingPowerMeter> {
               Text(
                 'к оплате ${_money(cost)}',
                 style: text.bodyMedium?.copyWith(
-                  color: enough ? scheme.onSurface : AppColors.error,
+                  color: enough ? scheme.onSurface : BlockChartColors.error,
                 ),
               ),
             ],
           ),
-          SliderTheme(
-            data: SliderThemeData(
-              activeTrackColor: widget.tint,
-              thumbColor: widget.tint,
-            ),
-            child: Slider(
-              value: _lots,
-              min: 1,
-              max: _maxLots.toDouble(),
-              divisions: _maxLots - 1,
-              onChanged: (double v) => setState(() => _lots = v),
-            ),
+          BlockSlider(
+            tint: widget.tint,
+            label: 'Лотов',
+            valueLabel: '${_lots.toInt()}',
+            value: _lots,
+            min: 1,
+            max: _maxLots.toDouble(),
+            divisions: _maxLots - 1,
+            onChanged: (double v) => setState(() => _lots = v),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: BlockSpacing.xs),
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: SizedBox(
@@ -775,33 +726,25 @@ class _LessonBuyingPowerMeterState extends State<LessonBuyingPowerMeter> {
                   used: used,
                   over: !enough,
                   ok: widget.tint,
-                  bad: AppColors.error,
+                  bad: BlockChartColors.error,
                   base: scheme.surfaceContainerHighest,
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: BlockSpacing.s),
           Text(
             'Остаток ${_money((_buyingPower - cost).clamp(-1e9, _buyingPower))}',
             style: text.bodySmall?.copyWith(
-              color: enough ? scheme.onSurfaceVariant : AppColors.error,
-            ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: widget.tint),
-              onPressed: enough ? () {} : null,
-              child: const Text('Купить'),
+              color: enough ? scheme.onSurfaceVariant : BlockChartColors.error,
             ),
           ),
           if (!enough) ...<Widget>[
-            const SizedBox(height: 8),
-            Text(
-              'Не хватает покупательной способности',
-              style: text.bodySmall?.copyWith(color: AppColors.error),
+            const SizedBox(height: BlockSpacing.s),
+            BlockChip(
+              text: 'Не хватает покупательной способности',
+              tint: widget.tint,
+              tone: BlockTone.error,
             ),
           ],
         ],
@@ -890,23 +833,18 @@ class _LessonSpreadRoundtripState extends State<LessonSpreadRoundtrip> {
     final _Instrument inst = _isLiquid ? _liquid : _illiquid;
     final double spread = inst.ask - inst.bid;
     final double loss = spread * inst.size;
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Цена входа и выхода',
+      subtitle: 'Купи по рынку и сразу продай — спред заберёт своё.',
+      footer: BlockButton(
+        tint: widget.tint,
+        label: 'Купить по рынку и сразу продать',
+        onPressed: _done ? null : () => setState(() => _done = true),
       ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text('Цена входа и выхода', style: text.titleMedium),
-          const SizedBox(height: 4),
-          Text(
-            'Купи по рынку и сразу продай — спред заберёт своё.',
-            style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 12),
           SegmentedButton<bool>(
             segments: const <ButtonSegment<bool>>[
               ButtonSegment<bool>(value: true, label: Text('Ликвидный')),
@@ -918,58 +856,35 @@ class _LessonSpreadRoundtripState extends State<LessonSpreadRoundtrip> {
               _done = false;
             }),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: BlockSpacing.l),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: <Widget>[
-              _priceTag(context, 'Покупка (ask)', inst.ask, AppColors.error),
-              _priceTag(context, 'Продажа (bid)', inst.bid, AppColors.success),
+              BlockMetric(
+                label: 'Покупка (ask)',
+                value: '${inst.ask.toStringAsFixed(2)} ₽',
+                color: BlockChartColors.error,
+              ),
+              BlockMetric(
+                label: 'Продажа (bid)',
+                value: '${inst.bid.toStringAsFixed(2)} ₽',
+                color: BlockChartColors.success,
+              ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: BlockSpacing.m),
           Text(
             'Спред: ${spread.toStringAsFixed(2)} ₽ · объём ${inst.size} шт.',
             style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
           ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: widget.tint),
-              onPressed: _done ? null : () => setState(() => _done = true),
-              child: const Text('Купить по рынку и сразу продать'),
-            ),
-          ),
           if (_done) ...<Widget>[
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.error.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: AppColors.error.withValues(alpha: 0.5),
-                ),
-              ),
-              child: Row(
-                children: <Widget>[
-                  const Icon(Icons.trending_down,
-                      size: 18, color: AppColors.error),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Потеряно на спреде: ${loss.toStringAsFixed(0)} ₽',
-                      style: text.bodyMedium?.copyWith(
-                        color: AppColors.error,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            const SizedBox(height: BlockSpacing.m),
+            BlockChip(
+              text: 'Потеряно на спреде: ${loss.toStringAsFixed(0)} ₽',
+              tint: widget.tint,
+              tone: BlockTone.error,
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: BlockSpacing.s),
             Text(
               _isLiquid
                   ? 'На ликвидном спред узкий — потеря небольшая.'
@@ -979,30 +894,6 @@ class _LessonSpreadRoundtripState extends State<LessonSpreadRoundtrip> {
           ],
         ],
       ),
-    );
-  }
-
-  Widget _priceTag(
-    BuildContext context,
-    String label,
-    double value,
-    Color color,
-  ) {
-    final text = Theme.of(context).textTheme;
-    final scheme = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(
-          label,
-          style: text.labelSmall?.copyWith(color: scheme.onSurfaceVariant),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          '${value.toStringAsFixed(2)} ₽',
-          style: text.titleMedium?.copyWith(color: color),
-        ),
-      ],
     );
   }
 }

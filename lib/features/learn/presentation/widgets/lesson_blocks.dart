@@ -2,6 +2,7 @@ import 'package:aloria/features/learn/presentation/widgets/lesson_allocation_pie
 import 'package:aloria/features/learn/presentation/widgets/lesson_charts_extra.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_compound_growth.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_divgap_chart.dart';
+import 'package:aloria/features/learn/presentation/widgets/lesson_foundations.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_inflation_erosion.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_leverage_seesaw.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_orderbook_2col.dart';
@@ -17,6 +18,7 @@ import 'package:aloria/features/learn/presentation/widgets/lesson_pack_slidergam
 import 'package:aloria/features/learn/presentation/widgets/lesson_rework.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_scam_flags.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_static_blocks.dart';
+import 'package:aloria/features/learn/presentation/widgets/lesson_style_directions.dart';
 import 'package:flutter/material.dart';
 
 /// Строит интерактивный/визуальный блок урока по имени директивы.
@@ -72,6 +74,14 @@ const Map<String, LessonBlockBuilder> lessonBlockBuilders = {
   'diversification-dice': _diversificationDice,
   'spread-gauge': _spreadGauge,
   'if-then-rule': _ifThenRule,
+  // кандидаты визуального направления (витрина lab/02-style-directions)
+  'style-airy': _styleAiry,
+  'style-crisp': _styleCrisp,
+  'style-warm': _styleWarm,
+  // витрина основ дизайн-системы (lab/03-foundations)
+  'kit-card': _kitCard,
+  'kit-tokens': _kitTokens,
+  'kit-bits': _kitBits,
 };
 
 Widget _calloutDemo(BuildContext context, Color tint) =>
@@ -204,6 +214,22 @@ Widget _spreadGauge(BuildContext context, Color tint) =>
 
 Widget _ifThenRule(BuildContext context, Color tint) =>
     LessonIfThenRule(tint: tint);
+
+Widget _styleAiry(BuildContext context, Color tint) =>
+    StyleDirectionAiry(tint: tint);
+
+Widget _styleCrisp(BuildContext context, Color tint) =>
+    StyleDirectionCrisp(tint: tint);
+
+Widget _styleWarm(BuildContext context, Color tint) =>
+    StyleDirectionWarm(tint: tint);
+
+Widget _kitCard(BuildContext context, Color tint) =>
+    KitCanonicalBlock(tint: tint);
+
+Widget _kitTokens(BuildContext context, Color tint) => KitTokens(tint: tint);
+
+Widget _kitBits(BuildContext context, Color tint) => KitBits(tint: tint);
 
 /// Сегмент тела урока: либо markdown-текст, либо именованный блок-директива.
 sealed class LessonSegment {

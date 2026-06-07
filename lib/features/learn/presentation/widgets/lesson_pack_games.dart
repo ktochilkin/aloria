@@ -1,4 +1,5 @@
 import 'package:aloria/core/theme/tokens.dart';
+import 'package:aloria/features/learn/presentation/widgets/blocks/block_kit.dart';
 import 'package:flutter/material.dart';
 
 /// Падающий график: выбор «продать в панике» / «держать по плану».
@@ -69,7 +70,9 @@ class _LessonPanicButtonState extends State<LessonPanicButton>
 
     String? verdict;
     Color? verdictColor;
+    bool? verdictPanic;
     if (_soldInPanic != null && _controller.isCompleted) {
+      verdictPanic = _soldInPanic;
       if (_soldInPanic!) {
         final double loss = entryPrice - bottomPrice;
         verdict =
@@ -85,18 +88,20 @@ class _LessonPanicButtonState extends State<LessonPanicButton>
       }
     }
 
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Резкое падение. Что сделаешь?',
+      footer: verdict != null
+          ? BlockButton(
+              tint: widget.tint,
+              label: 'Ещё раз',
+              icon: Icons.refresh,
+              onPressed: _reset,
+            )
+          : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text('Резкое падение. Что сделаешь?', style: text.titleSmall),
-          const SizedBox(height: 12),
           SizedBox(
             height: 120,
             width: double.infinity,
@@ -109,7 +114,7 @@ class _LessonPanicButtonState extends State<LessonPanicButton>
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: BlockSpacing.m),
           if (_soldInPanic == null)
             Row(
               children: <Widget>[
@@ -137,15 +142,13 @@ class _LessonPanicButtonState extends State<LessonPanicButton>
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(verdict, style: text.bodyMedium?.copyWith(color: verdictColor)),
-                const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: _reset,
-                    child: const Text('Ещё раз'),
-                  ),
+                BlockChip(
+                  text: verdictPanic! ? 'Убыток зафиксирован' : 'План сработал',
+                  tint: widget.tint,
+                  tone: verdictPanic ? BlockTone.error : BlockTone.success,
                 ),
+                const SizedBox(height: BlockSpacing.s),
+                Text(verdict, style: text.bodyMedium?.copyWith(color: verdictColor)),
               ],
             )
           else
@@ -251,18 +254,12 @@ class _LessonCandleAnatomyState extends State<LessonCandleAnatomy> {
     final bool bullish = _close >= _open;
     final Color body = bullish ? AppColors.success : AppColors.error;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Из чего состоит свеча',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text('Из чего состоит свеча', style: text.titleSmall),
-          const SizedBox(height: 12),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
@@ -281,7 +278,7 @@ class _LessonCandleAnatomyState extends State<LessonCandleAnatomy> {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: BlockSpacing.m),
               Expanded(
                 child: Column(
                   children: <Widget>[
@@ -294,7 +291,7 @@ class _LessonCandleAnatomyState extends State<LessonCandleAnatomy> {
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: BlockSpacing.s),
           Text(
             bullish
                 ? 'Закрытие выше открытия — свеча зелёная (рост за период).'
@@ -307,31 +304,14 @@ class _LessonCandleAnatomyState extends State<LessonCandleAnatomy> {
   }
 
   Widget _slider(String label, double value, ValueChanged<double> onChanged) {
-    final text = Theme.of(context).textTheme;
-    return Row(
-      children: <Widget>[
-        SizedBox(
-          width: 76,
-          child: Text(label, style: text.bodySmall),
-        ),
-        Expanded(
-          child: Slider(
-            value: value,
-            min: _min,
-            max: _max,
-            activeColor: widget.tint,
-            onChanged: onChanged,
-          ),
-        ),
-        SizedBox(
-          width: 36,
-          child: Text(
-            value.toStringAsFixed(0),
-            textAlign: TextAlign.right,
-            style: text.bodySmall,
-          ),
-        ),
-      ],
+    return BlockSlider(
+      tint: widget.tint,
+      label: label,
+      valueLabel: value.toStringAsFixed(0),
+      value: value,
+      min: _min,
+      max: _max,
+      onChanged: onChanged,
     );
   }
 }
@@ -427,18 +407,12 @@ class _LessonSessionClockState extends State<LessonSessionClock> {
           '${s.name}: ${_fmt(s.start)}–${_fmt(s.end)}. Торговля идёт.';
     }
 
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Сутки торгов на MOEX',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text('Сутки торгов на MOEX', style: text.titleSmall),
-          const SizedBox(height: 12),
           Center(
             child: SizedBox(
               width: 200,
@@ -460,7 +434,7 @@ class _LessonSessionClockState extends State<LessonSessionClock> {
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: BlockSpacing.m),
           Text(caption, style: text.bodyMedium),
         ],
       ),
@@ -602,47 +576,31 @@ class _LessonSortByRiskState extends State<LessonSortByRisk> {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+    final bool allCorrect = _order.toString() == _correct.toString();
+
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Расставь: надёжнее → рискованнее',
+      subtitle: 'Сверху — где риск ниже.',
+      footer: BlockButton(
+        tint: widget.tint,
+        label: 'Проверить',
+        icon: Icons.check,
+        onPressed: () => setState(() => _checked = true),
       ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text('Расставь: надёжнее → рискованнее', style: text.titleSmall),
-          const SizedBox(height: 4),
-          Text(
-            'Сверху — где риск ниже.',
-            style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 10),
           for (int i = 0; i < _order.length; i++)
             _row(i, scheme, text),
-          const SizedBox(height: 10),
-          Row(
-            children: <Widget>[
-              FilledButton(
-                onPressed: () => setState(() => _checked = true),
-                style: FilledButton.styleFrom(backgroundColor: widget.tint),
-                child: const Text('Проверить'),
-              ),
-              const SizedBox(width: 10),
-              if (_checked)
-                Text(
-                  _order.toString() == _correct.toString()
-                      ? 'Верно!'
-                      : 'Есть ошибки',
-                  style: text.bodyMedium?.copyWith(
-                    color: _order.toString() == _correct.toString()
-                        ? AppColors.success
-                        : AppColors.error,
-                  ),
-                ),
-            ],
-          ),
+          if (_checked) ...[
+            const SizedBox(height: BlockSpacing.s),
+            BlockChip(
+              text: allCorrect ? 'Верно!' : 'Есть ошибки',
+              tint: widget.tint,
+              tone: allCorrect ? BlockTone.success : BlockTone.error,
+            ),
+          ],
         ],
       ),
     );
@@ -753,31 +711,37 @@ class _LessonScamSorterState extends State<LessonScamSorter> {
     final _Offer offer = _offers[_index];
     final bool answered = _lastCorrect != null;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+    return LessonBlockCard(
+      tint: widget.tint,
+      footer: answered
+          ? BlockButton(
+              tint: widget.tint,
+              label: 'Дальше',
+              icon: Icons.arrow_forward,
+              onPressed: _next,
+            )
+          : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: <Widget>[
-              Text('Настоящее или красный флаг?', style: text.titleSmall),
+              Text(
+                'Настоящее или красный флаг?',
+                style: text.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+              ),
               Text('${_index + 1}/${_offers.length}',
                   style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant)),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: BlockSpacing.l),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: scheme.surface.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BlockRadii.innerBr,
               border: Border.all(
                 color: answered
                     ? (offer.real ? AppColors.success : AppColors.error)
@@ -788,12 +752,12 @@ class _LessonScamSorterState extends State<LessonScamSorter> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(offer.title, style: text.titleSmall),
-                const SizedBox(height: 4),
+                const SizedBox(height: BlockSpacing.xs),
                 Text(offer.subtitle, style: text.bodyMedium),
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: BlockSpacing.m),
           if (!answered)
             Row(
               children: <Widget>[
@@ -821,29 +785,17 @@ class _LessonScamSorterState extends State<LessonScamSorter> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(
-                  _lastCorrect! ? 'Верно' : 'Мимо',
-                  style: text.titleSmall?.copyWith(
-                    color: _lastCorrect! ? AppColors.success : AppColors.error,
-                  ),
+                BlockChip(
+                  text: _lastCorrect! ? 'Верно' : 'Мимо',
+                  tint: widget.tint,
+                  tone: _lastCorrect! ? BlockTone.success : BlockTone.error,
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: BlockSpacing.s),
                 Text(offer.explanation, style: text.bodyMedium),
-                const SizedBox(height: 10),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: FilledButton.tonal(
-                    onPressed: _next,
-                    child: const Text('Дальше'),
-                  ),
-                ),
               ],
             ),
-          const SizedBox(height: 6),
-          Text(
-            'Счёт: $_score',
-            style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-          ),
+          const SizedBox(height: BlockSpacing.m),
+          BlockMetric(label: 'Счёт', value: '$_score'),
         ],
       ),
     );

@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:aloria/core/theme/tokens.dart';
+import 'package:aloria/features/learn/presentation/widgets/blocks/block_kit.dart';
 import 'package:flutter/material.dart';
 
 /// Гонка процентов: линейный рост (+100/год) против сложного (×1.1/год).
@@ -77,68 +77,57 @@ class _LessonCompoundRaceState extends State<LessonCompoundRace>
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Простой против сложного процента',
+      subtitle: 'Год $_year из $_maxYears',
+      footer: Row(
+        children: [
+          Expanded(
+            child: BlockButton(
+              tint: widget.tint,
+              label: 'Следующий год',
+              onPressed: _auto ? null : _next,
+            ),
+          ),
+          const SizedBox(width: BlockSpacing.s),
+          IconButton.filledTonal(
+            onPressed: _toggleAuto,
+            icon: Icon(_auto ? Icons.pause : Icons.play_arrow),
+            style: IconButton.styleFrom(
+              foregroundColor: widget.tint,
+            ),
+          ),
+        ],
       ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Простой против сложного процента', style: text.titleSmall),
-          const SizedBox(height: 4),
-          Text(
-            'Год $_year из $_maxYears',
-            style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 12),
           SizedBox(
             height: 180,
             child: CustomPaint(
               painter: _RacePainter(
                 progress: _year / _maxYears,
-                linearColor: scheme.onSurfaceVariant,
+                linearColor: BlockChartColors.neutral(scheme),
                 compoundColor: widget.tint,
-                gridColor: scheme.outlineVariant.withValues(alpha: 0.4),
+                gridColor: BlockChartColors.grid(scheme),
               ),
               child: const SizedBox.expand(),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: BlockSpacing.m),
           Row(
             children: [
               _Legend(
-                color: scheme.onSurfaceVariant,
+                color: BlockChartColors.neutral(scheme),
                 label: '+100/год',
                 value: _linear,
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: BlockSpacing.l),
               _Legend(
                 color: widget.tint,
                 label: '×1,1/год',
                 value: _compound,
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: FilledButton.tonal(
-                  onPressed: _auto ? null : _next,
-                  child: const Text('Следующий год'),
-                ),
-              ),
-              const SizedBox(width: 10),
-              IconButton.filledTonal(
-                onPressed: _toggleAuto,
-                icon: Icon(_auto ? Icons.pause : Icons.play_arrow),
-                style: IconButton.styleFrom(
-                  foregroundColor: widget.tint,
-                ),
               ),
             ],
           ),
@@ -306,25 +295,15 @@ class _LessonNormalize100State extends State<LessonNormalize100> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Кто на самом деле вырос сильнее',
+      subtitle: _normalized
+          ? 'Старт = 100%. Видно реальный рост.'
+          : 'В рублях дорогая бумага просто выше.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Кто на самом деле вырос сильнее', style: text.titleSmall),
-          const SizedBox(height: 4),
-          Text(
-            _normalized
-                ? 'Старт = 100%. Видно реальный рост.'
-                : 'В рублях дорогая бумага просто выше.',
-            style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 12),
           SizedBox(
             height: 170,
             child: CustomPaint(
@@ -332,22 +311,19 @@ class _LessonNormalize100State extends State<LessonNormalize100> {
                 expensive: _expensive,
                 cheap: _cheap,
                 normalized: _normalized,
-                expensiveColor: scheme.onSurfaceVariant,
+                expensiveColor: BlockChartColors.neutral(scheme),
                 cheapColor: widget.tint,
-                gridColor: scheme.outlineVariant.withValues(alpha: 0.4),
+                gridColor: BlockChartColors.grid(scheme),
               ),
               child: const SizedBox.expand(),
             ),
           ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              _DotLabel(color: scheme.onSurfaceVariant, label: 'Дорогая'),
-              const SizedBox(width: 16),
-              _DotLabel(color: widget.tint, label: 'Дешёвая'),
-            ],
-          ),
-          const SizedBox(height: 12),
+          const SizedBox(height: BlockSpacing.m),
+          BlockLegend(items: [
+            (BlockChartColors.neutral(scheme), 'Дорогая'),
+            (widget.tint, 'Дешёвая'),
+          ]),
+          const SizedBox(height: BlockSpacing.m),
           Row(
             children: [
               Expanded(
@@ -365,33 +341,6 @@ class _LessonNormalize100State extends State<LessonNormalize100> {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _DotLabel extends StatelessWidget {
-  const _DotLabel({required this.color, required this.label});
-
-  final Color color;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    final scheme = Theme.of(context).colorScheme;
-    return Row(
-      children: [
-        Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 6),
-        Text(
-          label,
-          style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-        ),
-      ],
     );
   }
 }
@@ -498,27 +447,20 @@ class _LessonDrawdownUnderwaterState extends State<LessonDrawdownUnderwater> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
     final maxDd =
         _equityDrawdown.reduce(math.min) * _equityShare;
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Как глубоко портфель уходит «под воду»',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Как глубоко портфель уходит «под воду»',
-              style: text.titleSmall),
-          const SizedBox(height: 4),
-          Text(
-            'Максимальная просадка: ${(maxDd * 100).toStringAsFixed(0)}%',
-            style: text.bodySmall?.copyWith(color: AppColors.error),
+          BlockChip(
+            text: 'Максимальная просадка: ${(maxDd * 100).toStringAsFixed(0)}%',
+            tint: widget.tint,
+            tone: BlockTone.error,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: BlockSpacing.m),
           SizedBox(
             height: 160,
             child: CustomPaint(
@@ -526,28 +468,19 @@ class _LessonDrawdownUnderwaterState extends State<LessonDrawdownUnderwater> {
                 drawdown: _equityDrawdown,
                 share: _equityShare,
                 zeroLineColor: scheme.outlineVariant,
-                fillColor: AppColors.error,
+                fillColor: BlockChartColors.error,
               ),
               child: const SizedBox.expand(),
             ),
           ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Text('Доля акций', style: text.bodyMedium),
-              const Spacer(),
-              Text(
-                '${(_equityShare * 100).round()}%',
-                style: text.titleSmall?.copyWith(
-                  color: widget.tint,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          Slider(
+          const SizedBox(height: BlockSpacing.m),
+          BlockSlider(
+            tint: widget.tint,
+            label: 'Доля акций',
+            valueLabel: '${(_equityShare * 100).round()}%',
             value: _equityShare,
-            activeColor: widget.tint,
+            min: 0,
+            max: 1,
             onChanged: (v) => setState(() => _equityShare = v),
           ),
         ],
@@ -658,31 +591,15 @@ class _LessonRiskReturnMapState extends State<LessonRiskReturnMap> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Риск и доходность ходят вместе',
+      subtitle: _selected == null
+          ? 'Тапни по точке, чтобы увидеть инструмент.'
+          : _points[_selected!].label,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Риск и доходность ходят вместе', style: text.titleSmall),
-          const SizedBox(height: 4),
-          Text(
-            _selected == null
-                ? 'Тапни по точке, чтобы увидеть инструмент.'
-                : _points[_selected!].label,
-            style: text.bodySmall?.copyWith(
-              color: _selected == null
-                  ? scheme.onSurfaceVariant
-                  : widget.tint,
-              fontWeight:
-                  _selected == null ? FontWeight.normal : FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 12),
           AspectRatio(
             aspectRatio: 1.4,
             child: LayoutBuilder(
@@ -697,7 +614,7 @@ class _LessonRiskReturnMapState extends State<LessonRiskReturnMap> {
                       tint: widget.tint,
                       axisColor: scheme.outlineVariant,
                       labelColor: scheme.onSurfaceVariant,
-                      scamColor: AppColors.error,
+                      scamColor: BlockChartColors.error,
                       pointColor: scheme.onSurface,
                     ),
                     child: const SizedBox.expand(),
@@ -706,12 +623,12 @@ class _LessonRiskReturnMapState extends State<LessonRiskReturnMap> {
               },
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: BlockSpacing.s),
           Row(
             children: [
               const Icon(Icons.warning_amber_rounded,
-                  size: 16, color: AppColors.error),
-              const SizedBox(width: 6),
+                  size: 16, color: BlockChartColors.error),
+              const SizedBox(width: BlockSpacing.s),
               Expanded(
                 child: Text(
                   'Заштрихованный угол — доход без риска. Так не бывает.',
@@ -913,26 +830,16 @@ class _LessonCorrelationHeatmapState
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
     final active = _active;
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Тепловая карта корреляций',
+      subtitle: 'Две похожие бумаги = одна ставка.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Тепловая карта корреляций', style: text.titleSmall),
-          const SizedBox(height: 4),
-          Text(
-            'Две похожие бумаги = одна ставка.',
-            style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 12),
           if (active.length < 2)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 24),
+              padding: const EdgeInsets.symmetric(vertical: BlockSpacing.xl),
               child: Text(
                 'Выбери хотя бы две бумаги.',
                 style: text.bodyMedium
@@ -947,16 +854,16 @@ class _LessonCorrelationHeatmapState
                   assets: active,
                   corr: _corr,
                   labelColor: scheme.onSurface,
-                  lowColor: AppColors.success,
-                  highColor: AppColors.error,
+                  lowColor: BlockChartColors.success,
+                  highColor: BlockChartColors.error,
                 ),
                 child: const SizedBox.expand(),
               ),
             ),
-          const SizedBox(height: 12),
+          const SizedBox(height: BlockSpacing.m),
           Wrap(
-            spacing: 8,
-            runSpacing: 4,
+            spacing: BlockSpacing.s,
+            runSpacing: BlockSpacing.xs,
             children: [
               for (var i = 0; i < _all.length; i++)
                 FilterChip(

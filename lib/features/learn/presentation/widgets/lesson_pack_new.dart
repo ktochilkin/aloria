@@ -1,18 +1,5 @@
-import 'package:aloria/core/theme/tokens.dart';
+import 'package:aloria/features/learn/presentation/widgets/blocks/block_kit.dart';
 import 'package:flutter/material.dart';
-
-Widget _card(BuildContext context, Widget child) {
-  final scheme = Theme.of(context).colorScheme;
-  return Container(
-    decoration: BoxDecoration(
-      color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-    ),
-    padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-    child: child,
-  );
-}
 
 // ── order-builder ────────────────────────────────────────────────────────────
 
@@ -35,66 +22,51 @@ class _LessonOrderBuilderState extends State<LessonOrderBuilder> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
     final side = _buy ? 'купить' : 'продать';
 
-    return _card(
-      context,
-      Column(
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Собери заявку',
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Собери заявку', style: text.titleMedium),
-          const SizedBox(height: 10),
           _seg('Сторона', ['Купить', 'Продать'], _buy ? 0 : 1,
               (i) => setState(() => _buy = i == 0)),
-          const SizedBox(height: 8),
+          const SizedBox(height: BlockSpacing.s),
           _seg('Тип', ['Рыночная', 'Лимитная'], _market ? 0 : 1,
               (i) => setState(() => _market = i == 0)),
-          const SizedBox(height: 8),
-          Row(children: [
-            SizedBox(width: 64, child: Text('Объём',
-                style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant))),
-            Expanded(
-              child: Slider(
-                value: _qty,
-                min: 1,
-                max: 20,
-                divisions: 19,
-                activeColor: widget.tint,
-                onChanged: (v) => setState(() => _qty = v),
-              ),
+          const SizedBox(height: BlockSpacing.m),
+          BlockSlider(
+            tint: widget.tint,
+            label: 'Объём',
+            valueLabel: '${_qty.round()} лот.',
+            value: _qty,
+            min: 1,
+            max: 20,
+            divisions: 19,
+            onChanged: (v) => setState(() => _qty = v),
+          ),
+          if (!_market) ...[
+            const SizedBox(height: BlockSpacing.s),
+            BlockSlider(
+              tint: widget.tint,
+              label: 'Цена',
+              valueLabel: _price.toStringAsFixed(1),
+              value: _price,
+              min: 96,
+              max: 104,
+              divisions: 32,
+              onChanged: (v) => setState(() => _price = v),
             ),
-            SizedBox(width: 34, child: Text('${_qty.round()}',
-                textAlign: TextAlign.right,
-                style: text.bodyMedium?.copyWith(fontWeight: FontWeight.w800))),
-          ]),
-          if (!_market)
-            Row(children: [
-              SizedBox(width: 64, child: Text('Цена',
-                  style: text.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant))),
-              Expanded(
-                child: Slider(
-                  value: _price,
-                  min: 96,
-                  max: 104,
-                  divisions: 32,
-                  activeColor: widget.tint,
-                  onChanged: (v) => setState(() => _price = v),
-                ),
-              ),
-              SizedBox(width: 44, child: Text(_price.toStringAsFixed(1),
-                  textAlign: TextAlign.right,
-                  style: text.bodyMedium?.copyWith(fontWeight: FontWeight.w800))),
-            ]),
-          const SizedBox(height: 10),
+          ],
+          const SizedBox(height: BlockSpacing.m),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(BlockSpacing.m),
             decoration: BoxDecoration(
-              color: widget.tint.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
+              color: BlockTint.soft(widget.tint),
+              borderRadius: BlockRadii.innerBr,
             ),
             child: Text(
               _market
@@ -125,14 +97,14 @@ class _LessonOrderBuilderState extends State<LessonOrderBuilder> {
                 child: GestureDetector(
                   onTap: () => on(i),
                   child: Container(
-                    margin: EdgeInsets.only(right: i == 0 ? 6 : 0),
-                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    margin: EdgeInsets.only(right: i == 0 ? BlockSpacing.s : 0),
+                    padding: const EdgeInsets.symmetric(vertical: BlockSpacing.s),
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: sel == i
-                          ? widget.tint.withValues(alpha: 0.2)
+                          ? BlockTint.soft(widget.tint)
                           : scheme.surface,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BlockRadii.innerBr,
                       border: Border.all(
                           color: sel == i ? widget.tint : scheme.outlineVariant),
                     ),
@@ -190,7 +162,6 @@ class _LessonCandleFromTradesState extends State<LessonCandleFromTrades>
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
     final shown = (_trades.length * _c.value).ceil().clamp(1, _trades.length);
     final visible = _trades.take(shown).toList();
     final open = _trades.first;
@@ -198,13 +169,18 @@ class _LessonCandleFromTradesState extends State<LessonCandleFromTrades>
     final high = visible.reduce((a, b) => a > b ? a : b);
     final low = visible.reduce((a, b) => a < b ? a : b);
 
-    return _card(
-      context,
-      Column(
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Свеча — это четыре числа',
+      footer: BlockButton(
+        tint: widget.tint,
+        label: _c.value > 0.97 ? 'Ещё раз' : 'Проиграть сделки',
+        icon: Icons.play_arrow,
+        onPressed: () => _c.forward(from: 0),
+      ),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Свеча — это четыре числа', style: text.titleMedium),
-          const SizedBox(height: 10),
           SizedBox(
             height: 140,
             child: CustomPaint(
@@ -215,44 +191,27 @@ class _LessonCandleFromTradesState extends State<LessonCandleFromTrades>
                 close: close,
                 high: high,
                 low: low,
-                up: AppColors.success,
-                down: AppColors.error,
+                up: BlockChartColors.success,
+                down: BlockChartColors.error,
                 dot: widget.tint,
-                grid: scheme.outlineVariant.withValues(alpha: 0.4),
+                grid: BlockChartColors.grid(scheme),
               ),
             ),
           ),
-          const SizedBox(height: 8),
-          Wrap(spacing: 12, children: [
-            _ohlc('O', open, scheme),
-            _ohlc('H', high, scheme),
-            _ohlc('L', low, scheme),
-            _ohlc('C', close, scheme),
-          ]),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: () => _c.forward(from: 0),
-              icon: const Icon(Icons.play_arrow, size: 18),
-              label: Text(_c.value > 0.97 ? 'Ещё раз' : 'Проиграть сделки'),
-            ),
+          const SizedBox(height: BlockSpacing.m),
+          Wrap(
+            spacing: BlockSpacing.xl,
+            runSpacing: BlockSpacing.m,
+            children: [
+              BlockMetric(label: 'O', value: open.toStringAsFixed(1)),
+              BlockMetric(label: 'H', value: high.toStringAsFixed(1)),
+              BlockMetric(label: 'L', value: low.toStringAsFixed(1)),
+              BlockMetric(label: 'C', value: close.toStringAsFixed(1)),
+            ],
           ),
         ],
       ),
     );
-  }
-
-  Widget _ohlc(String k, double v, ColorScheme scheme) {
-    final text = Theme.of(context).textTheme;
-    return Text.rich(TextSpan(children: [
-      TextSpan(
-          text: '$k ',
-          style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant)),
-      TextSpan(
-          text: v.toStringAsFixed(1),
-          style: text.bodySmall?.copyWith(fontWeight: FontWeight.w800)),
-    ]));
   }
 }
 
@@ -362,17 +321,22 @@ class _LessonDiversificationDiceState extends State<LessonDiversificationDice>
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
 
-    return _card(
-      context,
-      Column(
+    return LessonBlockCard(
+      tint: widget.tint,
+      footer: BlockButton(
+        tint: widget.tint,
+        label: _c.value > 0.97 ? 'Ещё раз' : 'Прогнать год',
+        icon: Icons.play_arrow,
+        onPressed: () => _c.forward(from: 0),
+      ),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            _dot(AppColors.error, 'один тикер'),
-            const SizedBox(width: 14),
-            _dot(widget.tint, 'корзина'),
+          BlockLegend(items: [
+            (BlockChartColors.error, 'один тикер'),
+            (widget.tint, 'корзина'),
           ]),
-          const SizedBox(height: 10),
+          const SizedBox(height: BlockSpacing.m),
           SizedBox(
             height: 130,
             child: CustomPaint(
@@ -381,22 +345,13 @@ class _LessonDiversificationDiceState extends State<LessonDiversificationDice>
                 a: _single,
                 b: _basket,
                 progress: _c.value,
-                ca: AppColors.error,
+                ca: BlockChartColors.error,
                 cb: widget.tint,
-                grid: scheme.outlineVariant.withValues(alpha: 0.4),
+                grid: BlockChartColors.grid(scheme),
               ),
             ),
           ),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: () => _c.forward(from: 0),
-              icon: const Icon(Icons.play_arrow, size: 18),
-              label: Text(_c.value > 0.97 ? 'Ещё раз' : 'Прогнать год'),
-            ),
-          ),
-          const SizedBox(height: 6),
+          const SizedBox(height: BlockSpacing.m),
           Text('Одна бумага кидает из стороны в сторону; корзина из тех же '
               'бумаг идёт ровнее — это и есть диверсификация.',
               style: text.bodySmall?.copyWith(
@@ -404,15 +359,6 @@ class _LessonDiversificationDiceState extends State<LessonDiversificationDice>
         ],
       ),
     );
-  }
-
-  Widget _dot(Color c, String label) {
-    final text = Theme.of(context).textTheme;
-    return Row(mainAxisSize: MainAxisSize.min, children: [
-      Container(width: 14, height: 3, color: c),
-      const SizedBox(width: 6),
-      Text(label, style: text.bodySmall),
-    ]);
   }
 }
 
@@ -491,15 +437,15 @@ class _LessonSpreadGaugeState extends State<LessonSpreadGauge> {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
     final frac = (_spreadPct / 2).clamp(0.0, 1.0);
-    final color = _spreadPct < 0.5 ? AppColors.success : AppColors.error;
+    final color =
+        _spreadPct < 0.5 ? BlockChartColors.success : BlockChartColors.error;
 
-    return _card(
-      context,
-      Column(
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Спред — цена немедленности',
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Спред — цена немедленности', style: text.titleMedium),
-          const SizedBox(height: 12),
           Center(
             child: SizedBox(
               height: 96,
@@ -521,17 +467,17 @@ class _LessonSpreadGaugeState extends State<LessonSpreadGauge> {
               ),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: BlockSpacing.m),
           Row(
             children: [
               Expanded(child: _choice('Ликвидный', _liquid,
                   () => setState(() => _liquid = true))),
-              const SizedBox(width: 8),
+              const SizedBox(width: BlockSpacing.s),
               Expanded(child: _choice('Неликвидный', !_liquid,
                   () => setState(() => _liquid = false))),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: BlockSpacing.m),
           Text(
             _liquid
                 ? 'Узкий спред: купил и сразу продал по рынку — потерял копейки.'
@@ -551,11 +497,11 @@ class _LessonSpreadGaugeState extends State<LessonSpreadGauge> {
     return GestureDetector(
       onTap: on,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
+        padding: const EdgeInsets.symmetric(vertical: BlockSpacing.m),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: sel ? widget.tint.withValues(alpha: 0.2) : scheme.surface,
-          borderRadius: BorderRadius.circular(10),
+          color: sel ? BlockTint.soft(widget.tint) : scheme.surface,
+          borderRadius: BlockRadii.innerBr,
           border: Border.all(color: sel ? widget.tint : scheme.outlineVariant),
         ),
         child: Text(label,
@@ -620,48 +566,42 @@ class _LessonIfThenRuleState extends State<LessonIfThenRule> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
 
-    return _card(
-      context,
-      Column(
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Правило вместо паники',
+      subtitle: 'Дисциплина — это решение, принятое заранее.',
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Правило вместо паники', style: text.titleMedium),
-          const SizedBox(height: 4),
-          Text('Дисциплина — это решение, принятое заранее.',
-              style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant)),
-          const SizedBox(height: 12),
           Text('Если', style: text.labelMedium?.copyWith(color: widget.tint)),
-          const SizedBox(height: 6),
+          const SizedBox(height: BlockSpacing.s),
           _chips(_triggers, _trigger, (i) => setState(() {
                 _trigger = i;
                 _fired = false;
               })),
-          const SizedBox(height: 10),
+          const SizedBox(height: BlockSpacing.m),
           Text('то', style: text.labelMedium?.copyWith(color: widget.tint)),
-          const SizedBox(height: 6),
+          const SizedBox(height: BlockSpacing.s),
           _chips(_actions, _action, (i) => setState(() {
                 _action = i;
                 _fired = false;
               })),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: () => setState(() => _fired = true),
-              child: const Text('Проиграть сценарий'),
-            ),
+          const SizedBox(height: BlockSpacing.l),
+          BlockButton(
+            tint: widget.tint,
+            label: 'Проиграть сценарий',
+            onPressed: () => setState(() => _fired = true),
           ),
           if (_fired) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: BlockSpacing.m),
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(BlockSpacing.m),
               decoration: BoxDecoration(
-                color: AppColors.success.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
+                color: BlockChartColors.success.withValues(alpha: 0.12),
+                borderRadius: BlockRadii.innerBr,
               ),
               child: Text(
                 'Случилось «${_triggers[_trigger]}». Правило сработало само: '
@@ -678,14 +618,14 @@ class _LessonIfThenRuleState extends State<LessonIfThenRule> {
   Widget _chips(List<String> opts, int sel, ValueChanged<int> on) {
     final text = Theme.of(context).textTheme;
     return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+      spacing: BlockSpacing.s,
+      runSpacing: BlockSpacing.s,
       children: [
         for (var i = 0; i < opts.length; i++)
           ChoiceChip(
             label: Text(opts[i], style: text.labelSmall),
             selected: sel == i,
-            selectedColor: widget.tint.withValues(alpha: 0.2),
+            selectedColor: BlockTint.soft(widget.tint),
             onSelected: (_) => on(i),
           ),
       ],

@@ -1,4 +1,4 @@
-import 'package:aloria/core/theme/tokens.dart';
+import 'package:aloria/features/learn/presentation/widgets/blocks/block_kit.dart';
 import 'package:flutter/material.dart';
 
 /// Блок 1: слайдер цены облигации в % от номинала; вживую пересчитывает
@@ -29,30 +29,20 @@ class _LessonBondYieldFlipState extends State<LessonBondYieldFlip> {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
     final below = _price < 100;
-    final ytmColor = below ? AppColors.success : AppColors.error;
+    final ytmColor = below ? BlockChartColors.success : BlockChartColors.error;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Цена и доходность',
+      subtitle: 'Купон фиксирован ${_coupon.toStringAsFixed(0)}%. Чем дешевле '
+          'берёшь бумагу, тем выше доходность к погашению.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Цена и доходность', style: text.titleMedium),
-          const SizedBox(height: 4),
-          Text(
-            'Купон фиксирован ${_coupon.toStringAsFixed(0)}%. Чем дешевле берёшь '
-            'бумагу, тем выше доходность к погашению.',
-            style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 14),
           Row(
             children: [
               Expanded(
-                child: _Metric(
+                child: BlockMetric(
                   label: 'Цена, % номинала',
                   value: '${_price.toStringAsFixed(1)}%',
                   color: scheme.onSurface,
@@ -64,7 +54,7 @@ class _LessonBondYieldFlipState extends State<LessonBondYieldFlip> {
                 color: scheme.outlineVariant.withValues(alpha: 0.5),
               ),
               Expanded(
-                child: _Metric(
+                child: BlockMetric(
                   label: 'Доходность (YTM)',
                   value: '${_ytm.toStringAsFixed(2)}%',
                   color: ytmColor,
@@ -72,30 +62,31 @@ class _LessonBondYieldFlipState extends State<LessonBondYieldFlip> {
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          SliderTheme(
-            data: SliderThemeData(activeTrackColor: widget.tint, thumbColor: widget.tint),
-            child: Slider(
-              value: _price,
-              min: 90,
-              max: 110,
-              divisions: 40,
-              label: '${_price.toStringAsFixed(1)}%',
-              onChanged: (v) => setState(() => _price = v),
-            ),
+          const SizedBox(height: BlockSpacing.m),
+          BlockSlider(
+            tint: widget.tint,
+            label: 'Цена покупки',
+            valueLabel: '${_price.toStringAsFixed(1)}%',
+            value: _price,
+            min: 90,
+            max: 110,
+            divisions: 40,
+            onChanged: (v) => setState(() => _price = v),
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('90% — дисконт',
-                  style: text.labelSmall?.copyWith(color: AppColors.success)),
+                  style: text.labelSmall
+                      ?.copyWith(color: BlockChartColors.success)),
               Text('100% — номинал',
                   style: text.labelSmall?.copyWith(color: scheme.onSurfaceVariant)),
               Text('110% — премия',
-                  style: text.labelSmall?.copyWith(color: AppColors.error)),
+                  style: text.labelSmall
+                      ?.copyWith(color: BlockChartColors.error)),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: BlockSpacing.s),
           Text(
             below
                 ? 'Бумага торгуется ниже номинала — доходность выше купона.'
@@ -106,29 +97,6 @@ class _LessonBondYieldFlipState extends State<LessonBondYieldFlip> {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _Metric extends StatelessWidget {
-  const _Metric({required this.label, required this.value, required this.color});
-
-  final String label;
-  final String value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: text.labelSmall?.copyWith(color: scheme.onSurfaceVariant)),
-        const SizedBox(height: 2),
-        Text(value,
-            style: text.titleLarge?.copyWith(color: color, fontWeight: FontWeight.w700)),
-      ],
     );
   }
 }
@@ -158,24 +126,15 @@ class _LessonCouponCashflowState extends State<LessonCouponCashflow> {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Денежный поток облигации',
+      subtitle: 'Номинал ${_nominal.toStringAsFixed(0)} ₽. Каждый год — купон, '
+          'в конце — возврат номинала.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Денежный поток облигации', style: text.titleMedium),
-          const SizedBox(height: 4),
-          Text(
-            'Номинал ${_nominal.toStringAsFixed(0)} ₽. Каждый год — купон, '
-            'в конце — возврат номинала.',
-            style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 14),
+          // Кастомная визуализация: бары купонных выплат + возврат номинала.
           SizedBox(
             height: 130,
             child: CustomPaint(
@@ -190,37 +149,34 @@ class _LessonCouponCashflowState extends State<LessonCouponCashflow> {
               ),
             ),
           ),
-          const SizedBox(height: 6),
-          _LabeledSlider(
+          const SizedBox(height: BlockSpacing.s),
+          BlockSlider(
+            tint: widget.tint,
             label: 'Ставка купона',
-            value: '${_rate.toStringAsFixed(0)}%',
-            tint: widget.tint,
-            slider: Slider(
-              value: _rate,
-              min: 5,
-              max: 16,
-              divisions: 11,
-              onChanged: (v) => setState(() => _rate = v),
-            ),
+            valueLabel: '${_rate.toStringAsFixed(0)}%',
+            value: _rate,
+            min: 5,
+            max: 16,
+            divisions: 11,
+            onChanged: (v) => setState(() => _rate = v),
           ),
-          _LabeledSlider(
+          BlockSlider(
+            tint: widget.tint,
             label: 'Срок до погашения',
-            value: '$_years ${_years == 1 ? 'год' : 'года'}',
-            tint: widget.tint,
-            slider: Slider(
-              value: _years.toDouble(),
-              min: 1,
-              max: 7,
-              divisions: 6,
-              onChanged: (v) => setState(() => _years = v.round()),
-            ),
+            valueLabel: '$_years ${_years == 1 ? 'год' : 'года'}',
+            value: _years.toDouble(),
+            min: 1,
+            max: 7,
+            divisions: 6,
+            onChanged: (v) => setState(() => _years = v.round()),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: BlockSpacing.s),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(
+                horizontal: BlockSpacing.m, vertical: 10),
             decoration: BoxDecoration(
-              color: widget.tint.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
+              color: BlockTint.soft(widget.tint),
+              borderRadius: BlockRadii.innerBr,
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -334,24 +290,15 @@ class _LessonNkdSawtoothState extends State<LessonNkdSawtooth> {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Накопленный купонный доход',
+      subtitle: 'НКД растёт каждый день и обнуляется в дату выплаты купона. '
+          'Покупая, ты доплачиваешь НКД продавцу.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Накопленный купонный доход', style: text.titleMedium),
-          const SizedBox(height: 4),
-          Text(
-            'НКД растёт каждый день и обнуляется в дату выплаты купона. '
-            'Покупая, ты доплачиваешь НКД продавцу.',
-            style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 14),
+          // Кастомная визуализация: «пила» НКД с маркером выбранного дня.
           SizedBox(
             height: 100,
             child: CustomPaint(
@@ -366,21 +313,21 @@ class _LessonNkdSawtoothState extends State<LessonNkdSawtooth> {
               ),
             ),
           ),
-          const SizedBox(height: 8),
-          SliderTheme(
-            data: SliderThemeData(activeTrackColor: widget.tint, thumbColor: widget.tint),
-            child: Slider(
-              value: _day.toDouble(),
-              max: _periodDays.toDouble(),
-              divisions: _periodDays,
-              label: 'День $_day',
-              onChanged: (v) => setState(() => _day = v.round()),
-            ),
+          const SizedBox(height: BlockSpacing.s),
+          BlockSlider(
+            tint: widget.tint,
+            label: 'День в купонном периоде',
+            valueLabel: 'День $_day',
+            value: _day.toDouble(),
+            min: 0,
+            max: _periodDays.toDouble(),
+            divisions: _periodDays,
+            onChanged: (v) => setState(() => _day = v.round()),
           ),
           Row(
             children: [
               Expanded(
-                child: _Metric(
+                child: BlockMetric(
                   label: 'НКД на день $_day',
                   value: '${_nkd.toStringAsFixed(2)} ₽',
                   color: widget.tint,
@@ -392,7 +339,7 @@ class _LessonNkdSawtoothState extends State<LessonNkdSawtooth> {
                 color: scheme.outlineVariant.withValues(alpha: 0.5),
               ),
               Expanded(
-                child: _Metric(
+                child: BlockMetric(
                   label: 'Грязная цена',
                   value: '${_dirty.toStringAsFixed(2)} ₽',
                   color: scheme.onSurface,
@@ -400,7 +347,7 @@ class _LessonNkdSawtoothState extends State<LessonNkdSawtooth> {
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: BlockSpacing.s),
           Text(
             'Грязная = чистая ${_cleanPrice.toStringAsFixed(0)} ₽ + '
             'НКД ${_nkd.toStringAsFixed(2)} ₽',
@@ -538,26 +485,18 @@ class _LessonYtmGaugeState extends State<LessonYtmGauge>
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
-    final gainColor = _priceGain >= 0 ? AppColors.success : AppColors.error;
+    final gainColor =
+        _priceGain >= 0 ? BlockChartColors.success : BlockChartColors.error;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Из чего собрана доходность',
+      subtitle: 'YTM = купон ${_coupon.toStringAsFixed(0)}% плюс/минус доход от '
+          'разницы между ценой и номиналом.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Из чего собрана доходность', style: text.titleMedium),
-          const SizedBox(height: 4),
-          Text(
-            'YTM = купон ${_coupon.toStringAsFixed(0)}% плюс/минус доход от '
-            'разницы между ценой и номиналом.',
-            style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 12),
+          // Кастомная визуализация: gauge-стрелка YTM.
           SizedBox(
             height: 110,
             child: CustomPaint(
@@ -576,7 +515,8 @@ class _LessonYtmGaugeState extends State<LessonYtmGauge>
                 style: text.titleMedium?.copyWith(
                     color: widget.tint, fontWeight: FontWeight.w700)),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: BlockSpacing.m),
+          // Кастомная визуализация: стек-бар «купон + доход от цены».
           _StackBar(
             coupon: _coupon,
             priceGain: _priceGain,
@@ -585,7 +525,7 @@ class _LessonYtmGaugeState extends State<LessonYtmGauge>
             gainColor: gainColor,
             track: scheme.surfaceContainerHighest,
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: BlockSpacing.xs),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -597,17 +537,16 @@ class _LessonYtmGaugeState extends State<LessonYtmGauge>
                   style: text.labelSmall?.copyWith(color: gainColor)),
             ],
           ),
-          const SizedBox(height: 8),
-          SliderTheme(
-            data: SliderThemeData(activeTrackColor: widget.tint, thumbColor: widget.tint),
-            child: Slider(
-              value: _price,
-              min: 90,
-              max: 110,
-              divisions: 40,
-              label: 'Цена ${_price.toStringAsFixed(1)}%',
-              onChanged: _onPrice,
-            ),
+          const SizedBox(height: BlockSpacing.s),
+          BlockSlider(
+            tint: widget.tint,
+            label: 'Цена покупки',
+            valueLabel: 'Цена ${_price.toStringAsFixed(1)}%',
+            value: _price,
+            min: 90,
+            max: 110,
+            divisions: 40,
+            onChanged: _onPrice,
           ),
         ],
       ),
@@ -796,24 +735,15 @@ class _LessonFundTreemapState extends State<LessonFundTreemap> {
     final text = Theme.of(context).textTheme;
     final sel = _selected != null ? _holdings[_selected!] : null;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Что внутри фонда',
+      subtitle: 'Площадь плитки — доля бумаги. Несколько крупных эмитентов '
+          'занимают половину фонда. Нажми на плитку.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Что внутри фонда', style: text.titleMedium),
-          const SizedBox(height: 4),
-          Text(
-            'Площадь плитки — доля бумаги. Несколько крупных эмитентов '
-            'занимают половину фонда. Нажми на плитку.',
-            style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 12),
+          // Кастомная визуализация: squarified-подобный treemap состава фонда.
           SizedBox(
             height: 180,
             child: LayoutBuilder(
@@ -839,12 +769,13 @@ class _LessonFundTreemapState extends State<LessonFundTreemap> {
               },
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: BlockSpacing.m),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(
+                horizontal: BlockSpacing.m, vertical: 10),
             decoration: BoxDecoration(
               color: scheme.surfaceContainerHighest.withValues(alpha: 0.6),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BlockRadii.innerBr,
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -932,45 +863,6 @@ class _Tile extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _LabeledSlider extends StatelessWidget {
-  const _LabeledSlider({
-    required this.label,
-    required this.value,
-    required this.tint,
-    required this.slider,
-  });
-
-  final String label;
-  final String value;
-  final Color tint;
-  final Slider slider;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(label,
-                style: text.labelSmall?.copyWith(color: scheme.onSurfaceVariant)),
-            Text(value,
-                style: text.labelMedium?.copyWith(
-                    color: tint, fontWeight: FontWeight.w700)),
-          ],
-        ),
-        SliderTheme(
-          data: SliderThemeData(activeTrackColor: tint, thumbColor: tint),
-          child: slider,
-        ),
-      ],
     );
   }
 }

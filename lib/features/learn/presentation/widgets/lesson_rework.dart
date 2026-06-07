@@ -1,9 +1,13 @@
 import 'dart:math' as math;
 
 import 'package:aloria/core/theme/tokens.dart';
+import 'package:aloria/features/learn/presentation/widgets/blocks/block_kit.dart';
 import 'package:flutter/material.dart';
 
 /// Переработанные блоки после ревью (старые реализации были слабыми).
+/// Собраны на block_kit (стиль «воздух»): карточка-обёртка [LessonBlockCard],
+/// слайдеры [BlockSlider], статусы/результаты [BlockChip], числа [BlockMetric].
+/// Кастомные части (painter стакана, стек-бары YTM/дюрации) сохранены как суть.
 
 // ── order-status ───────────────────────────────────────────────────────────
 
@@ -47,13 +51,12 @@ class _LessonOrderStatusFlowState extends State<LessonOrderStatusFlow> {
     final text = Theme.of(context).textTheme;
     final picked = _picked;
 
-    return _card(
-      context,
-      Column(
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Путь заявки',
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Путь заявки', style: text.titleMedium),
-          const SizedBox(height: 10),
           Row(
             children: [
               _statusChip('Активна', AppColors.warning, active: picked == null),
@@ -68,26 +71,27 @@ class _LessonOrderStatusFlowState extends State<LessonOrderStatusFlow> {
                 ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: BlockSpacing.s),
           AnimatedSize(
             duration: const Duration(milliseconds: 200),
             child: picked == null
                 ? const SizedBox(width: double.infinity)
                 : Container(
                     width: double.infinity,
-                    margin: const EdgeInsets.only(top: 4, bottom: 4),
-                    padding: const EdgeInsets.all(10),
+                    margin: const EdgeInsets.symmetric(
+                        vertical: BlockSpacing.xs),
+                    padding: const EdgeInsets.all(BlockSpacing.m),
                     decoration: BoxDecoration(
                       color: _finalColor(picked.result).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BlockRadii.innerBr,
                     ),
                     child: Text(picked.why, style: text.bodySmall),
                   ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: BlockSpacing.s),
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: BlockSpacing.s,
+            runSpacing: BlockSpacing.s,
             children: [
               for (final s in _scenarios)
                 ChoiceChip(
@@ -120,7 +124,8 @@ class _LessonOrderStatusFlowState extends State<LessonOrderStatusFlow> {
       opacity: active ? 1 : 0.4,
       duration: const Duration(milliseconds: 200),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        padding: const EdgeInsets.symmetric(
+            horizontal: BlockSpacing.m, vertical: 7),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.16),
           borderRadius: BorderRadius.circular(20),
@@ -172,13 +177,12 @@ class _LessonMarginCallDialState extends State<LessonMarginCallDial> {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
 
-    return _card(
-      context,
-      Column(
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Плечо и маржин-колл',
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Плечо и маржин-колл', style: text.titleMedium),
-          const SizedBox(height: 10),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -197,7 +201,7 @@ class _LessonMarginCallDialState extends State<LessonMarginCallDial> {
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: BlockSpacing.xs),
           ClipRRect(
             borderRadius: BorderRadius.circular(6),
             child: Stack(
@@ -219,31 +223,28 @@ class _LessonMarginCallDialState extends State<LessonMarginCallDial> {
               ],
             ),
           ),
-          const SizedBox(height: 14),
-          _LabeledRow(
+          const SizedBox(height: BlockSpacing.l),
+          BlockSlider(
+            tint: widget.tint,
             label: 'Плечо',
-            value: '${_leverage.toStringAsFixed(0)}×',
-            tint: widget.tint,
-            child: Slider(
-              value: _leverage,
-              min: 1,
-              max: 5,
-              divisions: 4,
-              onChanged: (v) => setState(() => _leverage = v),
-            ),
+            valueLabel: '${_leverage.toStringAsFixed(0)}×',
+            value: _leverage,
+            min: 1,
+            max: 5,
+            divisions: 4,
+            onChanged: (v) => setState(() => _leverage = v),
           ),
-          _LabeledRow(
+          BlockSlider(
+            tint: widget.tint,
             label: 'Цена сходила',
-            value: '${_move.toStringAsFixed(0)}%',
-            tint: widget.tint,
-            child: Slider(
-              value: _move,
-              min: -40,
-              max: 10,
-              divisions: 50,
-              onChanged: (v) => setState(() => _move = v),
-            ),
+            valueLabel: '${_move.toStringAsFixed(0)}%',
+            value: _move,
+            min: -40,
+            max: 10,
+            divisions: 50,
+            onChanged: (v) => setState(() => _move = v),
           ),
+          const SizedBox(height: BlockSpacing.s),
           Text(
             _called
                 ? 'Цена упала на ${(-_move).round()}% — при плече '
@@ -295,18 +296,14 @@ class _LessonMatchBookState extends State<LessonMatchBook> {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
 
-    return _card(
-      context,
-      Column(
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Как рождается сделка',
+      subtitle: 'Сведи цену покупателя и продавца. Совпали — сделка.',
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Как рождается сделка', style: text.titleMedium),
-          const SizedBox(height: 4),
-          Text(
-            'Сведи цену покупателя и продавца. Совпали — сделка.',
-            style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 12),
+          // Кастомная визуализация стакана-ленты (painter) — суть блока.
           SizedBox(
             height: 70,
             child: CustomPaint(
@@ -326,7 +323,7 @@ class _LessonMatchBookState extends State<LessonMatchBook> {
                   duration: const Duration(milliseconds: 150),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 5),
+                        horizontal: BlockSpacing.m, vertical: 5),
                     decoration: BoxDecoration(
                       color: widget.tint,
                       borderRadius: BorderRadius.circular(20),
@@ -340,39 +337,33 @@ class _LessonMatchBookState extends State<LessonMatchBook> {
               ),
             ),
           ),
-          const SizedBox(height: 8),
-          _LabeledRow(
-            label: 'Покупатель',
-            value: _bid.toStringAsFixed(0),
+          const SizedBox(height: BlockSpacing.s),
+          BlockSlider(
             tint: AppColors.success,
-            child: Slider(
-              value: _bid,
-              min: 95,
-              max: 107,
-              activeColor: AppColors.success,
-              onChanged: (v) => setState(() {
-                _bid = v;
-                _maybeTrade();
-              }),
-            ),
+            label: 'Покупатель',
+            valueLabel: _bid.toStringAsFixed(0),
+            value: _bid,
+            min: 95,
+            max: 107,
+            onChanged: (v) => setState(() {
+              _bid = v;
+              _maybeTrade();
+            }),
           ),
-          _LabeledRow(
-            label: 'Продавец',
-            value: _ask.toStringAsFixed(0),
+          BlockSlider(
             tint: AppColors.error,
-            child: Slider(
-              value: _ask,
-              min: 95,
-              max: 107,
-              activeColor: AppColors.error,
-              onChanged: (v) => setState(() {
-                _ask = v;
-                _maybeTrade();
-              }),
-            ),
+            label: 'Продавец',
+            valueLabel: _ask.toStringAsFixed(0),
+            value: _ask,
+            min: 95,
+            max: 107,
+            onChanged: (v) => setState(() {
+              _ask = v;
+              _maybeTrade();
+            }),
           ),
           if (_prints.isNotEmpty) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: BlockSpacing.xs),
             Row(
               children: [
                 Text('Лента: ', style: text.bodySmall?.copyWith(
@@ -472,19 +463,14 @@ class _LessonYtmDialState extends State<LessonYtmDial> {
     final couponPart = _coupon / ((_price + 100) / 2) * 100;
     final gainPart = _ytm - couponPart;
 
-    return _card(
-      context,
-      Column(
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Доходность к погашению',
+      subtitle: 'Купон ${_coupon.toStringAsFixed(0)}% от номинала, до погашения '
+          '$_years лет. Дешевле берёшь — выше YTM.',
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Доходность к погашению', style: text.titleMedium),
-          const SizedBox(height: 4),
-          Text(
-            'Купон ${_coupon.toStringAsFixed(0)}% от номинала, до погашения '
-            '$_years лет. Дешевле берёшь — выше YTM.',
-            style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 12),
           Center(
             child: Text(
               '${_ytm.toStringAsFixed(2)}%',
@@ -494,8 +480,8 @@ class _LessonYtmDialState extends State<LessonYtmDial> {
               ),
             ),
           ),
-          const SizedBox(height: 8),
-          // стек-бар купон + доход от цены
+          const SizedBox(height: BlockSpacing.s),
+          // Кастомный стек-бар: купон + доход от цены — суть блока.
           SizedBox(
             height: 22,
             child: ClipRRect(
@@ -525,18 +511,16 @@ class _LessonYtmDialState extends State<LessonYtmDial> {
               ),
             ),
           ),
-          const SizedBox(height: 12),
-          _LabeledRow(
-            label: 'Цена покупки',
-            value: '${_price.toStringAsFixed(0)}%',
+          const SizedBox(height: BlockSpacing.m),
+          BlockSlider(
             tint: widget.tint,
-            child: Slider(
-              value: _price,
-              min: 85,
-              max: 115,
-              divisions: 30,
-              onChanged: (v) => setState(() => _price = v),
-            ),
+            label: 'Цена покупки',
+            valueLabel: '${_price.toStringAsFixed(0)}%',
+            value: _price,
+            min: 85,
+            max: 115,
+            divisions: 30,
+            onChanged: (v) => setState(() => _price = v),
           ),
           Text(
             _price < 100
@@ -584,34 +568,27 @@ class _LessonRateReactionState extends State<LessonRateReaction> {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
 
-    return _card(
-      context,
-      Column(
+    return LessonBlockCard(
+      tint: widget.tint,
+      title: 'Ставка ЦБ и цена облигаций',
+      subtitle: 'Купон 10%. Двигай ставку — длинная бумага реагирует сильнее '
+          'короткой.',
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Ставка ЦБ и цена облигаций', style: text.titleMedium),
-          const SizedBox(height: 4),
-          Text(
-            'Купон 10%. Двигай ставку — длинная бумага реагирует сильнее '
-            'короткой.',
-            style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 14),
           _bondBar(context, 'Короткая (2 года)', _price(1.8)),
-          const SizedBox(height: 10),
+          const SizedBox(height: BlockSpacing.m),
           _bondBar(context, 'Длинная (10 лет)', _price(7.5)),
-          const SizedBox(height: 14),
-          _LabeledRow(
-            label: 'Ключевая ставка',
-            value: '${_rate.toStringAsFixed(0)}%',
+          const SizedBox(height: BlockSpacing.l),
+          BlockSlider(
             tint: widget.tint,
-            child: Slider(
-              value: _rate,
-              min: 5,
-              max: 18,
-              divisions: 13,
-              onChanged: (v) => setState(() => _rate = v),
-            ),
+            label: 'Ключевая ставка',
+            valueLabel: '${_rate.toStringAsFixed(0)}%',
+            value: _rate,
+            min: 5,
+            max: 18,
+            divisions: 13,
+            onChanged: (v) => setState(() => _rate = v),
           ),
           Text(
             _rate > _base
@@ -649,7 +626,7 @@ class _LessonRateReactionState extends State<LessonRateReaction> {
                     fontWeight: FontWeight.w800, color: color)),
           ],
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: BlockSpacing.xs),
         LayoutBuilder(builder: (context, c) {
           return SizedBox(
             height: 14,
@@ -689,58 +666,6 @@ class _LessonRateReactionState extends State<LessonRateReaction> {
             ),
           );
         }),
-      ],
-    );
-  }
-}
-
-// ── общие хелперы ────────────────────────────────────────────────────────────
-
-Widget _card(BuildContext context, Widget child) {
-  final scheme = Theme.of(context).colorScheme;
-  return Container(
-    decoration: BoxDecoration(
-      color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
-    ),
-    padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-    child: child,
-  );
-}
-
-class _LabeledRow extends StatelessWidget {
-  const _LabeledRow({
-    required this.label,
-    required this.value,
-    required this.tint,
-    required this.child,
-  });
-
-  final String label;
-  final String value;
-  final Color tint;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    final scheme = Theme.of(context).colorScheme;
-    return Row(
-      children: [
-        SizedBox(
-          width: 96,
-          child: Text(label,
-              style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant)),
-        ),
-        Expanded(child: child),
-        SizedBox(
-          width: 44,
-          child: Text(value,
-              textAlign: TextAlign.right,
-              style: text.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w800, color: tint)),
-        ),
       ],
     );
   }

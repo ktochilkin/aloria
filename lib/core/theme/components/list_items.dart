@@ -15,27 +15,27 @@ class AppListSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final isDark = scheme.brightness == Brightness.dark;
+    // Стиль дизайн-системы блоков («тёплый акцент»): без обводки, мягкая
+    // цветная тень, лёгкая акцент-подложка, радиус 18.
     return Padding(
       padding: padding,
       child: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              scheme.surface.withValues(alpha: 0.96),
-              scheme.surfaceContainerHighest.withValues(alpha: 0.92),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: scheme.outline.withValues(alpha: 0.6)),
-          boxShadow: [
-            BoxShadow(
-              color: scheme.primary.withValues(alpha: 0.08),
-              blurRadius: 18,
-              offset: const Offset(0, 10),
-            ),
-          ],
+          // Чистая поверхность карточки — на сером фоне портфеля выделяется
+          // светлотой и мягкой нейтральной тенью, без синей подложки.
+          color: scheme.surface,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: isDark
+              ? null
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.10),
+                    blurRadius: 24,
+                    spreadRadius: -2,
+                    offset: const Offset(0, 12),
+                  ),
+                ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -45,7 +45,7 @@ class AppListSection extends StatelessWidget {
                 Divider(
                   height: gap,
                   thickness: 1,
-                  color: scheme.outline.withValues(alpha: 0.55),
+                  color: scheme.outlineVariant.withValues(alpha: 0.4),
                   indent: 16,
                   endIndent: 16,
                 ),
