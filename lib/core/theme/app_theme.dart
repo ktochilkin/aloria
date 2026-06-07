@@ -55,12 +55,14 @@ class AppTheme {
           statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
         ),
       ),
+      // Дизайн-система «воздух»: белая карта без обводки, мягкая тень, радиус 24.
       cardTheme: CardThemeData(
         color: palette.surface,
         surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: const BorderRadius.all(Radius.circular(18)),
-          side: BorderSide(color: palette.outline),
+        elevation: 3,
+        shadowColor: Colors.black.withValues(alpha: 0.18),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(24)),
         ),
         margin: const EdgeInsets.all(12),
       ),
