@@ -1,5 +1,6 @@
 import 'package:aloria/core/theme/tokens.dart';
 import 'package:aloria/features/market/domain/market_price.dart';
+import 'package:aloria/features/market/presentation/numeric_text.dart';
 import 'package:flutter/material.dart';
 
 /// Лента последних сделок — компактные однострочные строки «цена · время»
@@ -73,7 +74,6 @@ class _TradeRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
 
     final up = previous != null && price > previous!;
     final down = previous != null && price < previous!;
@@ -105,19 +105,12 @@ class _TradeRow extends StatelessWidget {
           const SizedBox(width: 2),
           Text(
             price.toStringAsFixed(2),
-            style: text.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: tickColor,
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
+            style: monoNum(size: 14, weight: FontWeight.w700, color: tickColor),
           ),
           const Spacer(),
           Text(
             timeStr,
-            style: text.bodySmall?.copyWith(
-              color: scheme.onSurfaceVariant,
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
+            style: monoNum(size: 12, color: scheme.onSurfaceVariant),
           ),
         ],
       ),

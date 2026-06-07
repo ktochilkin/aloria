@@ -44,10 +44,16 @@ class _LearningPageState extends ConsumerState<LearningPage> {
     // урока, а не только для уже открытых.
     ref.watch(lessonBodiesPrewarmProvider);
 
+    final learnBg = Theme.of(context).brightness == Brightness.light
+        ? AppColors.learnCanvas
+        : null;
+
     return Scaffold(
+      backgroundColor: learnBg,
       extendBodyBehindAppBar: true,
       appBar: FadingHeader(
         fade: _headerFade,
+        baseColor: learnBg,
         title: const Text('Обучение'),
         actions: [
           IconButton(

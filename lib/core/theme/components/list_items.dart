@@ -15,27 +15,14 @@ class AppListSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final isDark = scheme.brightness == Brightness.dark;
-    // Стиль дизайн-системы блоков («тёплый акцент»): без обводки, мягкая
-    // цветная тень, лёгкая акцент-подложка, радиус 18.
+    // База Coinbase: белая карта, hairline-граница вместо тени, радиус 24.
     return Padding(
       padding: padding,
       child: Container(
         decoration: BoxDecoration(
-          // Чистая поверхность карточки — на сером фоне портфеля выделяется
-          // светлотой и мягкой нейтральной тенью, без синей подложки.
           color: scheme.surface,
           borderRadius: BorderRadius.circular(24),
-          boxShadow: isDark
-              ? null
-              : [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.10),
-                    blurRadius: 24,
-                    spreadRadius: -2,
-                    offset: const Offset(0, 12),
-                  ),
-                ],
+          border: Border.all(color: scheme.outline),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,

@@ -108,10 +108,6 @@ class _LessonView extends ConsumerStatefulWidget {
 class _LessonViewState extends ConsumerState<_LessonView> {
   bool _markedThisOpen = false;
 
-  /// Фон страницы урока (светлая тема): лёгкий синий с уклоном в акцент —
-  /// карточки «всплывают» на нём за счёт тени, интерфейс читается цельным.
-  static const Color _lessonBgLight = Color(0xFFF3F6FE);
-
   /// Слитая версия урока: метаданные из списка + body, academicDefinition,
   /// recall* подгружаются отдельным запросом в [_loadedLesson]. Бэк не
   /// присылает body в /stages/{slug}, поэтому тело подгружается лениво.
@@ -244,15 +240,15 @@ class _LessonViewState extends ConsumerState<_LessonView> {
     final isRead = entry?.read ?? _markedThisOpen;
     final total = widget.section.lessons.length;
     final hasNext = widget.index + 1 < total;
-    final isLight = Theme.of(context).brightness == Brightness.light;
-    final lessonBg = isLight ? _lessonBgLight : null;
+    final learnBg =
+        Theme.of(context).brightness == Brightness.light ? AppColors.learnCanvas : null;
 
     return Scaffold(
-      backgroundColor: lessonBg,
+      backgroundColor: learnBg,
       extendBodyBehindAppBar: true,
       appBar: FadingHeader(
         fade: _headerFade,
-        baseColor: lessonBg,
+        baseColor: learnBg,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {

@@ -88,11 +88,16 @@ class _SectionBodyState extends ConsumerState<_SectionBody> {
     final total = section.lessons.length;
 
     final currentIndex = _findCurrentIndex(section, progress);
+    final learnBg = Theme.of(context).brightness == Brightness.light
+        ? AppColors.learnCanvas
+        : null;
 
     return Scaffold(
+      backgroundColor: learnBg,
       extendBodyBehindAppBar: true,
       appBar: FadingHeader(
         fade: _headerFade,
+        baseColor: learnBg,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           tooltip: 'Назад',

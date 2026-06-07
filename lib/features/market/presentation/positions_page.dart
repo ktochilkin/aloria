@@ -15,6 +15,7 @@ import 'package:aloria/features/market/domain/portfolio_order.dart';
 import 'package:aloria/features/market/domain/portfolio_summary.dart';
 import 'package:aloria/features/market/domain/position.dart';
 import 'package:aloria/features/market/domain/trade_order.dart';
+import 'package:aloria/features/market/presentation/numeric_text.dart';
 import 'package:aloria/features/market/presentation/widgets/instrument_avatar.dart';
 import 'package:aloria/features/settings/application/settings_controller.dart';
 import 'package:aloria/l10n/generated/app_localizations.dart';
@@ -210,16 +211,7 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
             decoration: BoxDecoration(
               color: scheme.surface,
               borderRadius: BorderRadius.circular(24),
-              boxShadow: scheme.brightness == Brightness.dark
-                  ? null
-                  : [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.10),
-                        blurRadius: 24,
-                        spreadRadius: -2,
-                        offset: const Offset(0, 12),
-                      ),
-                    ],
+              border: Border.all(color: scheme.outline),
             ),
             child: Text(
               AppLocalizations.of(context)!.portfolioEmptyPositions,
@@ -262,16 +254,7 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
             decoration: BoxDecoration(
               color: scheme.surface,
               borderRadius: BorderRadius.circular(24),
-              boxShadow: scheme.brightness == Brightness.dark
-                  ? null
-                  : [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.10),
-                        blurRadius: 24,
-                        spreadRadius: -2,
-                        offset: const Offset(0, 12),
-                      ),
-                    ],
+              border: Border.all(color: scheme.outline),
             ),
             child: Text(
               AppLocalizations.of(context)!.portfolioEmptyOrders,
@@ -330,30 +313,22 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(
-                      qty != null ? 'Объём: $qty' : 'Объём: —',
-                      style: text.bodySmall,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      softWrap: false,
+                    _orderStat(
+                      context,
+                      'Объём:',
+                      qty != null ? '$qty' : '—',
+                      mono: qty != null,
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      'Цена: $priceLabel',
-                      style: text.bodySmall,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      softWrap: false,
+                    _orderStat(
+                      context,
+                      'Цена:',
+                      priceLabel,
+                      mono: order.type != OrderType.market,
                     ),
                     if (filled > 0) ...[
                       const SizedBox(height: 4),
-                      Text(
-                        'Исполнено: $filled',
-                        style: text.bodySmall,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        softWrap: false,
-                      ),
+                      _orderStat(context, 'Исполнено:', '$filled', mono: true),
                     ],
                     if (order.isActive) ...[
                       const SizedBox(height: 8),
@@ -454,7 +429,7 @@ class _PortfolioTitleBar extends ConsumerWidget {
           l.portfolioTitle,
           style: GoogleFonts.nunito(
             fontSize: 28,
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w600,
             height: 1.0,
             letterSpacing: -0.4,
             color: scheme.onSurface,
@@ -567,19 +542,6 @@ class _PortfolioHero extends StatelessWidget {
       decoration: BoxDecoration(
         color: scheme.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: context.palette.heroBorder),
-        boxShadow: [
-          BoxShadow(
-            color: context.palette.heroShadow,
-            offset: const Offset(0, 1),
-            blurRadius: 2,
-          ),
-          BoxShadow(
-            color: context.palette.heroShadow,
-            offset: const Offset(0, 6),
-            blurRadius: 20,
-          ),
-        ],
       ),
       clipBehavior: Clip.antiAlias,
       child: Stack(
@@ -638,7 +600,7 @@ class _PortfolioHero extends StatelessWidget {
                         style: GoogleFonts.nunito(
                           color: scheme.onSurface,
                           fontSize: 32,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w700,
                           height: 1.0,
                           letterSpacing: -0.8,
                           fontFeatures: const [FontFeature.tabularFigures()],
@@ -870,7 +832,7 @@ class _SummaryColumn extends StatelessWidget {
           style: GoogleFonts.nunito(
             fontSize: 15,
             color: valueColor,
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w600,
             height: 1.1,
             fontFeatures: const [FontFeature.tabularFigures()],
           ),
@@ -891,6 +853,32 @@ class _ColumnDivider extends StatelessWidget {
       color: context.palette.heroBorder,
     );
   }
+}
+
+/// Строка заявки «label значение» — значение моноширинным, если это число.
+Widget _orderStat(
+  BuildContext context,
+  String label,
+  String value, {
+  required bool mono,
+}) {
+  final text = Theme.of(context).textTheme;
+  return Text.rich(
+    TextSpan(
+      style: text.bodySmall,
+      children: [
+        TextSpan(text: '$label '),
+        TextSpan(
+          text: value,
+          style: mono ? monoNum(size: 12, weight: FontWeight.w500) : null,
+        ),
+      ],
+    ),
+    maxLines: 1,
+    overflow: TextOverflow.ellipsis,
+    softWrap: false,
+    textAlign: TextAlign.right,
+  );
 }
 
 String _formatMoney(double v) {
@@ -1496,12 +1484,31 @@ class _PositionTile extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(position.symbol, style: text.titleMedium),
-                  const SizedBox(height: 2),
                   Text(
-                    'Средняя ${position.averagePrice.toStringAsFixed(2)} ${position.currency}',
-                    style: text.bodyMedium?.copyWith(
-                      color: scheme.onSurfaceVariant,
+                    position.symbol,
+                    style: text.titleMedium?.copyWith(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text.rich(
+                    TextSpan(
+                      style: text.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                      children: [
+                        const TextSpan(text: 'Средняя '),
+                        TextSpan(
+                          text:
+                              '${position.averagePrice.toStringAsFixed(2)} ${position.currency}',
+                          style: monoNum(
+                            size: 13,
+                            weight: FontWeight.w500,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -1514,17 +1521,17 @@ class _PositionTile extends StatelessWidget {
               children: [
                 Text(
                   '${position.quantity.toStringAsFixed(2)} шт.',
-                  style: text.bodyLarge,
+                  style: monoNum(size: 15, color: scheme.onSurface),
                 ),
                 if (position.unrealisedPl != null) ...[
                   const SizedBox(height: 4),
                   Text(
                     '${position.unrealisedPl! >= 0 ? '+' : ''}${position.unrealisedPl!.toStringAsFixed(2)} ${position.currency}',
-                    style: text.bodySmall?.copyWith(
+                    style: monoNum(
+                      size: 13,
                       color: position.unrealisedPl! >= 0
                           ? AppColors.success
                           : AppColors.error,
-                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
@@ -1649,6 +1656,7 @@ class _PositionDetailsSheet extends StatelessWidget {
                       label: 'Количество',
                       value: '${position.quantity} шт.',
                       description: 'Количество ценных бумаг в вашем портфеле.',
+                      mono: true,
                     ),
                     _infoRow(
                       context,
@@ -1656,6 +1664,7 @@ class _PositionDetailsSheet extends StatelessWidget {
                       value: '${position.averagePrice} ${position.currency}',
                       description:
                           'Цена покупки (усредненная, если было несколько сделок).',
+                      mono: true,
                     ),
                     _infoRow(
                       context,
@@ -1663,6 +1672,7 @@ class _PositionDetailsSheet extends StatelessWidget {
                       value: '${position.currentVolume} ${position.currency}',
                       description:
                           'Рыночная стоимость всего пакета бумаг сейчас.',
+                      mono: true,
                     ),
                     if (position.unrealisedPl != null)
                       _infoRow(
@@ -1672,6 +1682,7 @@ class _PositionDetailsSheet extends StatelessWidget {
                             '${position.unrealisedPl! >= 0 ? '+' : ''}${position.unrealisedPl!.toStringAsFixed(2)} ${position.currency}',
                         description:
                             'Текущая доходность позиции (прибыль или убыток).',
+                        mono: true,
                       ),
                     _infoRow(
                       context,
@@ -1711,6 +1722,7 @@ class _PositionDetailsSheet extends StatelessWidget {
     required String label,
     required String value,
     required String description,
+    bool mono = false,
   }) {
     final text = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
@@ -1734,7 +1746,9 @@ class _PositionDetailsSheet extends StatelessWidget {
                 child: Text(
                   value,
                   textAlign: TextAlign.end,
-                  style: text.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+                  style: mono
+                      ? monoNum(size: 15, color: scheme.onSurface)
+                      : text.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                 ),
               ),
             ],

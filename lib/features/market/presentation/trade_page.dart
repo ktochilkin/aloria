@@ -55,13 +55,19 @@ const _cbSurfaceStrong = Color(0xFFEEF0F3); // вторичные кнопки/�
 const _cbUp = Color(0xFF05B169); // semantic up (только текст)
 const _cbDown = Color(0xFFCF202F); // semantic down (только текст)
 
-/// Моноширинный стиль для чисел (CoinbaseMono → JetBrains Mono).
+/// Стиль чисел: Nunito с табличными цифрами (одна ширина → ровные колонки),
+/// современнее моноширинного «терминального» шрифта.
 TextStyle _cbMono({
   required double size,
-  FontWeight weight = FontWeight.w500,
+  FontWeight weight = FontWeight.w600,
   Color color = _cbInk,
 }) =>
-    GoogleFonts.jetBrainsMono(fontSize: size, fontWeight: weight, color: color);
+    GoogleFonts.nunito(
+      fontSize: size,
+      fontWeight: weight,
+      color: color,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
 
 ThemeData _coinbaseTheme(BuildContext context) {
   final base = Theme.of(context);
@@ -335,7 +341,7 @@ class _TradePageState extends ConsumerState<TradePage> {
               child: Center(
                 child: Text(
                   '${latestPrice.toStringAsFixed(2)} ₽',
-                  style: _cbMono(size: 16, weight: FontWeight.w600),
+                  style: _cbMono(size: 16),
                 ),
               ),
             ),
@@ -1215,7 +1221,7 @@ class _InstrumentHeaderCard extends ConsumerWidget {
               children: [
                 Text(
                   p != null ? '${_fmtPrice(p.price)} $cur' : '—',
-                  style: _cbMono(size: 34, weight: FontWeight.w600),
+                  style: _cbMono(size: 34, weight: FontWeight.w700),
                 ),
                 const SizedBox(width: 12),
                 if (change != null && pct != null)
@@ -1231,11 +1237,7 @@ class _InstrumentHeaderCard extends ConsumerWidget {
                         ),
                         Text(
                           '${_fmtSigned(change)}  ${_fmtSigned(pct)}%',
-                          style: _cbMono(
-                            size: 14,
-                            weight: FontWeight.w600,
-                            color: changeColor,
-                          ),
+                          style: _cbMono(size: 14, color: changeColor),
                         ),
                       ],
                     ),

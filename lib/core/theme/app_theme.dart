@@ -55,53 +55,56 @@ class AppTheme {
           statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
         ),
       ),
-      // Дизайн-система «воздух»: белая карта без обводки, мягкая тень, радиус 24.
+      // База Coinbase: белая карта, hairline-граница вместо тени, радиус 24.
       cardTheme: CardThemeData(
         color: palette.surface,
         surfaceTintColor: Colors.transparent,
-        elevation: 3,
-        shadowColor: Colors.black.withValues(alpha: 0.18),
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(24)),
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: const BorderRadius.all(Radius.circular(24)),
+          side: BorderSide(color: palette.outline),
         ),
         margin: const EdgeInsets.all(12),
       ),
       dividerTheme: DividerThemeData(
-        color: palette.outline.withValues(alpha: 0.7),
+        color: palette.outline,
         thickness: 1,
       ),
+      // Кнопки — пилюли (StadiumBorder), синий primary.
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: palette.onPrimary,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(16)),
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          shape: const StadiumBorder(),
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          shape: const StadiumBorder(),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.secondary,
+          foregroundColor: palette.onSurface,
           side: BorderSide(color: palette.outline),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(16)),
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          shape: const StadiumBorder(),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: AppColors.secondary,
+          foregroundColor: AppColors.primary,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(14)),
-          ),
+          shape: const StadiumBorder(),
         ),
       ),
       chipTheme: ChipThemeData(
-        backgroundColor: scheme.surfaceContainerHigh,
-        selectedColor: AppColors.secondary.withValues(alpha: 0.16),
+        backgroundColor: scheme.surfaceContainerHighest,
+        selectedColor: AppColors.primary.withValues(alpha: 0.12),
         labelStyle:
             textTheme.labelMedium?.copyWith(color: palette.onSurface),
         shape: StadiumBorder(side: BorderSide(color: palette.outline)),
@@ -111,17 +114,17 @@ class AppTheme {
         fillColor: palette.surface,
         border: OutlineInputBorder(
           borderSide: BorderSide(color: palette.outline),
-          borderRadius: const BorderRadius.all(Radius.circular(14)),
+          borderRadius: const BorderRadius.all(Radius.circular(12)),
         ),
         focusedBorder: const OutlineInputBorder(
-          borderSide: BorderSide(color: AppColors.secondary, width: 1.6),
-          borderRadius: BorderRadius.all(Radius.circular(14)),
+          borderSide: BorderSide(color: AppColors.primary, width: 2),
+          borderRadius: BorderRadius.all(Radius.circular(12)),
         ),
         labelStyle: TextStyle(color: palette.onSurfaceVariant),
         hintStyle: TextStyle(color: palette.onSurfaceVariant),
       ),
       progressIndicatorTheme: ProgressIndicatorThemeData(
-        color: AppColors.secondary,
+        color: AppColors.primary,
         linearTrackColor: palette.outline,
         circularTrackColor: palette.outline,
       ),
