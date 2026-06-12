@@ -52,6 +52,7 @@ const _deployed = <String, String>{
   'tax-saldo': 'success',
   // active-trading (secondary)
   'leverage-seesaw': 'secondary',
+  'stop-loss-sim': 'secondary',
   'timeline-tplus': 'secondary',
 };
 

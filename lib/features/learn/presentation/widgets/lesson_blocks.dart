@@ -19,6 +19,7 @@ import 'package:aloria/features/learn/presentation/widgets/lesson_pack_slidergam
 import 'package:aloria/features/learn/presentation/widgets/lesson_rework.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_scam_flags.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_static_blocks.dart';
+import 'package:aloria/features/learn/presentation/widgets/lesson_stop_loss_sim.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_style_directions.dart';
 import 'package:flutter/material.dart';
 
@@ -72,6 +73,7 @@ const Map<String, LessonBlockBuilder> lessonBlockBuilders = {
   // новые
   'order-builder': _orderBuilder,
   'market-vs-limit': _marketVsLimit,
+  'stop-loss-sim': _stopLossSim,
   'candle-from-trades': _candleFromTrades,
   'diversification-dice': _diversificationDice,
   'spread-gauge': _spreadGauge,
@@ -201,6 +203,9 @@ Widget _phoneVsGarage(BuildContext context, Color tint) =>
 
 Widget _readTheTape(BuildContext context, Color tint) =>
     LessonReadTheTape(tint: tint);
+
+Widget _stopLossSim(BuildContext context, Color tint) =>
+    LessonStopLossSim(tint: tint);
 
 Widget _marketVsLimit(BuildContext context, Color tint) =>
     LessonMarketVsLimit(tint: tint);
