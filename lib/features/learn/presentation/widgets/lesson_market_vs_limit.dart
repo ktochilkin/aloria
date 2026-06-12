@@ -2,10 +2,12 @@ import 'package:aloria/features/learn/presentation/widgets/blocks/block_kit.dart
 import 'package:flutter/material.dart';
 
 /// Тренажёр «рыночная против лимитной»: пользователь покупает одну и ту же
-/// бумагу двумя способами и проживает разницу. Рыночная исполняется сразу по
-/// цене продавца. Лимитная встаёт в очередь по своей цене, затем цена ходит
-/// по детерминированному пути: дошла до лимита — исполнение, нет — заявка так
-/// и ждёт. Когда испробованы оба способа, появляется вывод-сравнение.
+/// бумагу двумя способами и проживает разницу прямо в мини-стакане.
+/// Рыночная съедает лучшую цену продавца — уровень подсвечивается отметкой
+/// сделки. Лимитная встаёт строкой «твоя заявка» на своё место по цене,
+/// затем цена идёт по детерминированному пути: дошла до лимита — исполнение,
+/// нет — заявка так и стоит. Когда испробованы оба способа, появляется
+/// вывод-сравнение. Оба сценария можно сбросить и попробовать снова.
 class LessonMarketVsLimit extends StatefulWidget {
   const LessonMarketVsLimit({super.key, required this.tint});
 
@@ -19,13 +21,30 @@ enum _Mode { market, limit }
 
 enum _LimitPhase { idle, waiting, filled, missed }
 
+class _Lvl {
+  const _Lvl(this.price, this.vol);
+  final double price;
+  final int vol;
+}
+
 class _LessonMarketVsLimitState extends State<LessonMarketVsLimit>
     with SingleTickerProviderStateMixin {
-  /// Лучшая цена продавца (аск): по ней исполнится покупка «по рынку».
-  static const double _bestAsk = 101.0;
+  /// Продавцы (аски), сверху вниз к центру: лучшая цена — последняя.
+  static const _asks = <_Lvl>[
+    _Lvl(101.4, 60),
+    _Lvl(101.2, 85),
+    _Lvl(101.0, 120),
+  ];
 
-  /// Лучшая цена покупателя (бид).
-  static const double _bestBid = 100.8;
+  /// Покупатели (биды), от центра вниз: лучшая цена — первая.
+  static const _bids = <_Lvl>[
+    _Lvl(100.8, 90),
+    _Lvl(100.6, 140),
+    _Lvl(100.4, 60),
+  ];
+
+  static double get _bestAsk => _asks.last.price;
+  static double get _bestBid => _bids.first.price;
 
   /// Путь цены после выставления лимитной: сползает вниз, разворачивается
   /// и уходит вверх. Минимум 100.4 — лимиты ниже не исполнятся.
@@ -36,11 +55,14 @@ class _LessonMarketVsLimitState extends State<LessonMarketVsLimit>
   _Mode _mode = _Mode.market;
   double _limitPrice = 100.5;
 
+  /// Видимое состояние эксперимента «по рынку» (сбрасывается кнопкой).
   bool _marketDone = false;
   _LimitPhase _limitPhase = _LimitPhase.idle;
-
-  /// Цена, по которой исполнилась лимитная (равна лимиту или лучше).
   double? _limitFillPrice;
+
+  /// «Опыт получен» — липкие флаги для вывода-сравнения, сброс их не трогает.
+  bool _marketTried = false;
+  bool _limitTried = false;
 
   late final AnimationController _anim;
 
@@ -64,7 +86,6 @@ class _LessonMarketVsLimitState extends State<LessonMarketVsLimit>
       setState(() {});
       return;
     }
-    // Дошла ли цена до лимита на уже пройденной части пути.
     final progressed = (_path.length - 1) * _anim.value;
     final lastIndex = progressed.floor();
     for (var i = 0; i <= lastIndex && i < _path.length; i++) {
@@ -73,26 +94,36 @@ class _LessonMarketVsLimitState extends State<LessonMarketVsLimit>
         setState(() {
           _limitPhase = _LimitPhase.filled;
           _limitFillPrice = _limitPrice;
+          _limitTried = true;
         });
         return;
       }
     }
     if (_anim.isCompleted) {
-      setState(() => _limitPhase = _LimitPhase.missed);
+      setState(() {
+        _limitPhase = _LimitPhase.missed;
+        _limitTried = true;
+      });
       return;
     }
     setState(() {});
   }
 
-  void _buyMarket() => setState(() => _marketDone = true);
+  void _buyMarket() => setState(() {
+        _marketDone = true;
+        _marketTried = true;
+      });
+
+  void _resetMarket() => setState(() => _marketDone = false);
 
   void _placeLimit() {
     if (_limitPrice >= _bestAsk) {
-      // Встречная цена в стакане уже лучше лимита — исполняется сразу,
+      // Встречная цена уже не хуже лимита — исполнение сразу по ней,
       // и не дороже твоей цены.
       setState(() {
         _limitPhase = _LimitPhase.filled;
         _limitFillPrice = _bestAsk;
+        _limitTried = true;
       });
       return;
     }
@@ -108,13 +139,19 @@ class _LessonMarketVsLimitState extends State<LessonMarketVsLimit>
     });
   }
 
-  bool get _limitTried =>
-      _limitPhase == _LimitPhase.filled || _limitPhase == _LimitPhase.missed;
+  /// Лимитная стоит в стакане (не мгновенное исполнение по встречной).
+  bool get _limitResting =>
+      _limitPhase != _LimitPhase.idle && _limitFillPrice != _bestAsk;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
+
+    final dealAtAsk = (_mode == _Mode.market && _marketDone) ||
+        (_mode == _Mode.limit &&
+            _limitPhase == _LimitPhase.filled &&
+            _limitFillPrice == _bestAsk);
 
     return LessonBlockCard(
       tint: widget.tint,
@@ -123,7 +160,14 @@ class _LessonMarketVsLimitState extends State<LessonMarketVsLimit>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _MiniBook(bestBid: _bestBid, bestAsk: _bestAsk),
+          _Ladder(
+            asks: _asks,
+            bids: _bids,
+            tint: widget.tint,
+            dealAtBestAsk: dealAtAsk,
+            yourPrice: _mode == _Mode.limit && _limitResting ? _limitPrice : null,
+            yourPhase: _limitPhase,
+          ),
           const SizedBox(height: BlockSpacing.m),
           Row(
             children: [
@@ -132,7 +176,7 @@ class _LessonMarketVsLimitState extends State<LessonMarketVsLimit>
                   label: 'По рынку',
                   selected: _mode == _Mode.market,
                   tint: widget.tint,
-                  done: _marketDone,
+                  done: _marketTried,
                   onTap: () => setState(() => _mode = _Mode.market),
                 ),
               ),
@@ -153,11 +197,26 @@ class _LessonMarketVsLimitState extends State<LessonMarketVsLimit>
             _marketPane(text, scheme)
           else
             _limitPane(text, scheme),
-          if (_marketDone && _limitTried) ...[
+          if (_marketTried && _limitTried) ...[
             const SizedBox(height: BlockSpacing.l),
             _Summary(tint: widget.tint),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _retryButton(ColorScheme scheme, String label, VoidCallback onTap) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: onTap,
+        icon: const Icon(Icons.refresh, size: 18),
+        label: Text(label),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: scheme.onSurface,
+          side: BorderSide(color: scheme.outline),
+        ),
       ),
     );
   }
@@ -205,13 +264,16 @@ class _LessonMarketVsLimitState extends State<LessonMarketVsLimit>
         ),
         const SizedBox(height: BlockSpacing.s),
         Text(
-          'Мгновенно — но по цене продавца: ${_bestAsk.toStringAsFixed(2)} ₽, '
-          'а не ${_bestBid.toStringAsFixed(2)} ₽, которые ты видел у покупателей.',
+          'Сделка прошла по лучшей цене продавцов — смотри отметку в стакане. '
+          'Мгновенно, но это ${_bestAsk.toStringAsFixed(2)} ₽, а не '
+          '${_bestBid.toStringAsFixed(2)} ₽, которые предлагали покупатели.',
           style: text.bodySmall?.copyWith(
             color: scheme.onSurfaceVariant,
             height: 1.4,
           ),
         ),
+        const SizedBox(height: BlockSpacing.s),
+        _retryButton(scheme, 'Попробовать снова', _resetMarket),
       ],
     );
   }
@@ -244,30 +306,34 @@ class _LessonMarketVsLimitState extends State<LessonMarketVsLimit>
       case _LimitPhase.waiting:
       case _LimitPhase.filled:
       case _LimitPhase.missed:
+        final instantFill = _limitFillPrice == _bestAsk;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(
-              height: 110,
-              width: double.infinity,
-              child: CustomPaint(
-                painter: _PathPainter(
-                  path: _path,
-                  progress:
-                      _limitPhase == _LimitPhase.waiting ? _anim.value : 1.0,
-                  limit: _limitPrice,
-                  fillPrice: _limitFillPrice,
-                  tint: widget.tint,
-                  grid: BlockChartColors.grid(scheme),
-                  muted: scheme.onSurfaceVariant,
+            if (!instantFill) ...[
+              SizedBox(
+                height: 110,
+                width: double.infinity,
+                child: CustomPaint(
+                  painter: _PathPainter(
+                    path: _path,
+                    progress:
+                        _limitPhase == _LimitPhase.waiting ? _anim.value : 1.0,
+                    limit: _limitPrice,
+                    fillPrice: _limitFillPrice,
+                    tint: widget.tint,
+                    grid: BlockChartColors.grid(scheme),
+                    muted: scheme.onSurfaceVariant,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: BlockSpacing.s),
+              const SizedBox(height: BlockSpacing.s),
+            ],
             if (_limitPhase == _LimitPhase.waiting)
               Text(
-                'Заявка в стакане по ${_limitPrice.toStringAsFixed(2)} ₽. '
-                'Ждём, дойдёт ли цена…',
+                'Твоя заявка встала в стакан по '
+                '${_limitPrice.toStringAsFixed(2)} ₽ — видишь её среди '
+                'покупателей? Ждём, дойдёт ли цена…',
                 style: text.bodySmall?.copyWith(
                   color: scheme.onSurfaceVariant,
                   height: 1.4,
@@ -297,31 +363,21 @@ class _LessonMarketVsLimitState extends State<LessonMarketVsLimit>
               const SizedBox(height: BlockSpacing.s),
               Text(
                 _limitPhase == _LimitPhase.filled
-                    ? (_limitFillPrice == _bestAsk
+                    ? (instantFill
                         ? 'Твоя цена была не хуже встречной — заявка исполнилась '
-                            'сразу, причём по лучшей цене из стакана.'
+                            'сразу по лучшей цене продавцов, смотри отметку в '
+                            'стакане. И не дороже твоей цены.'
                         : 'Цена спустилась до твоей линии — сделка по твоей цене, '
                             'дешевле, чем «по рынку». Но этого могло и не случиться.')
-                    : 'Рынок развернулся, не дойдя до твоей цены. Заявка ждёт '
-                        'дальше: можно оставить, передвинуть или отменить.',
+                    : 'Рынок развернулся, не дойдя до твоей цены. Заявка стоит '
+                        'в стакане дальше: можно оставить, передвинуть или отменить.',
                 style: text.bodySmall?.copyWith(
                   color: scheme.onSurfaceVariant,
                   height: 1.4,
                 ),
               ),
               const SizedBox(height: BlockSpacing.s),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: _resetLimit,
-                  icon: const Icon(Icons.refresh, size: 18),
-                  label: const Text('Попробовать другую цену'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: scheme.onSurface,
-                    side: BorderSide(color: scheme.outline),
-                  ),
-                ),
-              ),
+              _retryButton(scheme, 'Попробовать другую цену', _resetLimit),
             ],
           ],
         );
@@ -329,54 +385,290 @@ class _LessonMarketVsLimitState extends State<LessonMarketVsLimit>
   }
 }
 
-/// Компактный стакан: лучший покупатель и лучший продавец.
-class _MiniBook extends StatelessWidget {
-  const _MiniBook({required this.bestBid, required this.bestAsk});
+/// Мини-стакан лесенкой: продавцы сверху, покупатели снизу, спред между ними.
+/// Умеет показывать отметку сделки на лучшем аске и строку «твоя заявка».
+class _Ladder extends StatelessWidget {
+  const _Ladder({
+    required this.asks,
+    required this.bids,
+    required this.tint,
+    required this.dealAtBestAsk,
+    required this.yourPrice,
+    required this.yourPhase,
+  });
 
-  final double bestBid;
-  final double bestAsk;
+  final List<_Lvl> asks;
+  final List<_Lvl> bids;
+  final Color tint;
+
+  /// Подсветить лучший аск как «здесь прошла сделка».
+  final bool dealAtBestAsk;
+
+  /// Цена стоящей в стакане лимитной заявки (null — заявки нет).
+  final double? yourPrice;
+  final _LimitPhase yourPhase;
+
+  @override
+  Widget build(BuildContext context) {
+    final maxVol =
+        [...asks, ...bids].map((l) => l.vol).reduce((a, b) => a > b ? a : b);
+
+    final rows = <Widget>[];
+    for (final a in asks) {
+      final isDeal = dealAtBestAsk && a.price == asks.last.price;
+      rows.add(_LadderRow(
+        price: a.price,
+        vol: a.vol,
+        maxVol: maxVol,
+        color: BlockChartColors.error,
+        deal: isDeal,
+        tint: tint,
+      ));
+    }
+
+    rows.add(_SpreadDivider(
+      spread: asks.last.price - bids.first.price,
+    ));
+
+    var yourPending = yourPrice != null;
+    for (final b in bids) {
+      if (yourPending && yourPrice! > b.price) {
+        rows.add(_YourRow(price: yourPrice!, phase: yourPhase, tint: tint));
+        yourPending = false;
+      }
+      rows.add(_LadderRow(
+        price: b.price,
+        vol: b.vol,
+        maxVol: maxVol,
+        color: BlockChartColors.success,
+        deal: false,
+        tint: tint,
+      ));
+    }
+    if (yourPending) {
+      rows.add(_YourRow(price: yourPrice!, phase: yourPhase, tint: tint));
+    }
+
+    final scheme = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+    return Container(
+      padding: const EdgeInsets.all(BlockSpacing.m),
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BlockRadii.innerBr,
+        border: Border.all(color: scheme.outline.withValues(alpha: 0.6)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text('продают',
+                  style: text.labelMedium?.copyWith(
+                      color: BlockChartColors.error, fontSize: 11)),
+              const Spacer(),
+              Text('СТАКАН',
+                  style: text.labelMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    fontSize: 10,
+                    letterSpacing: 1.2,
+                  )),
+            ],
+          ),
+          const SizedBox(height: BlockSpacing.xs),
+          ...rows,
+          const SizedBox(height: BlockSpacing.xs),
+          Text('покупают',
+              style: text.labelMedium?.copyWith(
+                  color: BlockChartColors.success, fontSize: 11)),
+        ],
+      ),
+    );
+  }
+}
+
+class _LadderRow extends StatelessWidget {
+  const _LadderRow({
+    required this.price,
+    required this.vol,
+    required this.maxVol,
+    required this.color,
+    required this.deal,
+    required this.tint,
+  });
+
+  final double price;
+  final int vol;
+  final int maxVol;
+  final Color color;
+  final bool deal;
+  final Color tint;
 
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
-    Widget side(String label, double price, Color color, bool alignEnd) {
-      return Expanded(
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: BlockSpacing.m,
-            vertical: BlockSpacing.s,
-          ),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.10),
-            borderRadius: BlockRadii.innerBr,
-          ),
-          child: Column(
-            crossAxisAlignment:
-                alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: text.labelMedium?.copyWith(color: color, fontSize: 11),
-              ),
-              Text(
-                '${price.toStringAsFixed(2)} ₽',
-                style: text.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 16,
+    final scheme = Theme.of(context).colorScheme;
+    final frac = (vol / maxVol).clamp(0.12, 1.0);
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      height: 28,
+      margin: const EdgeInsets.symmetric(vertical: 1.5),
+      decoration: deal
+          ? BoxDecoration(
+              color: BlockChartColors.success.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(7),
+              border: Border.all(color: BlockChartColors.success),
+            )
+          : null,
+      child: Stack(
+        alignment: Alignment.centerLeft,
+        children: [
+          if (!deal)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: FractionallySizedBox(
+                widthFactor: frac,
+                child: Container(
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(7),
+                  ),
                 ),
               ),
-            ],
+            ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: BlockSpacing.s),
+            child: Row(
+              children: [
+                Text(
+                  price.toStringAsFixed(2),
+                  style: text.bodySmall?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(width: BlockSpacing.s),
+                Text(
+                  '$vol',
+                  style:
+                      text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+                ),
+                const Spacer(),
+                if (deal) ...[
+                  const Icon(Icons.bolt,
+                      size: 14, color: BlockChartColors.success),
+                  const SizedBox(width: 4),
+                  Text(
+                    'сделка прошла здесь',
+                    style: text.labelMedium?.copyWith(
+                      color: BlockChartColors.success,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
-        ),
-      );
-    }
+        ],
+      ),
+    );
+  }
+}
 
-    return Row(
-      children: [
-        side('покупатели готовы по', bestBid, BlockChartColors.success, false),
-        const SizedBox(width: BlockSpacing.s),
-        side('продавцы просят', bestAsk, BlockChartColors.error, true),
-      ],
+/// Строка лимитной заявки пользователя в лесенке.
+class _YourRow extends StatelessWidget {
+  const _YourRow({
+    required this.price,
+    required this.phase,
+    required this.tint,
+  });
+
+  final double price;
+  final _LimitPhase phase;
+  final Color tint;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final filled = phase == _LimitPhase.filled;
+    final color = filled ? BlockChartColors.success : tint;
+    final (IconData icon, String label) = switch (phase) {
+      _LimitPhase.filled => (Icons.bolt, 'исполнена'),
+      _LimitPhase.missed => (Icons.schedule, 'так и ждёт'),
+      _ => (Icons.schedule, 'ждёт'),
+    };
+
+    return Container(
+      height: 28,
+      margin: const EdgeInsets.symmetric(vertical: 1.5),
+      padding: const EdgeInsets.symmetric(horizontal: BlockSpacing.s),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(7),
+        border: Border.all(color: color),
+      ),
+      child: Row(
+        children: [
+          Text(
+            price.toStringAsFixed(2),
+            style: text.bodySmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
+          const SizedBox(width: BlockSpacing.s),
+          Text(
+            'твоя заявка',
+            style: text.labelMedium?.copyWith(
+              color: color,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const Spacer(),
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: text.labelMedium?.copyWith(
+              color: color,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SpreadDivider extends StatelessWidget {
+  const _SpreadDivider({required this.spread});
+
+  final double spread;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          Expanded(child: Container(height: 1, color: scheme.outlineVariant)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: BlockSpacing.s),
+            child: Text(
+              'спред ${spread.toStringAsFixed(2)} ₽',
+              style: text.labelMedium?.copyWith(
+                color: scheme.onSurfaceVariant,
+                fontSize: 10,
+              ),
+            ),
+          ),
+          Expanded(child: Container(height: 1, color: scheme.outlineVariant)),
+        ],
+      ),
     );
   }
 }
