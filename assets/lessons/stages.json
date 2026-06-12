@@ -7,7 +7,7 @@
       "icon": "lightbulb_outline",
       "tint": "primary",
       "goal": "Понять, что деньги в покое теряют ценность, как работает сложный процент и какие риски ждут на входе.",
-      "targetMinutes": 12,
+      "targetMinutes": 22,
       "isOptional": false,
       "order": 0,
       "unlockRule": null
@@ -19,10 +19,18 @@
       "icon": "balance",
       "tint": "primary",
       "goal": "Разобрать базовый каркас оценки инвестиции: три параметра, виды риска, ликвидность и доходность.",
-      "targetMinutes": 24,
+      "targetMinutes": 22,
       "isOptional": false,
       "order": 1,
-      "unlockRule": { "requires": [{ "type": "stage", "slug": "why-market", "status": "completed" }] }
+      "unlockRule": {
+        "requires": [
+          {
+            "type": "stage",
+            "slug": "why-market",
+            "status": "completed"
+          }
+        ]
+      }
     },
     {
       "id": "first-trade",
@@ -34,7 +42,15 @@
       "targetMinutes": 18,
       "isOptional": false,
       "order": 2,
-      "unlockRule": { "requires": [{ "type": "stage", "slug": "basics", "status": "completed" }] }
+      "unlockRule": {
+        "requires": [
+          {
+            "type": "stage",
+            "slug": "basics",
+            "status": "completed"
+          }
+        ]
+      }
     },
     {
       "id": "reading-market",
@@ -43,10 +59,18 @@
       "icon": "candlestick_chart",
       "tint": "primary",
       "goal": "Научиться смотреть на торговый интерфейс: стакан и лента сделок, спред и ликвидность, график и свечи. Этап для тех, кто хочет понимать, что происходит на экране.",
-      "targetMinutes": 20,
+      "targetMinutes": 24,
       "isOptional": false,
       "order": 3,
-      "unlockRule": { "requires": [{ "type": "stage", "slug": "first-trade", "status": "completed" }] }
+      "unlockRule": {
+        "requires": [
+          {
+            "type": "stage",
+            "slug": "first-trade",
+            "status": "completed"
+          }
+        ]
+      }
     },
     {
       "id": "stocks",
@@ -55,10 +79,18 @@
       "icon": "business",
       "tint": "primary",
       "goal": "Понять акцию как долю в бизнесе, разобрать риск конкретной акции и дивидендный гэп; купить акцию на учебном счёте.",
-      "targetMinutes": 22,
+      "targetMinutes": 24,
       "isOptional": false,
       "order": 4,
-      "unlockRule": { "requires": [{ "type": "stage", "slug": "reading-market", "status": "completed" }] }
+      "unlockRule": {
+        "requires": [
+          {
+            "type": "stage",
+            "slug": "reading-market",
+            "status": "completed"
+          }
+        ]
+      }
     },
     {
       "id": "bonds",
@@ -67,10 +99,18 @@
       "icon": "receipt_long",
       "tint": "primary",
       "goal": "Понять облигацию как долг: номинал, купон, срок. Разобрать, как она торгуется в процентах от номинала, что такое НКД и почему цена ходит со ставкой ЦБ.",
-      "targetMinutes": 30,
+      "targetMinutes": 25,
       "isOptional": false,
       "order": 5,
-      "unlockRule": { "requires": [{ "type": "stage", "slug": "stocks", "status": "completed" }] }
+      "unlockRule": {
+        "requires": [
+          {
+            "type": "stage",
+            "slug": "stocks",
+            "status": "completed"
+          }
+        ]
+      }
     },
     {
       "id": "funds",
@@ -82,7 +122,15 @@
       "targetMinutes": 28,
       "isOptional": false,
       "order": 6,
-      "unlockRule": { "requires": [{ "type": "stage", "slug": "bonds", "status": "completed" }] }
+      "unlockRule": {
+        "requires": [
+          {
+            "type": "stage",
+            "slug": "bonds",
+            "status": "completed"
+          }
+        ]
+      }
     },
     {
       "id": "portfolio",
@@ -91,10 +139,18 @@
       "icon": "pie_chart",
       "tint": "primary",
       "goal": "Собрать портфель под свой риск-профиль, провести одну ребалансировку, разобрать налоги и психологические ловушки.",
-      "targetMinutes": 26,
+      "targetMinutes": 24,
       "isOptional": false,
       "order": 7,
-      "unlockRule": { "requires": [{ "type": "stage", "slug": "funds", "status": "completed" }] }
+      "unlockRule": {
+        "requires": [
+          {
+            "type": "stage",
+            "slug": "funds",
+            "status": "completed"
+          }
+        ]
+      }
     },
     {
       "id": "active-trading",
@@ -106,7 +162,15 @@
       "targetMinutes": 25,
       "isOptional": true,
       "order": 8,
-      "unlockRule": { "requires": [{ "type": "stage", "slug": "portfolio", "status": "completed" }] }
+      "unlockRule": {
+        "requires": [
+          {
+            "type": "stage",
+            "slug": "portfolio",
+            "status": "completed"
+          }
+        ]
+      }
     },
     {
       "id": "lab",
