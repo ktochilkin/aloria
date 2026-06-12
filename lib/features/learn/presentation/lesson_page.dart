@@ -1,10 +1,13 @@
+import 'package:aloria/core/theme/canvas_switch.dart';
 import 'package:aloria/core/theme/tokens.dart';
 import 'package:aloria/core/utils/layout_utils.dart';
 import 'package:aloria/features/learn/application/learning_providers.dart';
 import 'package:aloria/features/learn/data/learning_api_client.dart';
 import 'package:aloria/features/learn/data/learning_content_cache.dart';
 import 'package:aloria/features/learn/domain/models.dart';
+import 'package:aloria/features/learn/presentation/widgets/fading_header.dart';
 import 'package:aloria/features/learn/presentation/widgets/learning_widgets.dart';
+import 'package:aloria/features/learn/presentation/widgets/lesson_blocks.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_quiz_block.dart';
 import 'package:aloria/features/learn/presentation/widgets/recall_card.dart';
 import 'package:aloria/features/learn/presentation/widgets/server_quiz_block.dart';
@@ -142,6 +145,15 @@ class _LessonViewState extends ConsumerState<_LessonView> {
 
   Lesson? _loadedLesson;
 
+  /// Затухание шапки урока по скроллу (0 — вверху, 1 — уехали).
+  final ValueNotifier<double> _headerFade = ValueNotifier(0);
+
+  @override
+  void dispose() {
+    _headerFade.dispose();
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -229,9 +241,16 @@ class _LessonViewState extends ConsumerState<_LessonView> {
     final isRead = entry?.read ?? _markedThisOpen;
     final total = widget.section.lessons.length;
     final hasNext = widget.index + 1 < total;
+    final learnBg = Theme.of(context).brightness == Brightness.light
+        ? ref.watch(canvasColorProvider)
+        : null;
 
     return Scaffold(
-      appBar: AppBar(
+      backgroundColor: learnBg,
+      extendBodyBehindAppBar: true,
+      appBar: FadingHeader(
+        fade: _headerFade,
+        baseColor: learnBg,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
@@ -247,8 +266,11 @@ class _LessonViewState extends ConsumerState<_LessonView> {
           style: text.titleMedium?.copyWith(fontSize: 16),
         ),
       ),
-      body: ListView(
-        padding: EdgeInsets.fromLTRB(16, 8, 16, context.bottomNavBarPadding),
+      body: NotificationListener<ScrollNotification>(
+        onNotification: (n) => updateHeaderFade(_headerFade, n),
+        child: ListView(
+        padding: EdgeInsets.fromLTRB(
+            16, fadingHeaderTopInset(context), 16, context.bottomNavBarPadding),
         children: [
           _LessonProgressHeader(
             section: widget.section,
@@ -333,53 +355,76 @@ class _LessonViewState extends ConsumerState<_LessonView> {
               _effectiveLesson.body,
               catalog,
             );
-            return MarkdownBody(
-              data: processed,
-              selectable: true,
-              styleSheet:
-                  MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-                p: text.bodyMedium?.copyWith(height: 1.55),
-                h1: text.titleMedium?.copyWith(fontSize: 22),
-                h2: text.titleMedium?.copyWith(fontSize: 19),
-                h3: text.titleMedium?.copyWith(fontSize: 17),
-                blockquote: text.bodyMedium?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                  fontStyle: FontStyle.italic,
-                ),
-                blockquoteDecoration: BoxDecoration(
-                  color: widget.section.tint.withValues(alpha: 0.08),
-                  border: Border(
-                    left: BorderSide(color: widget.section.tint, width: 3),
+            // Текстовые сегменты рендерим одинаково; директивы `:::block`
+            // превращаются в интерактивные виджеты из реестра.
+            Widget markdown(String data) => MarkdownBody(
+                  data: data,
+                  selectable: true,
+                  styleSheet:
+                      MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+                    p: text.bodyMedium?.copyWith(height: 1.55),
+                    h1: text.titleMedium?.copyWith(fontSize: 22),
+                    h2: text.titleMedium?.copyWith(fontSize: 19),
+                    h3: text.titleMedium?.copyWith(fontSize: 17),
+                    blockquote: text.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                      fontStyle: FontStyle.italic,
+                    ),
+                    blockquoteDecoration: BoxDecoration(
+                      color: scheme.surface,
+                      border: Border(
+                        left: BorderSide(color: widget.section.tint, width: 3),
+                        top: BorderSide(color: scheme.outline),
+                        right: BorderSide(color: scheme.outline),
+                        bottom: BorderSide(color: scheme.outline),
+                      ),
+                      borderRadius: const BorderRadius.only(
+                        topRight: Radius.circular(12),
+                        bottomRight: Radius.circular(12),
+                      ),
+                    ),
+                    listBullet: text.bodyMedium,
+                    // Ненавязчивая ссылка: обычный цвет текста, заметное, но
+                    // мягкое подчёркивание приглушённым цветом — намёк
+                    // «можно нажать» без яркого акцента.
+                    a: TextStyle(
+                      color: scheme.onSurface,
+                      decoration: TextDecoration.underline,
+                      decorationColor: scheme.onSurfaceVariant,
+                      decorationThickness: 2,
+                    ),
                   ),
-                  borderRadius: const BorderRadius.only(
-                    topRight: Radius.circular(8),
-                    bottomRight: Radius.circular(8),
+                  onTapLink: (label, href, _) {
+                    if (href == null) return;
+                    const linkScheme = 'aloria-concept://';
+                    if (href.startsWith(linkScheme)) {
+                      final slug = href.substring(linkScheme.length);
+                      _showConceptSheet(context, slug, label);
+                    }
+                  },
+                  sizedImageBuilder: (config) => _MarkdownImage(
+                    uri: config.uri,
+                    alt: config.alt,
+                    fallbackTint: widget.section.tint,
                   ),
-                ),
-                listBullet: text.bodyMedium,
-                // Ненавязчивая ссылка: обычный цвет текста, заметное, но
-                // мягкое подчёркивание приглушённым цветом — намёк
-                // «можно нажать» без яркого акцента.
-                a: TextStyle(
-                  color: scheme.onSurface,
-                  decoration: TextDecoration.underline,
-                  decorationColor: scheme.onSurfaceVariant,
-                  decorationThickness: 2,
-                ),
-              ),
-              onTapLink: (label, href, _) {
-                if (href == null) return;
-                const scheme = 'aloria-concept://';
-                if (href.startsWith(scheme)) {
-                  final slug = href.substring(scheme.length);
-                  _showConceptSheet(context, slug, label);
-                }
-              },
-              sizedImageBuilder: (config) => _MarkdownImage(
-                uri: config.uri,
-                alt: config.alt,
-                fallbackTint: widget.section.tint,
-              ),
+                );
+
+            final segments = parseLessonSegments(processed);
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final segment in segments)
+                  if (segment is LessonText)
+                    markdown(segment.markdown)
+                  else if (segment is LessonBlock)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      child: lessonBlockBuilders[segment.name]!(
+                        context,
+                        widget.section.tint,
+                      ),
+                    ),
+              ],
             );
           }),
           if (_effectiveLesson.hasServerQuiz) ...[
@@ -445,6 +490,7 @@ class _LessonViewState extends ConsumerState<_LessonView> {
           ),
           const SizedBox(height: 12),
         ],
+        ),
       ),
     );
   }
@@ -712,11 +758,11 @@ class _DefinitionBlock extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: tint.withValues(alpha: 0.45)),
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: scheme.outline),
       ),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

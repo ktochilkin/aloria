@@ -4,6 +4,7 @@ import 'package:aloria/features/market/application/market_controller.dart';
 import 'package:aloria/features/market/application/market_news_provider.dart';
 import 'package:aloria/features/market/data/market_repository.dart';
 import 'package:aloria/features/market/domain/market_news.dart';
+import 'package:aloria/features/market/presentation/numeric_text.dart';
 import 'package:aloria/features/market/presentation/widgets/instrument_avatar.dart';
 import 'package:aloria/features/market/presentation/widgets/news_detail_modal.dart';
 import 'package:aloria/features/market/presentation/widgets/news_widget.dart';
@@ -178,7 +179,13 @@ class _MarketOverviewTab extends StatelessWidget {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(item.symbol, style: text.titleMedium),
+                                    Text(
+                                      item.symbol,
+                                      style: text.titleMedium?.copyWith(
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.w400,
+                                      ),
+                                    ),
                                     const SizedBox(height: 4),
                                     Text(
                                       item.shortName,
@@ -198,19 +205,17 @@ class _MarketOverviewTab extends StatelessWidget {
                                   children: [
                                     Text(
                                       item.lastPrice!.toStringAsFixed(2),
-                                      style: text.titleMedium?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                      style: monoNum(size: 16),
                                     ),
                                     if (item.changePercent != null) ...[
                                       const SizedBox(height: 4),
                                       Text(
                                         '${item.changePercent! >= 0 ? '+' : ''}${item.changePercent!.toStringAsFixed(2)}%',
-                                        style: text.bodySmall?.copyWith(
+                                        style: monoNum(
+                                          size: 13,
                                           color: item.changePercent! >= 0
                                               ? AppColors.success
                                               : AppColors.error,
-                                          fontWeight: FontWeight.w600,
                                         ),
                                       ),
                                     ],

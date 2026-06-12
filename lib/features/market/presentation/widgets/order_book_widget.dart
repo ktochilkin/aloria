@@ -1,5 +1,6 @@
 import 'package:aloria/core/theme/tokens.dart';
 import 'package:aloria/features/market/domain/order_book.dart';
+import 'package:aloria/features/market/presentation/numeric_text.dart';
 import 'package:flutter/material.dart';
 
 /// Виджет для отображения биржевого стакана (order book)
@@ -182,7 +183,6 @@ class OrderBookRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
     final ratio = (level.volume / maxVolume).clamp(0.12, 1.0);
     return InkWell(
       borderRadius: BorderRadius.circular(12),
@@ -219,26 +219,22 @@ class OrderBookRow extends StatelessWidget {
                   if (!isAsk) ...[
                     Text(
                       level.price.toStringAsFixed(2),
-                      style: text.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                      style: monoNum(size: 14, weight: FontWeight.w700),
                     ),
                     const SizedBox(width: 8),
                     Text(
                       '${level.volume.toStringAsFixed(0)} лотов',
-                      style: text.bodySmall,
+                      style: monoNum(size: 12),
                     ),
                   ] else ...[
                     Text(
                       '${level.volume.toStringAsFixed(0)} лотов',
-                      style: text.bodySmall,
+                      style: monoNum(size: 12),
                     ),
                     const SizedBox(width: 8),
                     Text(
                       level.price.toStringAsFixed(2),
-                      style: text.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                      style: monoNum(size: 14, weight: FontWeight.w700),
                     ),
                   ],
                 ],

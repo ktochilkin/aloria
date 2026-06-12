@@ -107,6 +107,18 @@
       "isOptional": true,
       "order": 8,
       "unlockRule": { "requires": [{ "type": "stage", "slug": "portfolio", "status": "completed" }] }
+    },
+    {
+      "id": "lab",
+      "title": "Лаборатория блоков",
+      "subtitle": "Витрина интерактивных блоков для уроков. Рабочая, не часть курса.",
+      "icon": "category",
+      "tint": "primary",
+      "goal": "Посмотреть кандидатов на встраивание в уроки в одном месте.",
+      "targetMinutes": 5,
+      "isOptional": true,
+      "order": 9,
+      "unlockRule": null
     }
   ],
   "intro": {

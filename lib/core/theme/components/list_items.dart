@@ -15,27 +15,14 @@ class AppListSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    // База Coinbase: белая карта, hairline-граница вместо тени, радиус 24.
     return Padding(
       padding: padding,
       child: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              scheme.surface.withValues(alpha: 0.96),
-              scheme.surfaceContainerHighest.withValues(alpha: 0.92),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: scheme.outline.withValues(alpha: 0.6)),
-          boxShadow: [
-            BoxShadow(
-              color: scheme.primary.withValues(alpha: 0.08),
-              blurRadius: 18,
-              offset: const Offset(0, 10),
-            ),
-          ],
+          color: scheme.surface,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: scheme.outline),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -45,7 +32,7 @@ class AppListSection extends StatelessWidget {
                 Divider(
                   height: gap,
                   thickness: 1,
-                  color: scheme.outline.withValues(alpha: 0.55),
+                  color: scheme.outlineVariant.withValues(alpha: 0.4),
                   indent: 16,
                   endIndent: 16,
                 ),

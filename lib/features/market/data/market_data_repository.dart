@@ -43,6 +43,15 @@ class MarketDataRepository {
     return history.isEmpty ? null : history.last;
   }
 
+  /// Статическая деталь инструмента (minStep, lotSize и т.п.) без требования
+  /// последней цены — для обогащения шапки инструмента.
+  Future<MarketPrice?> fetchInstrumentDetail({
+    required String symbol,
+    required String exchange,
+  }) {
+    return _http.fetchInstrumentDetail(symbol: symbol, exchange: exchange);
+  }
+
   Future<List<Candle>> fetchHistoryPrices({
     required String symbol,
     required String exchange,

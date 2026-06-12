@@ -202,3 +202,14 @@ final priceFeedProvider =
       PriceFeedState,
       PriceFeedParams
     >(PriceFeedNotifier.new);
+
+/// Разовая деталь инструмента из REST `/md/v2/Securities/{exchange}/{symbol}`:
+/// несёт статику, которой нет в потоке котировок (минимальный шаг цены и т.п.).
+final instrumentDetailProvider = FutureProvider.autoDispose
+    .family<MarketPrice?, PriceFeedParams>((ref, params) async {
+  final repo = await ref.watch(marketDataRepositoryProvider.future);
+  return repo.fetchInstrumentDetail(
+    symbol: params.symbol,
+    exchange: params.exchange,
+  );
+});

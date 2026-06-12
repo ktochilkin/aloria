@@ -1,6 +1,7 @@
 import 'package:aloria/app_config.dart';
 import 'package:aloria/core/platform/web_scroll_behavior.dart';
 import 'package:aloria/core/theme/app_theme.dart';
+import 'package:aloria/core/theme/canvas_switch.dart';
 import 'package:aloria/features/settings/application/settings_controller.dart';
 import 'package:aloria/l10n/generated/app_localizations.dart';
 import 'package:aloria/router.dart';
@@ -16,9 +17,16 @@ class AloriaApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
     final settings = ref.watch(settingsControllerProvider);
+    // ВРЕМЕННО: подбор холста — переопределяем фон светлой темы выбранным цветом.
+    final canvas = ref.watch(canvasColorProvider);
+    final lightBase = AppTheme.light;
+    final lightTheme = lightBase.copyWith(
+      scaffoldBackgroundColor: canvas,
+      appBarTheme: lightBase.appBarTheme.copyWith(backgroundColor: canvas),
+    );
     return MaterialApp.router(
       title: 'Aloria (${config.env.name})',
-      theme: AppTheme.light,
+      theme: lightTheme,
       darkTheme: AppTheme.dark,
       themeMode: settings.themeMode,
       locale: settings.toLocale(),

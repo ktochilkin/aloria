@@ -1,7 +1,9 @@
+import 'package:aloria/core/theme/canvas_switch.dart';
 import 'package:aloria/core/theme/tokens.dart';
 import 'package:aloria/core/utils/layout_utils.dart';
 import 'package:aloria/features/learn/application/learning_providers.dart';
 import 'package:aloria/features/learn/domain/models.dart';
+import 'package:aloria/features/learn/presentation/widgets/fading_header.dart';
 import 'package:aloria/features/learn/presentation/widgets/learning_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -61,21 +63,42 @@ class LearningSectionPage extends ConsumerWidget {
   }
 }
 
-class _SectionBody extends ConsumerWidget {
+class _SectionBody extends ConsumerStatefulWidget {
   const _SectionBody({required this.section});
 
   final LearningSection section;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_SectionBody> createState() => _SectionBodyState();
+}
+
+class _SectionBodyState extends ConsumerState<_SectionBody> {
+  final ValueNotifier<double> _headerFade = ValueNotifier(0);
+
+  @override
+  void dispose() {
+    _headerFade.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final section = widget.section;
     final progress = ref.watch(learningProgressProvider);
     final completed = progress.readCountInSection(section);
     final total = section.lessons.length;
 
     final currentIndex = _findCurrentIndex(section, progress);
+    final learnBg = Theme.of(context).brightness == Brightness.light
+        ? ref.watch(canvasColorProvider)
+        : null;
 
     return Scaffold(
-      appBar: AppBar(
+      backgroundColor: learnBg,
+      extendBodyBehindAppBar: true,
+      appBar: FadingHeader(
+        fade: _headerFade,
+        baseColor: learnBg,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           tooltip: 'Назад',
@@ -89,8 +112,11 @@ class _SectionBody extends ConsumerWidget {
         ),
         title: Text(section.title),
       ),
-      body: ListView(
-        padding: EdgeInsets.fromLTRB(16, 12, 16, context.bottomNavBarPadding),
+      body: NotificationListener<ScrollNotification>(
+        onNotification: (n) => updateHeaderFade(_headerFade, n),
+        child: ListView(
+        padding: EdgeInsets.fromLTRB(
+            16, fadingHeaderTopInset(context), 16, context.bottomNavBarPadding),
         children: [
           _SectionHeaderCard(
             section: section,
@@ -115,6 +141,7 @@ class _SectionBody extends ConsumerWidget {
             _StagePracticeBlock(section: section),
           ],
         ],
+        ),
       ),
     );
   }

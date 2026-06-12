@@ -7,8 +7,17 @@ import 'package:google_fonts/google_fonts.dart';
 /// жёлтый предупреждения, основной синий и тёплый коралл — одинаковые
 /// в светлой и тёмной теме (имеют достаточный контраст на обоих фонах).
 class AppColors {
-  static const primary = Color(0xFF5D8CFF);
+  // База Coinbase: единственный акцент структуры — Coinbase Blue. Тёплый
+  // коралл (secondary) остаётся для контентных/игровых акцентов, не для хрома.
+  static const primary = Color(0xFF0052FF);
   static const secondary = Color(0xFFFF9E7C);
+
+  /// Холст раздела «Обучение» (светлая тема): мягкий светло-синий для
+  /// читаемости длинного текста и чтобы белые блоки «всплывали» на нём.
+  /// Данные/рынок остаются на чистом белом — это осознанное разделение
+  /// «поверхность для чтения / поверхность данных», а не разнобой.
+  static const learnCanvas = Color(0xFFF3F6FE);
+  // Семантика: мягкие, менее насыщенные зелёный/красный (не «кричащие»).
   static const success = Color(0xFF37B38A);
   static const warning = Color(0xFFF5C24D);
   static const error = Color(0xFFF16B82);
@@ -67,16 +76,17 @@ class AppPalette {
   final Color heroShadow;
 
   static const light = AppPalette(
-    background: Color(0xFFF4F5F8),
+    // База Coinbase: белый холст, surface-strong и hairline.
+    background: Color(0xFFFFFFFF),
     surface: Color(0xFFFFFFFF),
-    surfaceVariant: Color(0xFFF1F5FF),
-    outline: Color(0xFFB5C6F5),
-    onSurface: Color(0xFF0B1224),
-    onSurfaceVariant: Color(0xFF44506A),
+    surfaceVariant: Color(0xFFEEF0F3),
+    outline: Color(0xFFDEE1E6),
+    onSurface: Color(0xFF0A0B0D),
+    onSurfaceVariant: Color(0xFF5B616E),
     onPrimary: Colors.white,
     onSecondary: Color(0xFF3B1C10),
-    heroBorder: Color(0x12141C20),
-    heroShadow: Color(0x0A14161C),
+    heroBorder: Color(0xFFDEE1E6),
+    heroShadow: Color(0x00000000),
   );
 
   static const dark = AppPalette(

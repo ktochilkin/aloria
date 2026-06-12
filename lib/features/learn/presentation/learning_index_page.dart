@@ -1,9 +1,11 @@
+import 'package:aloria/core/theme/canvas_switch.dart';
 import 'package:aloria/core/theme/tokens.dart';
 import 'package:aloria/core/utils/layout_utils.dart';
 import 'package:aloria/features/learn/application/learning_providers.dart';
 import 'package:aloria/features/learn/application/review_providers.dart';
 import 'package:aloria/features/learn/domain/models.dart';
 import 'package:aloria/features/learn/presentation/review_session_page.dart';
+import 'package:aloria/features/learn/presentation/widgets/fading_header.dart';
 import 'package:aloria/features/learn/presentation/widgets/learning_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
@@ -17,11 +19,25 @@ import 'package:go_router/go_router.dart';
 ///   2. Карточка «Продолжить» — последний открытый урок (если был).
 ///      Если ещё ничего не открывалось — карточка «Начать с первого урока».
 ///   3. Панели разделов с кольцом прогресса и кратким списком тем.
-class LearningPage extends ConsumerWidget {
+class LearningPage extends ConsumerStatefulWidget {
   const LearningPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<LearningPage> createState() => _LearningPageState();
+}
+
+class _LearningPageState extends ConsumerState<LearningPage> {
+  /// Прогресс затухания шапки 0..1 по скроллу (0 — вверху, 1 — уехали).
+  final ValueNotifier<double> _headerFade = ValueNotifier(0);
+
+  @override
+  void dispose() {
+    _headerFade.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final sectionsAsync = ref.watch(learningSectionsProvider);
     // Тихая синхронизация локального прогресса с сервером.
     ref.watch(learningProgressSyncProvider);
@@ -29,8 +45,16 @@ class LearningPage extends ConsumerWidget {
     // урока, а не только для уже открытых.
     ref.watch(lessonBodiesPrewarmProvider);
 
+    final learnBg = Theme.of(context).brightness == Brightness.light
+        ? ref.watch(canvasColorProvider)
+        : null;
+
     return Scaffold(
-      appBar: AppBar(
+      backgroundColor: learnBg,
+      extendBodyBehindAppBar: true,
+      appBar: FadingHeader(
+        fade: _headerFade,
+        baseColor: learnBg,
         title: const Text('Обучение'),
         actions: [
           IconButton(
@@ -40,11 +64,14 @@ class LearningPage extends ConsumerWidget {
           ),
         ],
       ),
-      body: sectionsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Не удалось загрузить контент: $e')),
-        data: (sections) =>
-            _LearningIndexBody(sections: sections),
+      body: NotificationListener<ScrollNotification>(
+        onNotification: (n) => updateHeaderFade(_headerFade, n),
+        child: sectionsAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) =>
+              Center(child: Text('Не удалось загрузить контент: $e')),
+          data: (sections) => _LearningIndexBody(sections: sections),
+        ),
       ),
     );
   }
@@ -85,7 +112,12 @@ class _LearningIndexBody extends ConsumerWidget {
     );
 
     return ListView(
-      padding: EdgeInsets.fromLTRB(16, 16, 16, context.bottomNavBarPadding),
+      // На главной (в shell) Scaffold кладёт в padding.top именно нижнюю
+      // границу шапки при extendBodyBehindAppBar — берём его как есть, без
+      // добавления kToolbarHeight (иначе задвоение).
+      padding: EdgeInsets.fromLTRB(
+          16, MediaQuery.of(context).padding.top, 16,
+          context.bottomNavBarPadding),
       children: [
         _OverviewHeader(
           completed: completedLessons,

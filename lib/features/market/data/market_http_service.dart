@@ -23,6 +23,21 @@ class MarketHttpService {
     }
   }
 
+  /// Статическая деталь инструмента (без `last_price`): minStep, lotSize и т.п.
+  Future<MarketPrice?> fetchInstrumentDetail({
+    required String symbol,
+    required String exchange,
+  }) async {
+    try {
+      final res = await _dio.getSafe<Map<String, dynamic>>(
+        '/md/v2/Securities/$exchange/$symbol',
+      );
+      return MarketPrice.tryParseDetail(symbol, res);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<List<Candle>> fetchHistoryPrices({
     required String symbol,
     required String exchange,

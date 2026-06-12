@@ -9,6 +9,7 @@ import 'package:aloria/features/market/application/price_feed_notifier.dart';
 import 'package:aloria/features/market/data/market_data_repository.dart';
 import 'package:aloria/features/market/domain/candle.dart';
 import 'package:aloria/features/market/domain/market_news.dart';
+import 'package:aloria/features/market/domain/market_price.dart';
 import 'package:aloria/features/market/domain/order_book.dart';
 import 'package:aloria/features/market/domain/portfolio_order.dart';
 import 'package:aloria/features/market/domain/trade_order.dart';
@@ -20,6 +21,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 enum _FeedTab { news, tape, orderBook }
 
@@ -37,6 +39,109 @@ final feedTabProvider = StateProvider.family<_FeedTab, String>((ref, symbol) {
 final scrollPositionProvider = StateProvider.family<double, String>(
   (ref, symbol) => 0.0,
 );
+
+// === ЭКСПЕРИМЕНТ: дизайн-система Coinbase, локально на торговом экране ===
+// Белый холст, единственный акцент Coinbase Blue (только primary-CTA),
+// чернильный текст + серый body, hairline-границы вместо теней, карты r24,
+// кнопки-пилюли, числа моноширинным, торговые зелёный/красный только как текст.
+// Применяется через scoped Theme только здесь — остальное не затрагивается.
+const _cbBlue = Color(0xFF0052FF); // brand voltage — только primary-CTA
+const _cbInk = Color(0xFF0A0B0D); // заголовки/эмфаза
+const _cbBody = Color(0xFF5B616E); // основной текст (прохладный серый)
+const _cbMuted = Color(0xFF7C828A); // подписи/мьютед
+const _cbHairline = Color(0xFFDEE1E6); // 1px разделители/границы карт
+const _cbCanvas = Color(0xFFFFFFFF); // холст
+const _cbSurfaceStrong = Color(0xFFEEF0F3); // вторичные кнопки/плашки
+const _cbUp = Color(0xFF05B169); // semantic up (только текст)
+const _cbDown = Color(0xFFCF202F); // semantic down (только текст)
+
+/// Стиль чисел: Nunito с табличными цифрами (одна ширина → ровные колонки),
+/// современнее моноширинного «терминального» шрифта.
+TextStyle _cbMono({
+  required double size,
+  FontWeight weight = FontWeight.w600,
+  Color color = _cbInk,
+}) =>
+    GoogleFonts.nunito(
+      fontSize: size,
+      fontWeight: weight,
+      color: color,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
+
+ThemeData _coinbaseTheme(BuildContext context) {
+  final base = Theme.of(context);
+  final t = base.textTheme;
+  return base.copyWith(
+    scaffoldBackgroundColor: _cbCanvas,
+    colorScheme: base.colorScheme.copyWith(
+      primary: _cbBlue,
+      onPrimary: Colors.white,
+      surface: _cbCanvas,
+      onSurface: _cbInk,
+      onSurfaceVariant: _cbBody,
+      surfaceContainerHighest: _cbSurfaceStrong,
+      outline: _cbHairline,
+      outlineVariant: _cbHairline,
+    ),
+    appBarTheme: base.appBarTheme.copyWith(
+      backgroundColor: _cbCanvas,
+      surfaceTintColor: Colors.transparent,
+      foregroundColor: _cbInk,
+      elevation: 0,
+    ),
+    // Coinbase: плоско, hairline-граница вместо тени, радиус 24.
+    cardTheme: const CardThemeData(
+      color: _cbCanvas,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(24)),
+        side: BorderSide(color: _cbHairline),
+      ),
+    ),
+    dividerTheme: const DividerThemeData(color: _cbHairline, thickness: 1),
+    textTheme: t.copyWith(
+      headlineMedium: t.headlineMedium
+          ?.copyWith(fontWeight: FontWeight.w400, letterSpacing: -1, color: _cbInk),
+      headlineSmall: t.headlineSmall
+          ?.copyWith(fontWeight: FontWeight.w400, letterSpacing: -0.5, color: _cbInk),
+      titleMedium: t.titleMedium
+          ?.copyWith(fontWeight: FontWeight.w600, letterSpacing: 0, color: _cbInk),
+      bodyLarge: t.bodyLarge?.copyWith(fontWeight: FontWeight.w400, color: _cbInk),
+      bodyMedium: t.bodyMedium?.copyWith(fontWeight: FontWeight.w400, color: _cbBody),
+      labelMedium: t.labelMedium?.copyWith(color: _cbMuted),
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        backgroundColor: _cbBlue,
+        foregroundColor: Colors.white,
+        shape: const StadiumBorder(),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+        textStyle: t.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+      ),
+    ),
+    segmentedButtonTheme: const SegmentedButtonThemeData(
+      style: ButtonStyle(
+        shape: WidgetStatePropertyAll(StadiumBorder()),
+      ),
+    ),
+    inputDecorationTheme: base.inputDecorationTheme.copyWith(
+      filled: true,
+      fillColor: _cbCanvas,
+      labelStyle: const TextStyle(color: _cbMuted),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: _cbHairline),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: _cbBlue, width: 2),
+      ),
+    ),
+  );
+}
 
 class TradePage extends ConsumerStatefulWidget {
   const TradePage({
@@ -220,7 +325,9 @@ class _TradePageState extends ConsumerState<TradePage> {
     // когда пользователь проскроллил вниз к форме заявки.
     final latestPrice = feed.valueOrNull?.latest?.price;
 
-    return Scaffold(
+    return Theme(
+      data: _coinbaseTheme(context),
+      child: Scaffold(
       // Клавиатуру уже учитывает внешний Scaffold нижней навигации (shell).
       // Без этого оба Scaffold'а поднимают контент над клавиатурой —
       // получается двойной отступ и большой пустой зазор над клавиатурой.
@@ -234,9 +341,7 @@ class _TradePageState extends ConsumerState<TradePage> {
               child: Center(
                 child: Text(
                   '${latestPrice.toStringAsFixed(2)} ₽',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                  style: _cbMono(size: 16),
                 ),
               ),
             ),
@@ -248,6 +353,7 @@ class _TradePageState extends ConsumerState<TradePage> {
         child: feed.when(
           data: (state) => _TradeBody(
             symbol: widget.symbol,
+            exchange: widget.exchange,
             state: state,
             orderBook: orderBook,
             news: news,
@@ -267,6 +373,7 @@ class _TradePageState extends ConsumerState<TradePage> {
           error: (e, _) => Center(child: Text('Ошибка: $e')),
         ),
       ),
+      ),
     );
   }
 }
@@ -274,6 +381,7 @@ class _TradePageState extends ConsumerState<TradePage> {
 class _TradeBody extends StatelessWidget {
   const _TradeBody({
     required this.symbol,
+    required this.exchange,
     required this.state,
     required this.orderBook,
     required this.news,
@@ -290,6 +398,7 @@ class _TradeBody extends StatelessWidget {
   });
 
   final String symbol;
+  final String exchange;
   final PriceFeedState state;
   final AsyncValue<OrderBook?> orderBook;
   final AsyncValue<List<MarketNews>> news;
@@ -303,21 +412,6 @@ class _TradeBody extends StatelessWidget {
   final bool submitting;
   final ValueChanged<double> onSelectPrice;
   final ScrollController scrollController;
-
-  String _formatTime(DateTime time) {
-    final now = DateTime.now();
-    final diff = now.difference(time);
-
-    if (diff.inSeconds < 60) {
-      return '${diff.inSeconds} сек назад';
-    } else if (diff.inMinutes < 60) {
-      return '${diff.inMinutes} мин назад';
-    } else {
-      final h = time.hour.toString().padLeft(2, '0');
-      final m = time.minute.toString().padLeft(2, '0');
-      return 'в $h:$m';
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -335,56 +429,10 @@ class _TradeBody extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Card(
-                margin: EdgeInsets.zero,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      InstrumentAvatar(
-                        symbol: symbol,
-                        label: symbol.length > 2
-                            ? symbol.substring(0, 2)
-                            : symbol,
-                        size: 56,
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Последняя цена',
-                              style: text.labelMedium?.copyWith(
-                                color: scheme.onSurfaceVariant,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              latest != null
-                                  ? '${latest.price.toStringAsFixed(2)} ₽'
-                                  : '--',
-                              style: text.headlineMedium?.copyWith(
-                                color: scheme.onSurface,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            if (latest != null) ...[
-                              const SizedBox(height: 4),
-                              Text(
-                                _formatTime(latest.ts.toLocal()),
-                                style: text.bodySmall?.copyWith(
-                                  color: scheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+              _InstrumentHeaderCard(
+                symbol: symbol,
+                exchange: exchange,
+                price: latest,
               ),
               const SizedBox(height: 12),
               Card(
@@ -554,7 +602,9 @@ class _TradeBody extends StatelessWidget {
                 },
                 decoration: const InputDecoration(
                   labelText: 'Количество',
-                  border: OutlineInputBorder(),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                  ),
                 ),
               ),
               // Поле цены имеет смысл только для лимитной заявки. Для рыночной
@@ -570,7 +620,9 @@ class _TradeBody extends StatelessWidget {
                   onSubmitted: (_) => FocusScope.of(context).unfocus(),
                   decoration: const InputDecoration(
                     labelText: 'Цена',
-                    border: OutlineInputBorder(),
+                    border: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                  ),
                   ),
                 ),
               ],
@@ -594,7 +646,7 @@ class _TradeBody extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: FilledButton.tonalIcon(
+                    child: FilledButton.icon(
                       onPressed: submitting
                           ? null
                           : () => onSubmit(OrderSide.sell),
@@ -990,6 +1042,276 @@ class _CandleDataRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// === Coinbase-форматирование чисел ===
+
+/// Группирует целую часть пробелами: 5614360 → «5 614 360».
+String _grpInt(String s) {
+  final neg = s.startsWith('-');
+  final digits = neg ? s.substring(1) : s;
+  final buf = StringBuffer();
+  for (var i = 0; i < digits.length; i++) {
+    if (i > 0 && (digits.length - i) % 3 == 0) buf.write(' ');
+    buf.write(digits[i]);
+  }
+  return '${neg ? '-' : ''}$buf';
+}
+
+/// Цена: 2 знака после запятой, целая часть с разделителями.
+String _fmtPrice(double v) {
+  final parts = v.toStringAsFixed(2).split('.');
+  return '${_grpInt(parts[0])}.${parts[1]}';
+}
+
+/// Число: целое → с разделителями, дробное → 2 знака.
+String _fmtNum(double v) {
+  if (v == v.roundToDouble()) return _grpInt(v.toInt().toString());
+  return _fmtPrice(v);
+}
+
+/// Шаг цены: целое как есть, дробное — без хвостовых нулей (0.001, 0.5, 1).
+String _fmtStep(double v) {
+  if (v == v.roundToDouble()) return v.toInt().toString();
+  return v
+      .toStringAsFixed(6)
+      .replaceFirst(RegExp(r'0+$'), '')
+      .replaceFirst(RegExp(r'\.$'), '');
+}
+
+/// Изменение со знаком: +0.26 / −0.10.
+String _fmtSigned(double v) {
+  final sign = v > 0 ? '+' : (v < 0 ? '−' : '');
+  return '$sign${_fmtPrice(v.abs())}';
+}
+
+/// Человеческая метка типа инструмента.
+String _typeLabel(String type) {
+  switch (type.toUpperCase()) {
+    case 'CS':
+      return 'Акция';
+    case 'PS':
+      return 'Преф';
+    case 'BOND':
+    case 'BONDS':
+      return 'Облигация';
+    case 'ETF':
+      return 'Фонд';
+    case 'FUTURES':
+    case 'FUT':
+      return 'Фьючерс';
+    case 'CURRENCY':
+      return 'Валюта';
+    default:
+      return type;
+  }
+}
+
+/// Богатая «coinbase»-шапка инструмента: аватар, тикер, название компании,
+/// крупная моно-цена + изменение (семантика) и сетка статов из котировки.
+class _InstrumentHeaderCard extends ConsumerWidget {
+  const _InstrumentHeaderCard({
+    required this.symbol,
+    required this.exchange,
+    required this.price,
+  });
+
+  final String symbol;
+  final String exchange;
+  final MarketPrice? price;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final text = Theme.of(context).textTheme;
+    final p = price;
+    // Шаг цены — из разовой REST-детали инструмента (в потоке котировок его нет).
+    final minStep = ref
+        .watch(instrumentDetailProvider((symbol: symbol, exchange: exchange)))
+        .valueOrNull
+        ?.minStep;
+    final cur = p?.currency == 'USD'
+        ? '\$'
+        : p?.currency == 'EUR'
+            ? '€'
+            : '₽';
+    final change = p?.change;
+    final pct = p?.changePercent;
+    final up = (change ?? 0) >= 0;
+    final changeColor = up ? _cbUp : _cbDown;
+    final isBond = (p?.instrumentType ?? '').toUpperCase().contains('BOND');
+
+    // Сетка статов — только присутствующие значения.
+    final stats = <(String, String)>[];
+    void addPrice(String label, double? v) {
+      if (v != null) stats.add((label, '${_fmtPrice(v)} $cur'));
+    }
+
+    addPrice('Открытие', p?.open);
+    addPrice('Закр. вчера', p?.prevClose);
+    addPrice('Максимум', p?.high);
+    addPrice('Минимум', p?.low);
+    addPrice('Спрос', p?.bid);
+    addPrice('Предложение', p?.ask);
+    if (p?.volume != null) stats.add(('Объём', _fmtNum(p!.volume!)));
+    if (p?.lotSize != null) {
+      stats.add(('В лоте', '${_fmtNum(p!.lotSize!)} шт.'));
+    }
+    if (minStep != null) stats.add(('Шаг цены', _fmtStep(minStep)));
+    if (isBond && p?.yieldValue != null) {
+      stats.add(('Доходность', '${_fmtPrice(p!.yieldValue!)} %'));
+    }
+    if (isBond && p?.faceValue != null) {
+      stats.add(('Номинал', '${_fmtPrice(p!.faceValue!)} $cur'));
+    }
+
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                InstrumentAvatar(
+                  symbol: symbol,
+                  label: symbol.length > 2 ? symbol.substring(0, 2) : symbol,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              symbol,
+                              style: text.titleMedium?.copyWith(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (p?.instrumentType != null) ...[
+                            const SizedBox(width: 8),
+                            _Badge(label: _typeLabel(p!.instrumentType!)),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        p?.description ?? 'Загрузка…',
+                        style: text.bodyMedium?.copyWith(color: _cbBody),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  p != null ? '${_fmtPrice(p.price)} $cur' : '—',
+                  style: _cbMono(size: 34, weight: FontWeight.w700),
+                ),
+                const SizedBox(width: 12),
+                if (change != null && pct != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 5),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          up ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                          color: changeColor,
+                          size: 22,
+                        ),
+                        Text(
+                          '${_fmtSigned(change)}  ${_fmtSigned(pct)}%',
+                          style: _cbMono(size: 14, color: changeColor),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+            if (stats.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              const Divider(height: 1),
+              const SizedBox(height: 14),
+              for (var i = 0; i < stats.length; i += 2)
+                Padding(
+                  padding: EdgeInsets.only(bottom: i + 2 < stats.length ? 14 : 0),
+                  child: Row(
+                    children: [
+                      Expanded(child: _StatTile(item: stats[i])),
+                      Expanded(
+                        child: i + 1 < stats.length
+                            ? _StatTile(item: stats[i + 1])
+                            : const SizedBox.shrink(),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Badge extends StatelessWidget {
+  const _Badge({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: const BoxDecoration(
+        color: _cbSurfaceStrong,
+        borderRadius: BorderRadius.all(Radius.circular(100)),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: _cbBody,
+        ),
+      ),
+    );
+  }
+}
+
+class _StatTile extends StatelessWidget {
+  const _StatTile({required this.item});
+
+  final (String, String) item;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          item.$1,
+          style: const TextStyle(fontSize: 13, color: _cbMuted),
+        ),
+        const SizedBox(height: 2),
+        Text(item.$2, style: _cbMono(size: 15)),
+      ],
     );
   }
 }
