@@ -16,7 +16,7 @@ class LessonLeverageSeesaw extends StatefulWidget {
 
 class _LessonLeverageSeesawState extends State<LessonLeverageSeesaw> {
   static const double _assetMove = 5;
-  double _leverage = 1;
+  double _leverage = 2;
 
   @override
   Widget build(BuildContext context) {
@@ -52,8 +52,10 @@ class _LessonLeverageSeesawState extends State<LessonLeverageSeesaw> {
           ),
           const SizedBox(height: BlockSpacing.s),
           Text(
-            'И прибыль, и убыток растут в ${_leverage.toStringAsFixed(0)} раза — '
-            'плечо усиливает обе стороны одинаково.',
+            _leverage.round() == 1
+                ? 'Плечо 1× — это без заёмных: результат равен движению актива.'
+                : 'И прибыль, и убыток выросли в ${_leverage.toStringAsFixed(0)} раза — '
+                    'плечо усиливает обе стороны одинаково.',
             textAlign: TextAlign.center,
             style: text.bodySmall?.copyWith(
               color: scheme.onSurfaceVariant,

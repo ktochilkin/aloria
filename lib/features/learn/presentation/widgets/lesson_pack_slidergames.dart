@@ -163,7 +163,7 @@ class _LessonPhoneVsGarageState extends State<LessonPhoneVsGarage> {
   static const double _garageFair = 1200000;
 
   // 0 = есть месяц, 1 = неделя, 2 = завтра, 3 = через час.
-  double _urgency = 0;
+  double _urgency = 2;
 
   static const List<String> _labels = [
     'есть месяц',
@@ -184,7 +184,16 @@ class _LessonPhoneVsGarageState extends State<LessonPhoneVsGarage> {
     return _garageFair * (1 - discounts[_urgency.round()]);
   }
 
-  String _money(double v) => '${(v / 1000).toStringAsFixed(0)} тыс ₽';
+  String _money(double v) {
+    if (v >= 1000000) {
+      final m = v / 1000000;
+      final s = m == m.roundToDouble()
+          ? m.toStringAsFixed(0)
+          : m.toStringAsFixed(1).replaceAll('.', ',');
+      return '$s млн ₽';
+    }
+    return '${(v / 1000).toStringAsFixed(0)} тыс ₽';
+  }
 
   @override
   Widget build(BuildContext context) {

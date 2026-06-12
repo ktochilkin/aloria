@@ -104,20 +104,18 @@ class _FlagCard extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: BlockButton(
-                    tint: tint,
+                  child: _AnswerButton(
                     label: 'Красный флаг',
-                    icon: Icons.flag,
-                    onPressed: () => onAnswer(true),
+                    icon: Icons.flag_outlined,
+                    onTap: () => onAnswer(true),
                   ),
                 ),
                 const SizedBox(width: BlockSpacing.s),
                 Expanded(
-                  child: BlockButton(
-                    tint: tint,
+                  child: _AnswerButton(
                     label: 'Нормально',
                     icon: Icons.check,
-                    onPressed: () => onAnswer(false),
+                    onTap: () => onAnswer(false),
                   ),
                 ),
               ],
@@ -125,6 +123,55 @@ class _FlagCard extends StatelessWidget {
           else
             _Verdict(offer: offer, correct: correct, tint: tint),
         ],
+      ),
+    );
+  }
+}
+
+/// Нейтральная кнопка-ответ: лёгкая, без заливки — до выбора оба варианта
+/// должны весить одинаково и не подсказывать ответ.
+class _AnswerButton extends StatelessWidget {
+  const _AnswerButton({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+    return Material(
+      color: scheme.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BlockRadii.innerBr,
+        side: BorderSide(color: scheme.outline),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BlockRadii.innerBr,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 18, color: scheme.onSurfaceVariant),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: text.labelMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: scheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -111,7 +111,7 @@ class _LessonPnlLiveState extends State<LessonPnlLive>
       duration: const Duration(milliseconds: 3500),
     )
       ..addListener(() => setState(() {}))
-      ..repeat();
+      ..repeat(reverse: true);
   }
 
   @override

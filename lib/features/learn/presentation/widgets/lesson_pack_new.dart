@@ -203,10 +203,10 @@ class _LessonCandleFromTradesState extends State<LessonCandleFromTrades>
             spacing: BlockSpacing.xl,
             runSpacing: BlockSpacing.m,
             children: [
-              BlockMetric(label: 'O', value: open.toStringAsFixed(1)),
-              BlockMetric(label: 'H', value: high.toStringAsFixed(1)),
-              BlockMetric(label: 'L', value: low.toStringAsFixed(1)),
-              BlockMetric(label: 'C', value: close.toStringAsFixed(1)),
+              BlockMetric(label: 'откр.', value: open.toStringAsFixed(1)),
+              BlockMetric(label: 'макс.', value: high.toStringAsFixed(1)),
+              BlockMetric(label: 'мин.', value: low.toStringAsFixed(1)),
+              BlockMetric(label: 'закр.', value: close.toStringAsFixed(1)),
             ],
           ),
         ],
@@ -308,6 +308,10 @@ class _LessonDiversificationDiceState extends State<LessonDiversificationDice>
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     )..addListener(() => setState(() {}));
+    // Первый прогон — сразу при появлении: пустой график не объясняет ничего.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _c.forward(from: 0);
+    });
   }
 
   @override
@@ -323,6 +327,8 @@ class _LessonDiversificationDiceState extends State<LessonDiversificationDice>
 
     return LessonBlockCard(
       tint: widget.tint,
+      title: 'Один тикер против корзины',
+      subtitle: 'Те же бумаги, но в портфеле — и качка уже не та',
       footer: BlockButton(
         tint: widget.tint,
         label: _c.value > 0.97 ? 'Ещё раз' : 'Прогнать год',
@@ -454,7 +460,7 @@ class _LessonSpreadGaugeState extends State<LessonSpreadGauge> {
                 painter: _GaugePainter(
                   frac: frac,
                   color: color,
-                  track: scheme.surface,
+                  track: scheme.surfaceContainerHighest,
                 ),
                 child: Center(
                   child: Padding(

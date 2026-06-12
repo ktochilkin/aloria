@@ -161,15 +161,6 @@ class _RatingYieldBodyState extends State<_RatingYieldBody> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Align(
-            child: Text(
-              _current.label,
-              style: text.titleMedium?.copyWith(
-                color: widget.tint,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
           BlockSlider(
             tint: widget.tint,
             label: 'Рейтинг',

@@ -140,11 +140,11 @@ class _LessonOrderbookTwoColState extends State<LessonOrderbookTwoCol> {
                   ),
                 ),
                 BlockChip(
-                  text: slip > 0.05
+                  text: slip > 0.005
                       ? '−${slip.toStringAsFixed(2)}% к лучшей'
                       : 'по лучшей цене',
                   tint: widget.tint,
-                  tone: slip > 0.05 ? BlockTone.error : BlockTone.success,
+                  tone: slip > 0.005 ? BlockTone.error : BlockTone.success,
                 ),
               ],
             )
@@ -206,11 +206,19 @@ class _Row extends StatelessWidget {
                     Text(level.price.toStringAsFixed(2),
                         style: text.bodySmall
                             ?.copyWith(fontWeight: FontWeight.w700)),
-                    const SizedBox(width: BlockSpacing.xs),
-                    Text('${level.vol}', style: text.bodySmall),
+                    const SizedBox(width: BlockSpacing.s),
+                    Text('${level.vol}',
+                        style: text.bodySmall?.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant)),
                   ] else ...[
-                    Text('${level.vol}', style: text.bodySmall),
-                    const SizedBox(width: BlockSpacing.xs),
+                    Text('${level.vol}',
+                        style: text.bodySmall?.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant)),
+                    const SizedBox(width: BlockSpacing.s),
                     Text(level.price.toStringAsFixed(2),
                         style: text.bodySmall
                             ?.copyWith(fontWeight: FontWeight.w700)),

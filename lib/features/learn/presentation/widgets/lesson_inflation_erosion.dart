@@ -17,7 +17,7 @@ class LessonInflationErosion extends StatefulWidget {
 class _LessonInflationErosionState extends State<LessonInflationErosion> {
   static const double _amount = 1000;
   static const double _rate = 0.07; // 7% в год
-  double _years = 0;
+  double _years = 10;
 
   double get _real {
     var v = _amount;

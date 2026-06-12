@@ -40,6 +40,7 @@ flutter:
   uses-material-design: true
   generate: true
   assets:
+    - assets/fonts/
     - assets/images/
     - assets/icons/
     - assets/lessons/
