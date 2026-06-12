@@ -100,10 +100,8 @@ App Store Connect не примут сборку. В Google Play applicationId *
 
 ## 6. Чистка кода перед сабмитом
 
-- [ ] Убрать временный переключатель холста: `lib/core/theme/canvas_switch.dart`
-      + debug-FAB в `lib/main.dart` (5 точек использования) — **после
-      финального выбора фона** (сейчас дефолт `#FAFAF7`), зафиксировать
-      выбранный цвет в `core/theme/tokens.dart`.
+- [x] ~~Убрать временный переключатель холста~~ — сделано (июнь 2026):
+      выбран белый #FFFFFF, canvas_switch.dart и debug-FAB удалены.
 - [ ] `pubspec.yaml`: `description: Aloria Flutter app skeleton` →
       нормальное описание; проверить `version:` перед каждым сабмитом
       (`1.0.0+1`, build number инкрементировать).

@@ -10,20 +10,18 @@ class AppColors {
   // База Coinbase: единственный акцент структуры — Coinbase Blue. Тёплый
   // коралл (secondary) остаётся для контентных/игровых акцентов, не для хрома.
   static const primary = Color(0xFF0052FF);
-  static const secondary = Color(0xFFFF9E7C);
+  static const secondary = Color(0xFFFF7A59);
 
-  /// Холст раздела «Обучение» (светлая тема): мягкий светло-синий для
-  /// читаемости длинного текста и чтобы белые блоки «всплывали» на нём.
-  /// Данные/рынок остаются на чистом белом — это осознанное разделение
-  /// «поверхность для чтения / поверхность данных», а не разнобой.
-  static const learnCanvas = Color(0xFFF3F6FE);
   // Семантика: мягкие, менее насыщенные зелёный/красный (не «кричащие»).
+  // Внимание/предупреждение — тёплый терракотовый оранж: жёлтый на белом
+  // холсте выглядел грязно.
   static const success = Color(0xFF37B38A);
-  static const warning = Color(0xFFF5C24D);
+  static const warning = Color(0xFFF0794A);
   static const error = Color(0xFFF16B82);
 
-  /// Мягкий синий акцент: тинт учебных этапов и базовый цвет диаграмм.
-  static const accentBlue = Color(0xFF5D8CFF);
+  /// Учебный акцент: глубокий перивинкл-синий — светлый брат [primary],
+  /// тинт этапов и базовый цвет диаграмм.
+  static const accentBlue = Color(0xFF4C6FFF);
 
   /// Светлый край градиента от [primary] (баннер учебного режима).
   static const primaryBright = Color(0xFF7BA3FF);
@@ -53,10 +51,10 @@ class AppColors {
 /// от акцентного к нейтральному, серый — для агрегата «Прочие».
 abstract final class AppChartPalette {
   static const blue = AppColors.accentBlue;
-  static const blueLight = Color(0xFF7FA5FF);
-  static const blueFaint = Color(0xFF9CBBFF);
+  static const blueLight = Color(0xFF7B93FF);
+  static const blueFaint = Color(0xFFAAB9FF);
   static const coral = AppColors.secondary;
-  static const coralLight = Color(0xFFFFB89A);
+  static const coralLight = Color(0xFFFFA98F);
   static const neutral = Color(0xFFC8C8D0);
 
   /// Цвета по порядку назначения категориям.
@@ -186,18 +184,22 @@ extension AppPaletteX on BuildContext {
 }
 
 class AppTypography {
-  static const fontFamilyFallback = ['Nunito', 'Caveat', 'sans-serif'];
+  static const fontFamilyFallback = ['Nunito', 'sans-serif'];
 
+  // Заголовки — тем же Nunito, плотным начертанием: рукописный Caveat
+  // конфликтовал с финансовым контекстом и хуже читался.
   static TextTheme get textTheme => TextTheme(
-    headlineLarge: GoogleFonts.caveat(
-      fontSize: 32,
-      height: 1.05,
-      fontWeight: FontWeight.w600,
+    headlineLarge: GoogleFonts.nunito(
+      fontSize: 28,
+      height: 1.1,
+      fontWeight: FontWeight.w800,
+      letterSpacing: -0.5,
     ),
-    headlineMedium: GoogleFonts.caveat(
-      fontSize: 26,
-      height: 1.08,
-      fontWeight: FontWeight.w600,
+    headlineMedium: GoogleFonts.nunito(
+      fontSize: 22,
+      height: 1.15,
+      fontWeight: FontWeight.w800,
+      letterSpacing: -0.3,
     ),
     titleMedium: GoogleFonts.nunito(
       fontSize: 19,

@@ -34,6 +34,25 @@ Future<void> loadShotFonts() async {
     }
   }
 
+  // Фолбэк для глифов, которых нет в Nunito (стрелки → ↑ ↓): на устройстве
+  // их рисует системный шрифт, в тестах подкладываем SF из macOS.
+  for (final path in [
+    '/System/Library/Fonts/SFNS.ttf',
+    '/System/Library/Fonts/Helvetica.ttc',
+  ]) {
+    final f = File(path);
+    if (!f.existsSync()) continue;
+    try {
+      final loader = FontLoader('sans-serif');
+      final bytes = f.readAsBytesSync();
+      loader.addFont(Future.value(ByteData.view(bytes.buffer)));
+      await loader.load();
+      break;
+    } catch (_) {
+      // ttc может не поддерживаться — пробуем следующий.
+    }
+  }
+
   // Прогрев google_fonts: он регистрирует вариант (семья+вес) асинхронно при
   // первом обращении, и первый тест успевает отрисовать кадр плашками Ahem.
   // Трогаем все используемые варианты и ждём фактической загрузки.

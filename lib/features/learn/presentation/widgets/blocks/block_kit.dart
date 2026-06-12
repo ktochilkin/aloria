@@ -42,9 +42,13 @@ class LessonBlockCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: BlockTint.cardSurface(scheme),
         borderRadius: BlockRadii.cardBr,
-        border: scheme.brightness == Brightness.dark
-            ? Border.all(color: scheme.outlineVariant.withValues(alpha: 0.4))
-            : null,
+        // На белом холсте карту отделяет тонкая линия + мягкая тень;
+        // на тёмной теме — только линия (тени не читаются).
+        border: Border.all(
+          color: scheme.brightness == Brightness.dark
+              ? scheme.outlineVariant.withValues(alpha: 0.4)
+              : scheme.outline.withValues(alpha: 0.6),
+        ),
         boxShadow: BlockShadow.card(scheme.brightness),
       ),
       padding: EdgeInsets.all(padding),

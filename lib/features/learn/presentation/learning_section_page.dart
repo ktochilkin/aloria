@@ -1,4 +1,3 @@
-import 'package:aloria/core/theme/canvas_switch.dart';
 import 'package:aloria/core/theme/tokens.dart';
 import 'package:aloria/core/utils/layout_utils.dart';
 import 'package:aloria/features/learn/application/learning_providers.dart';
@@ -89,16 +88,11 @@ class _SectionBodyState extends ConsumerState<_SectionBody> {
     final total = section.lessons.length;
 
     final currentIndex = _findCurrentIndex(section, progress);
-    final learnBg = Theme.of(context).brightness == Brightness.light
-        ? ref.watch(canvasColorProvider)
-        : null;
 
     return Scaffold(
-      backgroundColor: learnBg,
       extendBodyBehindAppBar: true,
       appBar: FadingHeader(
         fade: _headerFade,
-        baseColor: learnBg,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           tooltip: 'Назад',

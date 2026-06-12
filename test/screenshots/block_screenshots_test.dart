@@ -1,14 +1,11 @@
-import 'dart:io';
-import 'dart:ui' as ui;
 
 import 'package:aloria/core/theme/app_theme.dart';
 import 'package:aloria/features/learn/domain/learning_content_service.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_blocks.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:google_fonts/google_fonts.dart';
+
+import 'shot_kit.dart';
 
 /// Скриншот-харнесс учебных блоков: рендерит каждый размещённый в уроках
 /// блок в ширину телефона, снимает PNG, затем программно взаимодействует
@@ -58,55 +55,6 @@ const _deployed = <String, String>{
 };
 
 const _outDir = 'build/block_shots';
-
-/// Шрифты берутся из assets/fonts/ — google_fonts при выключенном фетчинге
-/// сам находит файлы вида Nunito-Bold.ttf в манифесте ассетов. Дополнительно
-/// грузим их через FontLoader, чтобы первый кадр уже рендерился ими.
-Future<void> _loadFonts() async {
-  GoogleFonts.config.allowRuntimeFetching = false;
-  const weights = {
-    'Regular': 400,
-    'Medium': 500,
-    'SemiBold': 600,
-    'Bold': 700,
-    'ExtraBold': 800,
-  };
-  for (final family in ['Nunito', 'Caveat']) {
-    final loader = FontLoader(family);
-    for (final entry in weights.entries) {
-      final f = File('assets/fonts/$family-${entry.key}.ttf');
-      if (!f.existsSync()) continue;
-      final bytes = f.readAsBytesSync();
-      loader.addFont(Future.value(ByteData.view(bytes.buffer)));
-    }
-    await loader.load();
-  }
-
-  // Иконки Material — из кэша Flutter SDK, иначе в тестах они квадраты.
-  final flutterRoot = Platform.environment['FLUTTER_ROOT'];
-  if (flutterRoot != null) {
-    final icons = File(
-        '$flutterRoot/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf');
-    if (icons.existsSync()) {
-      final loader = FontLoader('MaterialIcons');
-      final bytes = icons.readAsBytesSync();
-      loader.addFont(Future.value(ByteData.view(bytes.buffer)));
-      await loader.load();
-    }
-  }
-}
-
-Future<void> _snap(WidgetTester tester, Key key, String path) async {
-  final boundary =
-      tester.renderObject<RenderRepaintBoundary>(find.byKey(key));
-  await tester.runAsync(() async {
-    final image = await boundary.toImage(pixelRatio: 2);
-    final data = await image.toByteData(format: ui.ImageByteFormat.png);
-    File(path)
-      ..createSync(recursive: true)
-      ..writeAsBytesSync(data!.buffer.asUint8List());
-  });
-}
 
 /// Пробует повзаимодействовать с блоком: слайдеры тянет, кнопки тапает.
 /// Возвращает true, если хоть что-то сделала.
@@ -163,7 +111,7 @@ Future<bool> _interact(WidgetTester tester, Key boundaryKey) async {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  setUpAll(_loadFonts);
+  setUpAll(loadShotFonts);
 
   for (final entry in _deployed.entries) {
     final name = entry.key;
@@ -201,11 +149,11 @@ void main() {
       // Входные анимации блоков (~350мс) + рост графиков (~800мс).
       await tester.pump(const Duration(milliseconds: 100));
       await tester.pump(const Duration(milliseconds: 1500));
-      await _snap(tester, boundaryKey, '$_outDir/$name.png');
+      await snapKey(tester, boundaryKey, '$_outDir/$name.png');
 
       final acted = await _interact(tester, boundaryKey);
       if (acted) {
-        await _snap(tester, boundaryKey, '$_outDir/${name}_after.png');
+        await snapKey(tester, boundaryKey, '$_outDir/${name}_after.png');
       }
 
       await tester.binding.setSurfaceSize(null);
@@ -215,5 +163,5 @@ void main() {
 
 /// Холст раздела обучения для фона скриншота (как в приложении).
 abstract final class AppColorsCanvas {
-  static const learn = Color(0xFFFAFAF7);
+  static const learn = Color(0xFFFFFFFF);
 }

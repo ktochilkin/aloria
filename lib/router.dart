@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:aloria/core/env/env.dart';
 import 'package:aloria/core/push/push_controller.dart';
-import 'package:aloria/core/theme/canvas_switch.dart';
 import 'package:aloria/features/auth/application/auth_controller.dart';
 import 'package:aloria/features/auth/presentation/login_page.dart';
 import 'package:aloria/features/learn/presentation/learning_page.dart';
@@ -207,23 +206,6 @@ class _ScaffoldWithNavBar extends ConsumerWidget {
         ],
       ),
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      // ВРЕМЕННО: подбор холста — палитра циклит кандидаты фона.
-      floatingActionButton: FloatingActionButton.small(
-        heroTag: 'canvasSwitch',
-        onPressed: () {
-          final next =
-              (ref.read(canvasIndexProvider) + 1) % canvasCandidates.length;
-          ref.read(canvasIndexProvider.notifier).state = next;
-          ScaffoldMessenger.of(context)
-            ..clearSnackBars()
-            ..showSnackBar(SnackBar(
-              content: Text('Фон: ${canvasCandidates[next].$1}'),
-              duration: const Duration(seconds: 2),
-              behavior: SnackBarBehavior.floating,
-            ));
-        },
-        child: const Icon(Icons.palette_outlined),
-      ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: scheme.surface,

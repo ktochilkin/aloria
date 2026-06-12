@@ -1,4 +1,3 @@
-import 'package:aloria/core/theme/canvas_switch.dart';
 import 'package:aloria/core/utils/layout_utils.dart';
 import 'package:aloria/features/learn/application/learning_providers.dart';
 import 'package:aloria/features/learn/data/learning_api_client.dart';
@@ -243,16 +242,11 @@ class _LessonViewState extends ConsumerState<_LessonView> {
     final isRead = entry?.read ?? _markedThisOpen;
     final total = widget.section.lessons.length;
     final hasNext = widget.index + 1 < total;
-    final learnBg = Theme.of(context).brightness == Brightness.light
-        ? ref.watch(canvasColorProvider)
-        : null;
 
     return Scaffold(
-      backgroundColor: learnBg,
       extendBodyBehindAppBar: true,
       appBar: FadingHeader(
         fade: _headerFade,
-        baseColor: learnBg,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {

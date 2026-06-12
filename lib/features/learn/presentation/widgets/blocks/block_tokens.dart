@@ -77,7 +77,7 @@ abstract final class BlockChartColors {
   static const Color error = AppColors.error;
 
   /// Золото/металл (диаграмма распределения активов).
-  static const Color gold = Color(0xFFE6B450);
+  static const Color gold = Color(0xFFD9A23C);
 
   /// «Деньги» — приглушённый сине-серый (миксер портфеля).
   static const Color cashBlue = Color(0xFF6C8EBF);

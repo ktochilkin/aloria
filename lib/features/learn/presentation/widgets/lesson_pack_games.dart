@@ -580,8 +580,8 @@ class _LessonSortByRiskState extends State<LessonSortByRisk> {
 
     return LessonBlockCard(
       tint: widget.tint,
-      title: 'Расставь: надёжнее → рискованнее',
-      subtitle: 'Сверху — где риск ниже.',
+      title: 'Расставь по риску',
+      subtitle: 'Сверху — самое надёжное, внизу — самое рискованное.',
       footer: BlockButton(
         tint: widget.tint,
         label: 'Проверить',
