@@ -5,11 +5,12 @@ import 'package:aloria/features/market/application/stop_orders_provider.dart';
 import 'package:aloria/features/market/domain/stop_order.dart';
 import 'package:aloria/features/market/domain/trade_order.dart';
 import 'package:aloria/features/market/presentation/numeric_text.dart';
+import 'package:aloria/features/market/presentation/positions/widgets/stop_order_details_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Плитка условной (стоп) заявки: ждёт цену срабатывания, после чего
-/// выставит рыночную или лимитную заявку.
+/// выставит рыночную или лимитную заявку. Тап открывает шторку с деталями.
 class StopOrderTile extends ConsumerWidget {
   const StopOrderTile({super.key, required this.order});
 
@@ -73,6 +74,7 @@ class StopOrderTile extends ConsumerWidget {
     final typeLabel = order.isStopLimit ? 'Стоп-лимит' : 'Стоп-маркет';
 
     return AppListTile(
+      onTap: () => showStopOrderDetails(context, order),
       title: order.symbol,
       subtitleWidget: Column(
         mainAxisSize: MainAxisSize.min,

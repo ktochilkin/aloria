@@ -2,16 +2,15 @@ import 'package:aloria/core/theme/components/list_items.dart';
 import 'package:aloria/core/theme/tokens.dart';
 import 'package:aloria/core/widgets/top_notification.dart';
 import 'package:aloria/features/market/application/orders_provider.dart';
-import 'package:aloria/features/market/data/market_repository.dart';
 import 'package:aloria/features/market/domain/portfolio_order.dart';
 import 'package:aloria/features/market/domain/trade_order.dart';
 import 'package:aloria/features/market/presentation/numeric_text.dart';
+import 'package:aloria/features/market/presentation/positions/widgets/order_details_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 /// Плитка заявки в списке портфеля: статус, сторона/тип/время, объём и
-/// цена, кнопка отмены для активных. Тап открывает инструмент в «Рынке».
+/// цена, кнопка отмены для активных. Тап открывает шторку с деталями.
 class OrderTile extends ConsumerWidget {
   const OrderTile({super.key, required this.order});
 
@@ -30,17 +29,7 @@ class OrderTile extends ConsumerWidget {
         ? 'По рынку'
         : (order.price != null ? order.price!.toStringAsFixed(2) : '—');
     return AppListTile(
-      // Заявка на вкладке «Портфель», а торговля инструментом — в ветке
-      // «Рынок». go_router переключает ветку и открывает инструмент;
-      // push не годится — отрисовал бы страницу в неактивной ветке.
-      onTap: () => context.go(
-        '/market/${order.symbol}',
-        extra: MarketSecurity(
-          symbol: order.symbol,
-          shortName: order.symbol,
-          exchange: order.exchange,
-        ),
-      ),
+      onTap: () => showOrderDetails(context, order),
       title: order.symbol,
       subtitleWidget: Column(
         mainAxisSize: MainAxisSize.min,

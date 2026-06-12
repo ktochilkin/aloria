@@ -1,22 +1,15 @@
-import 'package:aloria/core/theme/tokens.dart';
 import 'package:aloria/features/market/data/market_repository.dart';
 import 'package:aloria/features/market/domain/position.dart';
-import 'package:aloria/features/market/presentation/numeric_text.dart';
-import 'package:aloria/features/market/presentation/widgets/instrument_avatar.dart';
+import 'package:aloria/features/market/presentation/positions/widgets/details_sheet_kit.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 /// Открывает шторку со всей детальной информацией по позиции. Кнопка
 /// «Торговать инструментом» внутри шторки переключает на ветку «Рынок».
 Future<void> showPositionDetails(BuildContext context, Position position) {
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Theme.of(context).colorScheme.surface,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-    ),
-    builder: (ctx) => _PositionDetailsSheet(
+  return showDetailsSheet(
+    context,
+    (ctx) => _PositionDetailsSheet(
       position: position,
       onTrade: () {
         Navigator.of(ctx).pop();
@@ -39,178 +32,105 @@ class _PositionDetailsSheet extends StatelessWidget {
   final Position position;
   final VoidCallback onTrade;
 
+  /// Есть ли смысл показывать разбивку по расчётным дням.
+  static bool _hasSettlementSplit(Position p) =>
+      p.qtyT0 != null &&
+      p.qtyT1 != null &&
+      (p.qtyT0 != p.qtyUnits || p.qtyT1 != p.qtyT0);
+
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
-    final label = position.symbol.length > 2
-        ? position.symbol.substring(0, 2)
-        : position.symbol;
+    // RUB — это денежная позиция (кэш), а не торгуемый инструмент,
+    // поэтому кнопку перехода в торговлю для неё не показываем.
+    final isCash = position.symbol.toUpperCase() == 'RUB';
 
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: scheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                InstrumentAvatar(
-                  symbol: position.symbol,
-                  label: label,
-                  size: 40,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    position.symbol,
-                    style: text.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Flexible(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _infoRow(
-                      context,
-                      label: 'Тикер',
-                      value: position.symbol,
-                      description: 'Краткое название инструмента на бирже.',
-                    ),
-                    _infoRow(
-                      context,
-                      label: 'Количество',
-                      value: '${position.quantity} шт.',
-                      description: 'Количество ценных бумаг в вашем портфеле.',
-                      mono: true,
-                    ),
-                    _infoRow(
-                      context,
-                      label: 'Средняя цена',
-                      value: '${position.averagePrice} ${position.currency}',
-                      description:
-                          'Цена покупки (усредненная, если было несколько сделок).',
-                      mono: true,
-                    ),
-                    _infoRow(
-                      context,
-                      label: 'Текущая стоимость',
-                      value: '${position.currentVolume} ${position.currency}',
-                      description:
-                          'Рыночная стоимость всего пакета бумаг сейчас.',
-                      mono: true,
-                    ),
-                    if (position.unrealisedPl != null)
-                      _infoRow(
-                        context,
-                        label: 'Нереализованная П/У',
-                        value:
-                            '${position.unrealisedPl! >= 0 ? '+' : ''}${position.unrealisedPl!.toStringAsFixed(2)} ${position.currency}',
-                        description:
-                            'Текущая доходность позиции (прибыль или убыток).',
-                        mono: true,
-                      ),
-                    _infoRow(
-                      context,
-                      label: 'Биржа',
-                      value: position.exchange,
-                      description: 'Торговая площадка, где куплен инструмент.',
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            // RUB — это денежная позиция (кэш), а не торгуемый инструмент,
-            // поэтому кнопку перехода в торговлю для неё не показываем.
-            if (position.symbol.toUpperCase() != 'RUB') ...[
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: onTrade,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                  ),
-                  icon: const Icon(Icons.show_chart, size: 18),
-                  label: const Text('Торговать инструментом'),
-                ),
-              ),
-            ],
-          ],
+    return DetailsSheetShell(
+      symbol: position.symbol,
+      title: position.symbol,
+      subtitle: position.shortName?.isNotEmpty == true
+          ? position.shortName
+          : null,
+      actionLabel: isCash ? null : 'Торговать инструментом',
+      onAction: isCash ? null : onTrade,
+      rows: [
+        DetailsInfoRow(
+          label: 'Количество',
+          value: position.qtyUnits != null
+              ? '${detailsNum(position.qtyUnits!)} шт.'
+              : '${detailsNum(position.quantity)} шт.',
+          description: position.lotSize != null && position.lotSize! > 1
+              ? 'Бумаг на счёте. Торгуются лотами по ${detailsNum(position.lotSize!)} шт.'
+              : 'Количество бумаг на счёте.',
+          mono: true,
         ),
-      ),
-    );
-  }
-
-  Widget _infoRow(
-    BuildContext context, {
-    required String label,
-    required String value,
-    required String description,
-    bool mono = false,
-  }) {
-    final text = Theme.of(context).textTheme;
-    final scheme = Theme.of(context).colorScheme;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                label,
-                style: text.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: scheme.onSurface,
-                ),
-              ),
-              Expanded(
-                child: Text(
-                  value,
-                  textAlign: TextAlign.end,
-                  style: mono
-                      ? monoNum(size: 15, color: scheme.onSurface)
-                      : text.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-                ),
-              ),
-            ],
+        if (_hasSettlementSplit(position))
+          DetailsInfoRow(
+            label: 'Доступно сейчас (T0)',
+            value: '${detailsNum(position.qtyT0!)} шт.',
+            description:
+                'Расчёты по этим бумагам завершены — их можно продать прямо сейчас.',
+            mono: true,
           ),
-          const SizedBox(height: 2),
-          Text(
-            description,
-            style: text.bodySmall?.copyWith(
-              color: scheme.onSurfaceVariant,
-              fontStyle: FontStyle.italic,
-            ),
+        if (_hasSettlementSplit(position) &&
+            (position.qtyT1 ?? 0) != (position.qtyT0 ?? 0))
+          DetailsInfoRow(
+            label: 'Будет доступно завтра (T1)',
+            value: '${detailsNum(position.qtyT1!)} шт.',
+            description:
+                'Куплено сегодня: рынок работает в режиме T+1, расчёт завершится на следующий торговый день.',
+            mono: true,
           ),
-        ],
-      ),
+        if (position.openUnits != null &&
+            position.openUnits != position.qtyUnits)
+          DetailsInfoRow(
+            label: 'Было на начало дня',
+            value: '${detailsNum(position.openUnits!)} шт.',
+            description:
+                'Сколько бумаг было утром — разница с текущим количеством показывает сегодняшние сделки.',
+            mono: true,
+          ),
+        DetailsInfoRow(
+          label: 'Средняя цена',
+          value:
+              '${position.averagePrice.toStringAsFixed(2)} ${position.currency}',
+          description:
+              'Цена покупки (усреднённая, если было несколько сделок). От неё считается твой результат.',
+          mono: true,
+        ),
+        DetailsInfoRow(
+          label: 'Вложено',
+          value: '${position.volume.toStringAsFixed(2)} ${position.currency}',
+          description:
+              'Сколько денег потрачено на этот пакет по средней цене покупки.',
+          mono: true,
+        ),
+        DetailsInfoRow(
+          label: 'Текущая стоимость',
+          value:
+              '${position.currentVolume.toStringAsFixed(2)} ${position.currency}',
+          description:
+              'Рыночная стоимость всего пакета бумаг сейчас — столько получится при продаже по текущей цене.',
+          mono: true,
+        ),
+        if (position.unrealisedPl != null)
+          DetailsInfoRow(
+            label: 'Результат (П/У)',
+            value:
+                '${position.unrealisedPl! >= 0 ? '+' : ''}${position.unrealisedPl!.toStringAsFixed(2)} ${position.currency}',
+            description:
+                '«Бумажная» прибыль или убыток: разница между текущей стоимостью и вложенным. Станет настоящей только после продажи.',
+            mono: true,
+          ),
+        if (position.dailyUnrealisedPl != null)
+          DetailsInfoRow(
+            label: 'Результат за сегодня',
+            value:
+                '${position.dailyUnrealisedPl! >= 0 ? '+' : ''}${position.dailyUnrealisedPl!.toStringAsFixed(2)} ${position.currency}',
+            description:
+                'Как изменилась оценка позиции с начала сегодняшних торгов.',
+            mono: true,
+          ),
+      ],
     );
   }
 }
