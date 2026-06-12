@@ -105,8 +105,11 @@ class _CandleChartState extends State<CandleChart> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: widget.scheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(8),
+              color: widget.scheme.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: widget.scheme.outline.withValues(alpha: 0.6),
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -192,12 +195,8 @@ class _CandleDataRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: BorderRadius.circular(6),
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [

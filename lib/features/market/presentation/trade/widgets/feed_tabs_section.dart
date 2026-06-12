@@ -49,8 +49,10 @@ class FeedTabsSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Пульс рынка', style: text.titleMedium),
+            const SizedBox(height: 2),
             Text(
               feedTab == FeedTab.news
                   ? 'Новости и события по инструменту'
@@ -60,11 +62,10 @@ class FeedTabsSection extends StatelessWidget {
               style: text.bodySmall?.copyWith(
                 color: scheme.onSurfaceVariant,
               ),
-              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 10),
-            Center(
-              child: SegmentedButton<FeedTab>(
+            SegmentedButton<FeedTab>(
+              expandedInsets: EdgeInsets.zero,
                 segments: const [
                   ButtonSegment(
                     value: FeedTab.news,
@@ -107,7 +108,6 @@ class FeedTabsSection extends StatelessWidget {
                   ),
                 ),
               ),
-            ),
           ],
         ),
         const SizedBox(height: 8),

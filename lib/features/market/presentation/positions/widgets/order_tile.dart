@@ -1,4 +1,5 @@
 import 'package:aloria/core/theme/components/list_items.dart';
+import 'package:aloria/core/theme/tokens.dart';
 import 'package:aloria/core/widgets/top_notification.dart';
 import 'package:aloria/features/market/application/orders_provider.dart';
 import 'package:aloria/features/market/data/market_repository.dart';
@@ -97,8 +98,8 @@ class OrderTile extends ConsumerWidget {
                   ),
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  side: const BorderSide(color: Colors.orange, width: 1.5),
-                  foregroundColor: Colors.orange,
+                  side: const BorderSide(color: AppColors.error, width: 1.2),
+                  foregroundColor: AppColors.error,
                 ),
                 child: const Text(
                   'Отменить',
@@ -141,8 +142,9 @@ Color _statusColor(OrderStatus status, ColorScheme scheme) {
     case OrderStatus.working:
       return scheme.primary;
     case OrderStatus.filled:
-      return scheme.secondary;
+      return AppColors.success;
     case OrderStatus.canceled:
+      return scheme.onSurfaceVariant;
     case OrderStatus.rejected:
       return scheme.error;
     case OrderStatus.unknown:
