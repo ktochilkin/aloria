@@ -5,6 +5,7 @@ import 'package:aloria/features/learn/presentation/widgets/lesson_divgap_chart.d
 import 'package:aloria/features/learn/presentation/widgets/lesson_foundations.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_inflation_erosion.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_leverage_seesaw.dart';
+import 'package:aloria/features/learn/presentation/widgets/lesson_market_vs_limit.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_orderbook_2col.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_pack_bondfund.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_pack_bonds.dart';
@@ -70,6 +71,7 @@ const Map<String, LessonBlockBuilder> lessonBlockBuilders = {
   'read-the-tape': _readTheTape,
   // новые
   'order-builder': _orderBuilder,
+  'market-vs-limit': _marketVsLimit,
   'candle-from-trades': _candleFromTrades,
   'diversification-dice': _diversificationDice,
   'spread-gauge': _spreadGauge,
@@ -199,6 +201,9 @@ Widget _phoneVsGarage(BuildContext context, Color tint) =>
 
 Widget _readTheTape(BuildContext context, Color tint) =>
     LessonReadTheTape(tint: tint);
+
+Widget _marketVsLimit(BuildContext context, Color tint) =>
+    LessonMarketVsLimit(tint: tint);
 
 Widget _orderBuilder(BuildContext context, Color tint) =>
     LessonOrderBuilder(tint: tint);

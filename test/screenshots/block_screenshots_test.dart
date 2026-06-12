@@ -30,6 +30,7 @@ const _deployed = <String, String>{
   // first-trade (primary)
   'flow-broker': 'primary',
   'order-builder': 'primary',
+  'market-vs-limit': 'primary',
   'rubles-paper-flow': 'primary',
   'pnl-live': 'primary',
   // reading-market (primary)
