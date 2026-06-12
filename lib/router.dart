@@ -16,6 +16,7 @@ import 'package:aloria/features/market/presentation/trade_page.dart';
 import 'package:aloria/features/profile/presentation/progress_page.dart';
 import 'package:aloria/features/settings/application/settings_controller.dart';
 import 'package:aloria/features/settings/presentation/settings_page.dart';
+import 'package:aloria/features/support/presentation/support_tickets_page.dart';
 import 'package:aloria/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -52,6 +53,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'progress',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (ctx, state) => const ProgressPage(),
+      ),
+      GoRoute(
+        path: '/support',
+        name: 'support',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (ctx, state) => const SupportTicketsPage(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {

@@ -1,18 +1,18 @@
 import 'package:aloria/core/widgets/state_placeholder.dart';
 import 'package:aloria/core/widgets/top_notification.dart';
-import 'package:aloria/features/learning_mode/presentation/order_form_coaching.dart';
 import 'package:aloria/features/market/application/market_news_provider.dart';
 import 'package:aloria/features/market/application/order_book_notifier.dart';
 import 'package:aloria/features/market/application/orders_provider.dart';
 import 'package:aloria/features/market/application/price_feed_notifier.dart';
 import 'package:aloria/features/market/data/market_data_repository.dart';
+import 'package:aloria/features/market/domain/order_failure.dart';
 import 'package:aloria/features/market/domain/portfolio_order.dart';
 import 'package:aloria/features/market/domain/stop_order.dart';
 import 'package:aloria/features/market/domain/trade_order.dart';
 import 'package:aloria/features/market/presentation/trade/coinbase_theme.dart';
 import 'package:aloria/features/market/presentation/trade/trade_providers.dart';
+import 'package:aloria/features/market/presentation/trade/widgets/order_failure_sheet.dart';
 import 'package:aloria/features/market/presentation/trade/widgets/trade_body.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -108,6 +108,21 @@ class _TradePageState extends ConsumerState<TradePage> {
     });
   }
 
+  /// Снимок параметров заявки из формы — прикладывается к обращению в
+  /// поддержку, чтобы проблему можно было разобрать без переписки.
+  Map<String, dynamic> _orderContextSnapshot(OrderSide side) => {
+        'symbol': widget.symbol,
+        'side': side.name,
+        'kind': _kind.name,
+        'qty': _qtyController.text,
+        if (_kind == OrderFormKind.limit) 'price': _priceController.text,
+        if (_kind == OrderFormKind.stop) ...{
+          'condition': _stopCondition.apiValue,
+          'triggerPrice': _triggerController.text,
+          'limitPrice': _stopLimitController.text,
+        },
+      };
+
   Future<void> _submit(OrderSide side) async {
     final repo = await ref.read(marketDataRepositoryProvider.future);
 
@@ -167,28 +182,16 @@ class _TradePageState extends ConsumerState<TradePage> {
       }
     } catch (e) {
       if (mounted) {
-        String errorMessage = 'Ошибка отправки';
-
-        // Проверяем, является ли ошибка DioException
-        if (e is DioException && e.response != null) {
-          final responseData = e.response!.data;
-          if (responseData is Map<String, dynamic> &&
-              responseData.containsKey('message')) {
-            errorMessage = responseData['message'] as String;
-          } else {
-            errorMessage = 'Ошибка отправки: ${e.response!.statusCode}';
-          }
-        } else {
-          errorMessage = 'Ошибка отправки: $e';
-        }
-
-        showTopNotification(context, errorMessage, isError: true);
-
-        // Синхронный отказ (валидация при отправке): всегда показываем
-        // человеческое объяснение возможных причин, независимо от режима.
-        if (e is DioException && e.response != null) {
-          showOrderRejectionHelp(context, brokerMessage: errorMessage);
-        }
+        // Разбираем причину и показываем умное объяснение вместо сырой
+        // ошибки. Системные сбои (таймаут, 5xx, сеть) пользователю не
+        // показываем как есть — для них своя ветка с поддержкой.
+        final failure = OrderFailure.fromException(e);
+        showOrderFailureSheet(
+          context,
+          failure: failure,
+          symbol: widget.symbol,
+          orderContext: _orderContextSnapshot(side),
+        );
       }
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -209,7 +212,12 @@ class _TradePageState extends ConsumerState<TradePage> {
         if (o.status != OrderStatus.rejected) continue;
         if (!_coachedRejectionIds.add(o.id)) continue;
         if (mounted) {
-          showOrderRejectionHelp(context, brokerMessage: o.comment);
+          showOrderFailureSheet(
+            context,
+            failure: OrderFailure.fromRejectionComment(o.comment),
+            symbol: widget.symbol,
+            orderContext: {'orderId': o.id, 'symbol': o.symbol},
+          );
         }
       }
     });

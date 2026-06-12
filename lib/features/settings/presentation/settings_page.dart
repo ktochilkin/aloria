@@ -67,6 +67,19 @@ class SettingsPage extends ConsumerWidget {
             ],
           ),
 
+          const SizedBox(height: 20),
+          const _SectionLabel(text: 'Помощь'),
+          _Card(
+            children: [
+              _LinkRow(
+                icon: Icons.support_agent,
+                title: 'Мои обращения',
+                subtitle: 'Статусы вопросов в поддержку',
+                onTap: () => context.push('/support'),
+              ),
+            ],
+          ),
+
           const SizedBox(height: 24),
           Center(
             child: TextButton.icon(
@@ -227,6 +240,60 @@ class _Sep extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(left: 60),
       child: Container(height: 1, color: context.palette.heroBorder),
+    );
+  }
+}
+
+/// Строка-ссылка в карточке настроек: иконка, заголовок, переход по тапу.
+class _LinkRow extends StatelessWidget {
+  const _LinkRow({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        child: Row(
+          children: [
+            _LeadingIcon(icon: icon),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: text.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: text.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
+          ],
+        ),
+      ),
     );
   }
 }

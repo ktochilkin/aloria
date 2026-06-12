@@ -297,6 +297,23 @@ using (var scope = app.Services.CreateScope())
             ON ""TradeEvents"" (""UserId"", ""OccurredAt"");
         CREATE UNIQUE INDEX IF NOT EXISTS ""IX_TradeEvents_IdempotencyKey""
             ON ""TradeEvents"" (""IdempotencyKey"");
+
+        CREATE TABLE IF NOT EXISTS ""SupportTickets"" (
+            ""Id"" TEXT NOT NULL CONSTRAINT ""PK_SupportTickets"" PRIMARY KEY,
+            ""UserId"" TEXT NOT NULL,
+            ""Status"" TEXT NOT NULL DEFAULT 'open',
+            ""Subject"" TEXT NOT NULL DEFAULT '',
+            ""ErrorCode"" TEXT NULL,
+            ""ErrorMessage"" TEXT NULL,
+            ""ContextJson"" TEXT NULL,
+            ""UserComment"" TEXT NULL,
+            ""Answer"" TEXT NULL,
+            ""CreatedAt"" TEXT NOT NULL,
+            ""AnsweredAt"" TEXT NULL,
+            FOREIGN KEY (""UserId"") REFERENCES ""Users"" (""Id"") ON DELETE CASCADE
+        );
+        CREATE INDEX IF NOT EXISTS ""IX_SupportTickets_UserId_CreatedAt""
+            ON ""SupportTickets"" (""UserId"", ""CreatedAt"");
     ");
 
     // Импорт markdown-уроков: при первом запуске (пустая БД) либо явно по флагу
@@ -360,6 +377,7 @@ app.MapQuizEndpoints();
 app.MapProgressEndpoints();
 app.MapAdminEndpoints();
 app.MapDeviceEndpoints();
+app.MapSupportEndpoints();
 
 app.Run();
 

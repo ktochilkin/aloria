@@ -30,6 +30,7 @@ public class AloriaDbContext(DbContextOptions<AloriaDbContext> options) : DbCont
     public DbSet<UserConceptMastery> UserConceptMastery => Set<UserConceptMastery>();
     public DbSet<UserPracticeFulfillment> UserPracticeFulfillments => Set<UserPracticeFulfillment>();
     public DbSet<TradeEvent> TradeEvents => Set<TradeEvent>();
+    public DbSet<SupportTicket> SupportTickets => Set<SupportTicket>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -185,6 +186,14 @@ public class AloriaDbContext(DbContextOptions<AloriaDbContext> options) : DbCont
             e.Property(x => x.AssetClass).HasMaxLength(16);
             e.Property(x => x.Qty).HasPrecision(18, 6);
             e.Property(x => x.Price).HasPrecision(18, 6);
+        });
+
+        b.Entity<SupportTicket>(e =>
+        {
+            e.HasIndex(x => new { x.UserId, x.CreatedAt });
+            e.Property(x => x.Status).HasMaxLength(16).IsRequired();
+            e.Property(x => x.Subject).HasMaxLength(256).IsRequired();
+            e.Property(x => x.ErrorCode).HasMaxLength(64);
         });
     }
 }
