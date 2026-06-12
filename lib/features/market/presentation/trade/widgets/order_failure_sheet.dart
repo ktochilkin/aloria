@@ -3,7 +3,6 @@ import 'package:aloria/features/market/application/portfolio_summary_provider.da
 import 'package:aloria/features/market/application/positions_provider.dart';
 import 'package:aloria/features/market/domain/order_failure.dart';
 import 'package:aloria/features/market/presentation/numeric_text.dart';
-import 'package:aloria/features/market/presentation/positions/top_up_page.dart';
 import 'package:aloria/features/support/presentation/support_report_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -185,70 +184,84 @@ class _OrderFailureSheet extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             Flexible(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _explanation,
-                      style: text.bodyMedium?.copyWith(height: 1.5),
-                    ),
-                    if (failure.kind == OrderFailureKind.insufficientFunds)
-                      _FundsHelp(symbol: symbol),
-                    if (failure.kind == OrderFailureKind.shortNotAllowed)
-                      _OwnedQtyHelp(symbol: symbol),
-                    if (message != null && message.isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: scheme.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(10),
+              child: Stack(
+                children: [
+                  SingleChildScrollView(
+                    padding: const EdgeInsets.only(bottom: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _explanation,
+                          style: text.bodyMedium?.copyWith(height: 1.5),
                         ),
-                        child: Text(
-                          'Сообщение системы: $message',
-                          style: text.bodySmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
+                        if (failure.kind == OrderFailureKind.insufficientFunds)
+                          _FundsHelp(symbol: symbol),
+                        if (failure.kind == OrderFailureKind.shortNotAllowed)
+                          _OwnedQtyHelp(symbol: symbol),
+                        if (message != null && message.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: scheme.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              'Сообщение системы: $message',
+                              style: text.bodySmall?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  // Градиент-подсказка прокрутки — как в шторках деталей.
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    height: 24,
+                    child: IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              scheme.surface.withValues(alpha: 0),
+                              scheme.surface,
+                            ],
                           ),
                         ),
                       ),
-                    ],
-                  ],
-                ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             if (failure.kind == OrderFailureKind.insufficientFunds) ...[
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    Navigator.of(context, rootNavigator: true).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const TopUpPage(),
-                      ),
-                    );
-                  },
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                  ),
-                  icon: const Icon(Icons.school_outlined, size: 18),
-                  label: const Text('Расширить доступ за знания'),
-                ),
-              ),
-              const SizedBox(height: 8),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.tonalIcon(
                   onPressed: () {
                     Navigator.of(context).pop();
-                    context.push('/learn/trading-basics/buying_power');
+                    context.push('/learn/first-trade/position');
                   },
                   icon: const Icon(Icons.menu_book_outlined, size: 18),
-                  label: const Text('Урок «Покупательная способность»'),
+                  label: const Text('Урок про покупательную способность'),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.tonal(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Понятно'),
                 ),
               ),
             ] else if (_isSystemLike) ...[
@@ -406,15 +419,6 @@ class _FundsHelp extends ConsumerWidget {
                 ),
               ),
           ],
-          const SizedBox(height: 6),
-          Text(
-            'А ещё покупательная способность растёт за пройденные уроки '
-            'и тесты — знания здесь и есть деньги.',
-            style: text.bodySmall?.copyWith(
-              color: scheme.onSurfaceVariant,
-              height: 1.4,
-            ),
-          ),
         ],
       ),
     );

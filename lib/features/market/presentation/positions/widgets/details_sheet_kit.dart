@@ -111,15 +111,44 @@ class DetailsSheetShell extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Flexible(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: rows,
-                ),
+              child: Stack(
+                children: [
+                  SingleChildScrollView(
+                    // Нижний отступ выводит последнюю строку из-под градиента,
+                    // когда список прокручен до конца.
+                    padding: const EdgeInsets.only(bottom: 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: rows,
+                    ),
+                  ),
+                  // Градиент-подсказка: контент уходит под низ и его можно
+                  // прокрутить — строки «растворяются», а не обрезаются кнопкой.
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    height: 28,
+                    child: IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              scheme.surface.withValues(alpha: 0),
+                              scheme.surface,
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             if (actionLabel != null) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
