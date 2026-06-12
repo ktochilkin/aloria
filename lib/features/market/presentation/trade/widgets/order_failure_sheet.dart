@@ -24,6 +24,11 @@ Future<void> showOrderFailureSheet(
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
+    // Ограничиваем высоту, чтобы шторка не растягивалась на весь экран:
+    // длинный контент прокручивается внутри, шапка с крестиком всегда видна.
+    constraints: BoxConstraints(
+      maxHeight: MediaQuery.sizeOf(context).height * 0.7,
+    ),
     backgroundColor: Theme.of(context).colorScheme.surface,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -50,9 +55,10 @@ class _OrderFailureSheet extends ConsumerWidget {
   String get _title => switch (failure.kind) {
         OrderFailureKind.insufficientFunds => 'Не хватает свободных денег',
         OrderFailureKind.badPrice => 'Биржа не приняла цену',
+        OrderFailureKind.noPrice => 'Не нашлось цены для сделки',
         OrderFailureKind.badQuantity => 'Биржа не приняла количество',
         OrderFailureKind.tradingClosed => 'Торги сейчас не идут',
-        OrderFailureKind.shortNotAllowed => 'Так продать не получится',
+        OrderFailureKind.shortNotAllowed => 'Этих бумаг нет в портфеле',
         OrderFailureKind.forbidden => 'Это действие сейчас недоступно',
         OrderFailureKind.orderNotFound => 'Заявка уже не активна',
         OrderFailureKind.system => 'Что-то пошло не так в мире Алории',
@@ -64,9 +70,13 @@ class _OrderFailureSheet extends ConsumerWidget {
           'На эту покупку не хватает покупательной способности. Это не '
               'поломка: система защищает от сделки, которую нечем оплатить.',
         OrderFailureKind.badPrice =>
-          'Цена в заявке вне допустимых границ или не кратна шагу цены. '
-              'Биржа принимает цены только внутри дневного коридора и '
-              'только с определённым шагом.',
+          'Биржа принимает цены только внутри допустимого коридора вокруг '
+              'текущей цены и только кратные шагу цены. Поставь цену ближе '
+              'к рыночной — подсказка «сейчас …» в поле цены поможет.',
+        OrderFailureKind.noPrice =>
+          'У инструмента сейчас нет цены, по которой могла бы пройти '
+              'рыночная заявка — в стакане пусто. Попробуй лимитную заявку '
+              'со своей ценой или вернись позже.',
         OrderFailureKind.badQuantity =>
           'Количество в заявке некорректное: например, ноль или не целое '
               'число лотов. Попробуй указать целое количество.',
@@ -74,8 +84,9 @@ class _OrderFailureSheet extends ConsumerWidget {
           'Торговая сессия по инструменту закрыта или приостановлена. '
               'Заявку можно будет выставить, когда торги возобновятся.',
         OrderFailureKind.shortNotAllowed =>
-          'Продать можно только бумаги, которые есть в портфеле. Продажа '
-              '«в долг» (шорт) в Алории пока недоступна.',
+          'Заявка на продажу больше, чем у тебя есть: продать можно только '
+              'бумаги из портфеля. Продажа «в долг» (шорт) в Алории пока '
+              'недоступна. Проверь количество и сколько бумаг доступно.',
         OrderFailureKind.forbidden =>
           'Система не разрешила это действие для твоего счёта или этого '
               'типа заявки.',
@@ -95,6 +106,7 @@ class _OrderFailureSheet extends ConsumerWidget {
   IconData get _icon => switch (failure.kind) {
         OrderFailureKind.insufficientFunds => Icons.account_balance_wallet_outlined,
         OrderFailureKind.badPrice => Icons.price_change_outlined,
+        OrderFailureKind.noPrice => Icons.search_off_outlined,
         OrderFailureKind.badQuantity => Icons.numbers,
         OrderFailureKind.tradingClosed => Icons.nightlight_outlined,
         OrderFailureKind.shortNotAllowed => Icons.block_outlined,
@@ -183,6 +195,8 @@ class _OrderFailureSheet extends ConsumerWidget {
                     ),
                     if (failure.kind == OrderFailureKind.insufficientFunds)
                       _FundsHelp(symbol: symbol),
+                    if (failure.kind == OrderFailureKind.shortNotAllowed)
+                      _OwnedQtyHelp(symbol: symbol),
                     if (message != null && message.isNotEmpty) ...[
                       const SizedBox(height: 12),
                       Container(
@@ -268,6 +282,53 @@ class _OrderFailureSheet extends ConsumerWidget {
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Контекстная помощь при «продаже в минус»: сколько этой бумаги
+/// на самом деле есть в портфеле.
+class _OwnedQtyHelp extends ConsumerWidget {
+  const _OwnedQtyHelp({required this.symbol});
+
+  final String symbol;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+    final positions = ref.watch(positionsProvider).valueOrNull;
+    if (positions == null) return const SizedBox.shrink();
+
+    final matches = positions
+        .where((p) => p.symbol.toUpperCase() == symbol.toUpperCase())
+        .toList();
+    final qty = matches.isEmpty
+        ? 0.0
+        : (matches.first.qtyUnits ?? matches.first.quantity);
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.18)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            '$symbol в портфеле',
+            style: text.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          Text(
+            qty > 0 ? '${qty.toStringAsFixed(0)} шт.' : 'нет',
+            style: monoNum(size: 15, color: scheme.onSurface),
+          ),
+        ],
       ),
     );
   }

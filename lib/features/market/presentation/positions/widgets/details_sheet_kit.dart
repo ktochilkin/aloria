@@ -5,10 +5,17 @@ import 'package:flutter/material.dart';
 
 /// Открывает стандартную шторку деталей (позиция, заявка, сделка) с
 /// одинаковой формой и скруглением.
+///
+/// Высота ограничена ~двумя третями экрана: длинный список строк
+/// прокручивается внутри, а шапка с крестиком и кнопка действия всегда
+/// остаются на виду.
 Future<void> showDetailsSheet(BuildContext context, WidgetBuilder builder) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
+    constraints: BoxConstraints(
+      maxHeight: MediaQuery.sizeOf(context).height * 0.66,
+    ),
     backgroundColor: Theme.of(context).colorScheme.surface,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -162,7 +169,7 @@ class DetailsInfoRow extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -181,7 +188,7 @@ class DetailsInfoRow extends StatelessWidget {
                   value,
                   textAlign: TextAlign.end,
                   style: mono
-                      ? monoNum(size: 15, color: valueColor ?? scheme.onSurface)
+                      ? monoNum(size: 14, color: valueColor ?? scheme.onSurface)
                       : text.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                           color: valueColor,
@@ -190,12 +197,12 @@ class DetailsInfoRow extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 2),
           Text(
             description,
             style: text.bodySmall?.copyWith(
               color: scheme.onSurfaceVariant,
-              fontStyle: FontStyle.italic,
+              fontSize: 11.5,
+              height: 1.3,
             ),
           ),
         ],

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:aloria/core/theme/app_theme.dart';
 import 'package:aloria/features/market/application/market_news_provider.dart';
 import 'package:aloria/features/market/application/order_book_notifier.dart';
@@ -9,18 +11,22 @@ import 'package:aloria/features/market/domain/candle.dart';
 import 'package:aloria/features/market/domain/market_news.dart';
 import 'package:aloria/features/market/domain/market_price.dart';
 import 'package:aloria/features/market/domain/order_book.dart';
+import 'package:aloria/features/market/domain/order_failure.dart';
 import 'package:aloria/features/market/domain/portfolio_order.dart';
 import 'package:aloria/features/market/domain/portfolio_summary.dart';
 import 'package:aloria/features/market/domain/portfolio_trade.dart';
 import 'package:aloria/features/market/domain/position.dart';
 import 'package:aloria/features/market/domain/stop_order.dart';
 import 'package:aloria/features/market/domain/trade_order.dart';
+import 'package:aloria/features/market/presentation/positions/widgets/order_tile.dart';
 import 'package:aloria/features/market/presentation/positions/widgets/orders_list_section.dart';
 import 'package:aloria/features/market/presentation/positions/widgets/portfolio_hero.dart';
 import 'package:aloria/features/market/presentation/positions/widgets/portfolio_tabs_header.dart';
 import 'package:aloria/features/market/presentation/positions/widgets/portfolio_title_bar.dart';
+import 'package:aloria/features/market/presentation/positions/widgets/position_tile.dart';
 import 'package:aloria/features/market/presentation/positions/widgets/positions_list_section.dart';
 import 'package:aloria/features/market/presentation/positions/widgets/trades_list_section.dart';
+import 'package:aloria/features/market/presentation/trade/widgets/order_failure_sheet.dart';
 import 'package:aloria/features/market/presentation/trade_page.dart';
 import 'package:aloria/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -469,6 +475,87 @@ void main() {
       tester,
       'portfolio_orders',
       const _PortfolioScreen(tab: PortfolioTab.orders),
+    );
+  });
+
+  testWidgets('портфель — детали позиции', (tester) async {
+    await _shootScreen(
+      tester,
+      'portfolio_position_details',
+      const _PortfolioScreen(tab: PortfolioTab.positions),
+      act: (t) => t.tap(find.byType(PositionTile).first),
+    );
+  });
+
+  testWidgets('портфель — детали заявки', (tester) async {
+    await _shootScreen(
+      tester,
+      'portfolio_order_details',
+      const _PortfolioScreen(tab: PortfolioTab.orders),
+      act: (t) => t.tap(find.byType(OrderTile).first),
+    );
+  });
+
+  testWidgets('ошибка заявки — продажа бумаг, которых нет', (tester) async {
+    await _shootScreen(
+      tester,
+      'order_failure_short',
+      const _PortfolioScreen(tab: PortfolioTab.positions),
+      overrides: _marketOverrides(),
+      act: (t) async {
+        final ctx = t.element(find.byType(PortfolioTitleBar));
+        unawaited(showOrderFailureSheet(
+          ctx,
+          failure: OrderFailure.fromRejectionComment(
+            'Заявка приводит к отрицательной позиции по инструменту, '
+            'который недоступен в маржу',
+          ),
+          symbol: 'OZON',
+        ));
+      },
+    );
+  });
+
+  testWidgets('ошибка заявки — не хватает денег', (tester) async {
+    await _shootScreen(
+      tester,
+      'order_failure_funds',
+      const _PortfolioScreen(tab: PortfolioTab.positions),
+      overrides: _marketOverrides(),
+      act: (t) async {
+        final ctx = t.element(find.byType(PortfolioTitleBar));
+        unawaited(showOrderFailureSheet(
+          ctx,
+          failure: const OrderFailure(
+            kind: OrderFailureKind.insufficientFunds,
+            code: 'OrderCreatesUncoveredRisk',
+            message: 'Недостаточно свободных средств. '
+                'Услуга 100% обеспечение включена.',
+          ),
+          symbol: 'SBER',
+        ));
+      },
+    );
+  });
+
+  testWidgets('ошибка заявки — цена вне лимита', (tester) async {
+    await _shootScreen(
+      tester,
+      'order_failure_price',
+      const _PortfolioScreen(tab: PortfolioTab.positions),
+      overrides: _marketOverrides(),
+      act: (t) async {
+        final ctx = t.element(find.byType(PortfolioTitleBar));
+        unawaited(showOrderFailureSheet(
+          ctx,
+          failure: const OrderFailure(
+            kind: OrderFailureKind.badPrice,
+            code: 'InternalErrorWithPrices',
+            message: 'Цена заявки за пределами лимита',
+          ),
+          symbol: 'SBER',
+        ));
+      },
     );
   });
 

@@ -9,6 +9,9 @@ enum OrderFailureKind {
   /// Цена вне допустимых границ или не кратна шагу цены.
   badPrice,
 
+  /// Рыночной заявке не нашлось цены исполнения (в стакане пусто).
+  noPrice,
+
   /// Некорректное количество (не кратно лоту, ноль и т.п.).
   badQuantity,
 
@@ -121,29 +124,57 @@ class OrderFailure {
   /// Определяет категорию по коду ошибки торговой системы и/или тексту.
   ///
   /// Коды — из ErrorCode торговой системы: числовые (301, 401, 900…)
-  /// или имена (`NotEnoughCash`). Если код не узнан, добираем по ключевым
-  /// словам сообщения (асинхронные отказы приходят только с текстом).
+  /// или имена (`NotEnoughCash`). Некоторые коды многозначные и уточняются
+  /// по тексту; асинхронные отказы приходят вовсе без кода — только текст.
   static OrderFailureKind classify({String? code, String? message}) {
-    final byCode = _classifyCode(code);
+    final c = code?.trim().toLowerCase();
+
+    // OrderCreatesUncoveredRisk (400) — общий вердикт риск-движка: им
+    // отклоняется и покупка без денег, и продажа бумаг, которых нет.
+    // Конкретику Shepard кладёт только в текст.
+    if (c == '400' || c == 'ordercreatesuncoveredrisk') {
+      return _isShortSellMessage(message)
+          ? OrderFailureKind.shortNotAllowed
+          : OrderFailureKind.insufficientFunds;
+    }
+
+    final byCode = _classifyCode(c);
     if (byCode != null) return byCode;
     final byMessage = _classifyMessage(message);
     if (byMessage != null) return byMessage;
     return OrderFailureKind.unknown;
   }
 
-  static OrderFailureKind? _classifyCode(String? raw) {
-    final code = raw?.trim().toLowerCase();
+  /// «Заявка приводит к отрицательной позиции по инструменту, который
+  /// недоступен в маржу» — так Shepard сообщает о продаже бумаг, которых
+  /// нет в портфеле (шорт запрещён).
+  static bool _isShortSellMessage(String? raw) {
+    final m = raw?.toLowerCase();
+    if (m == null) return false;
+    return (m.contains('отрицательной позиции') && !m.contains('валюте')) ||
+        m.contains('недоступен в маржу') ||
+        m.contains('шорт') ||
+        m.contains('short');
+  }
+
+  static OrderFailureKind? _classifyCode(String? code) {
     if (code == null || code.isEmpty) return null;
     return switch (code) {
       // Деньги: проверка риска (Shepard) и проверка биржи.
-      '400' || 'ordercreatesuncoveredrisk' => OrderFailureKind.insufficientFunds,
       '401' || 'notenoughcash' => OrderFailureKind.insufficientFunds,
       '309' || 'insufficientclientfunds' => OrderFailureKind.insufficientFunds,
-      // Цена.
+      // Цена. InternalErrorWithPrices (409) — несмотря на название, это
+      // обычная валидация цены: TEREX отвечает им на цену вне лимитов
+      // MinPrice/MaxPrice и не кратную шагу, Shepard — на выход из
+      // ценового коридора («Цена заявки за пределами лимита»).
       '301' || 'exchangelimitexceeded' => OrderFailureKind.badPrice,
+      '409' || 'internalerrorwithprices' => OrderFailureKind.badPrice,
       '503' ||
       'priceinstopordernotmultipleofminincrement' =>
         OrderFailureKind.badPrice,
+      // «Не найдена цена заявки» — у рыночной заявки нет цены исполнения
+      // (в стакане пусто или по инструменту ещё не было цены).
+      '411' || 'noorderpricefound' => OrderFailureKind.noPrice,
       // Количество.
       '304' || 'exchangeincorrectquantity' => OrderFailureKind.badQuantity,
       // Сессия.
@@ -155,6 +186,9 @@ class OrderFailure {
       'instrumentinboardforbiddenforclient' =>
         OrderFailureKind.forbidden,
       '407' || 'clientblocked' => OrderFailureKind.forbidden,
+      '410' ||
+      'invalidcomplexproductcategory' =>
+        OrderFailureKind.forbidden,
       '412' || 'forbiddenordertype' => OrderFailureKind.forbidden,
       '413' || 'lowriskmarginalforbidden' => OrderFailureKind.forbidden,
       '502' || 'unsupportedstopordertype' => OrderFailureKind.forbidden,
@@ -168,7 +202,6 @@ class OrderFailure {
       // Системное.
       '402' || 'revertnotgenerated' => OrderFailureKind.system,
       '408' || 'unknownerror' => OrderFailureKind.system,
-      '409' || 'internalerrorwithprices' => OrderFailureKind.system,
       '501' || 'cantwritestopordertostorage' => OrderFailureKind.system,
       '900' || 'commandresponsetimeout' => OrderFailureKind.system,
       _ => null,
@@ -180,8 +213,16 @@ class OrderFailure {
     if (m == null || m.isEmpty) return null;
     bool has(List<String> words) => words.any(m.contains);
 
-    if (has(['timeout', 'таймаут', 'internal', 'внутренняя ошибка'])) {
+    // Сначала специфичные формулировки, потом общие слова: например,
+    // «отрицательная позиция по инструменту» важнее «недостаточно».
+    if (_isShortSellMessage(m)) {
+      return OrderFailureKind.shortNotAllowed;
+    }
+    if (has(['timeout', 'таймаут', 'внутренняя ошибка'])) {
       return OrderFailureKind.system;
+    }
+    if (has(['не найдена цена', 'нет цены'])) {
+      return OrderFailureKind.noPrice;
     }
     if (has([
       'недостаточно',
@@ -189,13 +230,22 @@ class OrderFailure {
       'свободных средств',
       'обеспечение',
       'непокрыт',
+      'отрицательной позиции по немаржинальной валюте',
       'uncovered',
       'not enough',
       'insufficient',
     ])) {
       return OrderFailureKind.insufficientFunds;
     }
-    if (has(['шаг цены', 'лимит цен', 'границ', 'price', 'цена вне'])) {
+    if (has([
+      'шаг цены',
+      'лимит цен',
+      'пределами лимита',
+      'границ',
+      'price',
+      'цена вне',
+      'цена заявки',
+    ])) {
       return OrderFailureKind.badPrice;
     }
     if (has(['количеств', 'кратно лоту', 'quantity', 'лотност'])) {
@@ -207,12 +257,10 @@ class OrderFailure {
       'сессия закрыта',
       'не торгуется',
       'trading is stopped',
+      'not currently trading',
       'not trading',
     ])) {
       return OrderFailureKind.tradingClosed;
-    }
-    if (has(['шорт', 'short', 'продажа без покрытия'])) {
-      return OrderFailureKind.shortNotAllowed;
     }
     if (has(['запрещ', 'заблокирован', 'forbidden', 'blocked'])) {
       return OrderFailureKind.forbidden;
