@@ -13,6 +13,14 @@ class PositionTile extends StatelessWidget {
   /// Позиция портфеля.
   final Position position;
 
+  /// Денежная позиция (свободные рубли) — показывается как сумма, а не «шт.».
+  bool get _isCash => position.symbol.toUpperCase() == 'RUB';
+
+  /// Количество без хвоста «.00» у целых значений.
+  String get _qty => position.quantity == position.quantity.roundToDouble()
+      ? position.quantity.toStringAsFixed(0)
+      : position.quantity.toStringAsFixed(2);
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -46,25 +54,33 @@ class PositionTile extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text.rich(
-                    TextSpan(
+                  if (_isCash)
+                    Text(
+                      'Свободные деньги',
                       style: text.bodyMedium?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
-                      children: [
-                        const TextSpan(text: 'Средняя '),
-                        TextSpan(
-                          text:
-                              '${position.averagePrice.toStringAsFixed(2)} ${position.currency}',
-                          style: monoNum(
-                            size: 13,
-                            weight: FontWeight.w500,
-                            color: scheme.onSurfaceVariant,
-                          ),
+                    )
+                  else
+                    Text.rich(
+                      TextSpan(
+                        style: text.bodyMedium?.copyWith(
+                          color: scheme.onSurfaceVariant,
                         ),
-                      ],
+                        children: [
+                          const TextSpan(text: 'Средняя '),
+                          TextSpan(
+                            text:
+                                '${position.averagePrice.toStringAsFixed(2)} ${position.currency}',
+                            style: monoNum(
+                              size: 13,
+                              weight: FontWeight.w500,
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),
@@ -74,7 +90,9 @@ class PositionTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  '${position.quantity.toStringAsFixed(2)} шт.',
+                  _isCash
+                      ? '${position.quantity.toStringAsFixed(2)} ₽'
+                      : '$_qty шт.',
                   style: monoNum(size: 15, color: scheme.onSurface),
                 ),
                 if (position.unrealisedPl != null) ...[

@@ -64,6 +64,8 @@ class CandlePainter extends CustomPainter {
       color: scheme.onSurfaceVariant,
       fontSize: 10,
       fontWeight: FontWeight.w600,
+      fontFamily: 'Nunito',
+      fontFamilyFallback: const ['Nunito', 'sans-serif'],
     );
 
     // Axes
