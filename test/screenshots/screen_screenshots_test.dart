@@ -303,13 +303,17 @@ Widget _app(Widget home, {List<Override> overrides = const []}) {
 /// Точная копия композиции _PositionsBlock из positions_page.dart —
 /// собственно страница без auth/learning-обвязки (та не влияет на вид).
 class _PortfolioScreen extends ConsumerWidget {
-  const _PortfolioScreen({required this.tab});
+  const _PortfolioScreen({required this.tab, this.positionsError = false});
 
   final PortfolioTab tab;
+  final bool positionsError;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    const positions = AsyncValue.data(_positions);
+    final positions = positionsError
+        ? AsyncValue<List<Position>>.error(
+            Exception('boom'), StackTrace.empty)
+        : const AsyncValue.data(_positions);
     final orders = AsyncValue.data(_orders);
     const summary = AsyncValue.data(_summary);
 
@@ -338,7 +342,7 @@ class _PortfolioScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
                   if (tab == PortfolioTab.positions)
-                    const PositionsListSection(positions: positions)
+                    PositionsListSection(positions: positions)
                   else
                     OrdersListSection(orders: orders),
                 ]),
@@ -446,6 +450,14 @@ void main() {
     await tester.pump(const Duration(milliseconds: 800));
     await snapKey(tester, key, '$_outDir/portfolio_empty.png');
     await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets('портфель — ошибка загрузки', (tester) async {
+    await _shootScreen(
+      tester,
+      'portfolio_error',
+      const _PortfolioScreen(tab: PortfolioTab.positions, positionsError: true),
+    );
   });
 
   testWidgets('торговый экран — новости', (tester) async {

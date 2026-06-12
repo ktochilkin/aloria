@@ -1,5 +1,6 @@
 import 'package:aloria/core/theme/tokens.dart';
 import 'package:aloria/core/utils/layout_utils.dart';
+import 'package:aloria/core/widgets/state_placeholder.dart';
 import 'package:aloria/features/learn/application/learning_providers.dart';
 import 'package:aloria/features/learn/domain/models.dart';
 import 'package:aloria/features/learn/presentation/widgets/fading_header.dart';
@@ -26,8 +27,15 @@ class LearningSectionPage extends ConsumerWidget {
         body: const Center(child: CircularProgressIndicator()),
       ),
       error: (e, _) => Scaffold(
-        appBar: AppBar(title: const Text('Ошибка')),
-        body: Center(child: Text('Не удалось загрузить раздел: $e')),
+        appBar: AppBar(),
+        body: StatePlaceholder(
+          framed: false,
+          icon: Icons.cloud_off_outlined,
+          title: 'Не получилось загрузить раздел',
+          message: 'Проверь соединение и попробуй ещё раз.',
+          actionLabel: 'Обновить',
+          onAction: () => ref.invalidate(learningSectionsProvider),
+        ),
       ),
       data: (sections) {
         final section = _findSection(sections, sectionId);

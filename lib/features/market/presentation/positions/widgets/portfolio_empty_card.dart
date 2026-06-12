@@ -1,28 +1,21 @@
+import 'package:aloria/core/widgets/state_placeholder.dart';
 import 'package:flutter/material.dart';
 
-/// Пустое состояние секции портфеля (нет позиций / нет заявок) —
-/// скруглённая карточка с поясняющим текстом.
+/// Пустое состояние секции портфеля (нет позиций / нет заявок).
 class PortfolioEmptyCard extends StatelessWidget {
-  const PortfolioEmptyCard({super.key, required this.text});
+  const PortfolioEmptyCard({super.key, required this.text, this.icon});
 
   /// Поясняющий текст.
   final String text;
 
+  /// Иконка состояния (по умолчанию — папка).
+  final IconData? icon;
+
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: scheme.outline),
-      ),
-      child: Text(
-        text,
-        style: Theme.of(context).textTheme.bodyMedium,
-      ),
+    return StatePlaceholder(
+      icon: icon ?? Icons.folder_open_outlined,
+      title: text,
     );
   }
 }

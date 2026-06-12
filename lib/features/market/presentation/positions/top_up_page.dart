@@ -1,4 +1,5 @@
 import 'package:aloria/core/theme/tokens.dart';
+import 'package:aloria/core/widgets/state_placeholder.dart';
 import 'package:aloria/features/learn/data/learning_api_client.dart';
 import 'package:aloria/features/learn/presentation/widgets/server_quiz_block.dart';
 import 'package:flutter/material.dart';
@@ -104,19 +105,22 @@ class TopUpPage extends ConsumerWidget {
               ),
               error: (e, _) => Padding(
                 padding: const EdgeInsets.symmetric(vertical: 24),
-                child: Text(
-                  'Не удалось загрузить тесты: $e',
-                  style: text.bodyMedium?.copyWith(color: scheme.error),
+                child: StatePlaceholder(
+                  icon: Icons.cloud_off_outlined,
+                  title: 'Не получилось загрузить тесты',
+                  message: 'Проверь соединение и попробуй ещё раз.',
+                  actionLabel: 'Обновить',
+                  onAction: () => ref.invalidate(_topUpQuizzesProvider),
                 ),
               ),
               data: (items) => items.isEmpty
-                  ? Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 24),
-                      child: Text(
-                        'Тестов пока нет — добавь их в админке.',
-                        style: text.bodyMedium?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: StatePlaceholder(
+                        icon: Icons.school_outlined,
+                        title: 'Новых тестов пока нет',
+                        message: 'Они появляются по мере прохождения уроков — '
+                            'загляни сюда позже.',
                       ),
                     )
                   : Column(

@@ -1,5 +1,6 @@
 import 'package:aloria/core/theme/tokens.dart';
 import 'package:aloria/core/utils/layout_utils.dart';
+import 'package:aloria/core/widgets/state_placeholder.dart';
 import 'package:aloria/features/learn/application/learning_providers.dart';
 import 'package:aloria/features/learn/application/review_providers.dart';
 import 'package:aloria/features/learn/domain/models.dart';
@@ -62,8 +63,14 @@ class _LearningPageState extends ConsumerState<LearningPage> {
         onNotification: (n) => updateHeaderFade(_headerFade, n),
         child: sectionsAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) =>
-              Center(child: Text('Не удалось загрузить контент: $e')),
+          error: (e, _) => StatePlaceholder(
+            framed: false,
+            icon: Icons.cloud_off_outlined,
+            title: 'Не получилось загрузить обучение',
+            message: 'Проверь соединение и попробуй ещё раз.',
+            actionLabel: 'Обновить',
+            onAction: () => ref.invalidate(learningSectionsProvider),
+          ),
           data: (sections) => _LearningIndexBody(sections: sections),
         ),
       ),
@@ -705,7 +712,7 @@ class _IntroSheet extends ConsumerWidget {
                     padding: EdgeInsets.all(24),
                     child: CircularProgressIndicator(),
                   )),
-              error: (e, _) => Text('Не удалось загрузить вступление: $e'),
+              error: (e, _) => const SizedBox.shrink(),
               data: (intro) => MarkdownBody(
                 data: intro,
                 styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context))

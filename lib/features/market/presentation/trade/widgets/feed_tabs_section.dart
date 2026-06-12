@@ -121,11 +121,11 @@ class FeedTabsSection extends StatelessWidget {
                 child: Center(child: CircularProgressIndicator()),
               ),
             ),
-            error: (e, _) => Card(
+            error: (e, _) => const Card(
               margin: EdgeInsets.zero,
               child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text('Не удалось загрузить новости: $e'),
+                padding: EdgeInsets.all(16),
+                child: Text('Новости сейчас недоступны — попробуй чуть позже.'),
               ),
             ),
           ),

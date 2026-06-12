@@ -1,4 +1,5 @@
 import 'package:aloria/core/utils/layout_utils.dart';
+import 'package:aloria/core/widgets/state_placeholder.dart';
 import 'package:aloria/features/learn/application/learning_providers.dart';
 import 'package:aloria/features/learn/data/learning_api_client.dart';
 import 'package:aloria/features/learn/data/learning_content_cache.dart';
@@ -46,8 +47,15 @@ class LessonPage extends ConsumerWidget {
         body: const Center(child: CircularProgressIndicator()),
       ),
       error: (e, _) => Scaffold(
-        appBar: AppBar(title: const Text('Ошибка')),
-        body: Center(child: Text('Не удалось загрузить урок: $e')),
+        appBar: AppBar(),
+        body: StatePlaceholder(
+          framed: false,
+          icon: Icons.cloud_off_outlined,
+          title: 'Не получилось загрузить урок',
+          message: 'Проверь соединение и попробуй ещё раз.',
+          actionLabel: 'Обновить',
+          onAction: () => ref.invalidate(learningSectionsProvider),
+        ),
       ),
       data: (sections) {
         final pair = _findSectionAndLesson(sections, sectionId, lessonId);

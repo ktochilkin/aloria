@@ -1,3 +1,4 @@
+import 'package:aloria/core/widgets/state_placeholder.dart';
 import 'package:aloria/core/widgets/top_notification.dart';
 import 'package:aloria/features/learning_mode/presentation/order_form_coaching.dart';
 import 'package:aloria/features/market/application/market_news_provider.dart';
@@ -247,7 +248,16 @@ class _TradePageState extends ConsumerState<TradePage> {
             scrollController: _scrollController,
           ),
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(child: Text('Ошибка: $e')),
+          error: (e, _) => StatePlaceholder(
+            framed: false,
+            icon: Icons.cloud_off_outlined,
+            title: 'Не получилось загрузить котировки',
+            message: 'Проверь соединение и попробуй ещё раз.',
+            actionLabel: 'Обновить',
+            onAction: () => ref.invalidate(priceFeedProvider(
+              (symbol: widget.symbol, exchange: widget.exchange),
+            )),
+          ),
         ),
       ),
       ),

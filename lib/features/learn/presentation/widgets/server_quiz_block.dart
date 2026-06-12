@@ -181,7 +181,7 @@ class _ServerQuizBlockState extends ConsumerState<ServerQuizBlock> {
           borderRadius: BorderRadius.circular(18),
           border: Border.all(color: scheme.error.withValues(alpha: 0.5)),
         ),
-        child: Text('Не удалось загрузить тест: $_loadError',
+        child: Text('Тест сейчас недоступен — попробуй чуть позже.',
             style: text.bodyMedium?.copyWith(color: scheme.error)),
       );
     }

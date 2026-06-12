@@ -37,7 +37,7 @@ class ProgressPage extends ConsumerWidget {
           children: [
             progress.when(
               loading: () => const _StatsSkeleton(),
-              error: (e, _) => _ErrorBox(message: 'Не удалось загрузить прогресс: $e'),
+              error: (e, _) => const _ErrorBox(message: 'Не получилось загрузить прогресс — попробуй обновить позже.'),
               data: (p) => _StatsHeader(progress: p),
             ),
             const SizedBox(height: 24),
@@ -54,7 +54,7 @@ class ProgressPage extends ConsumerWidget {
             ),
             achievements.when(
               loading: () => const _AchievementsSkeleton(),
-              error: (e, _) => _ErrorBox(message: 'Не удалось загрузить ачивки: $e'),
+              error: (e, _) => const _ErrorBox(message: 'Не получилось загрузить ачивки — попробуй обновить позже.'),
               data: (list) => _AchievementsGrid(items: list),
             ),
           ],
