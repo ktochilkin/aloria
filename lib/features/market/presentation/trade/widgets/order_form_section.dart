@@ -181,7 +181,12 @@ class OrderFormSection extends StatelessWidget {
             ),
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => FocusScope.of(context).unfocus(),
-            decoration: field('Цена'),
+            decoration: field(
+              'Цена',
+              hint: currentPrice != null
+                  ? 'сейчас ${currentPrice!.toStringAsFixed(2)}'
+                  : null,
+            ),
           ),
         ],
         if (kind == OrderFormKind.stop) ...[
