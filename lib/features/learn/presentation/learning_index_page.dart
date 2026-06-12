@@ -1,3 +1,4 @@
+import 'package:aloria/core/theme/canvas_switch.dart';
 import 'package:aloria/core/theme/tokens.dart';
 import 'package:aloria/core/utils/layout_utils.dart';
 import 'package:aloria/features/learn/application/learning_providers.dart';
@@ -45,7 +46,7 @@ class _LearningPageState extends ConsumerState<LearningPage> {
     ref.watch(lessonBodiesPrewarmProvider);
 
     final learnBg = Theme.of(context).brightness == Brightness.light
-        ? AppColors.learnCanvas
+        ? ref.watch(canvasColorProvider)
         : null;
 
     return Scaffold(

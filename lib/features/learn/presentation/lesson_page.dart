@@ -1,3 +1,4 @@
+import 'package:aloria/core/theme/canvas_switch.dart';
 import 'package:aloria/core/theme/tokens.dart';
 import 'package:aloria/core/utils/layout_utils.dart';
 import 'package:aloria/features/learn/application/learning_providers.dart';
@@ -240,8 +241,9 @@ class _LessonViewState extends ConsumerState<_LessonView> {
     final isRead = entry?.read ?? _markedThisOpen;
     final total = widget.section.lessons.length;
     final hasNext = widget.index + 1 < total;
-    final learnBg =
-        Theme.of(context).brightness == Brightness.light ? AppColors.learnCanvas : null;
+    final learnBg = Theme.of(context).brightness == Brightness.light
+        ? ref.watch(canvasColorProvider)
+        : null;
 
     return Scaffold(
       backgroundColor: learnBg,
@@ -369,13 +371,16 @@ class _LessonViewState extends ConsumerState<_LessonView> {
                       fontStyle: FontStyle.italic,
                     ),
                     blockquoteDecoration: BoxDecoration(
-                      color: widget.section.tint.withValues(alpha: 0.08),
+                      color: scheme.surface,
                       border: Border(
                         left: BorderSide(color: widget.section.tint, width: 3),
+                        top: BorderSide(color: scheme.outline),
+                        right: BorderSide(color: scheme.outline),
+                        bottom: BorderSide(color: scheme.outline),
                       ),
                       borderRadius: const BorderRadius.only(
-                        topRight: Radius.circular(8),
-                        bottomRight: Radius.circular(8),
+                        topRight: Radius.circular(12),
+                        bottomRight: Radius.circular(12),
                       ),
                     ),
                     listBullet: text.bodyMedium,
@@ -753,11 +758,11 @@ class _DefinitionBlock extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: tint.withValues(alpha: 0.45)),
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: scheme.outline),
       ),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

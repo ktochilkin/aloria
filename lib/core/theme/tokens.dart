@@ -17,9 +17,10 @@ class AppColors {
   /// Данные/рынок остаются на чистом белом — это осознанное разделение
   /// «поверхность для чтения / поверхность данных», а не разнобой.
   static const learnCanvas = Color(0xFFF3F6FE);
-  static const success = Color(0xFF05B169);
+  // Семантика: мягкие, менее насыщенные зелёный/красный (не «кричащие»).
+  static const success = Color(0xFF37B38A);
   static const warning = Color(0xFFF5C24D);
-  static const error = Color(0xFFCF202F);
+  static const error = Color(0xFFF16B82);
 
   // Совместимость со старым кодом, который ссылается напрямую.
   // Эти значения совпадают с light-палитрой и больше не должны использоваться
