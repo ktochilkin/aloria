@@ -45,6 +45,7 @@ class _TradePageState extends ConsumerState<TradePage> {
   final _stopLimitController = TextEditingController();
   late final ScrollController _scrollController;
   OrderFormKind _kind = OrderFormKind.market;
+  StopCondition _stopCondition = StopCondition.lessOrEqual;
   bool _submitting = false;
   bool _showAppBarPrice = false;
 
@@ -136,23 +137,11 @@ class _TradePageState extends ConsumerState<TradePage> {
           }
           return;
         }
-        // Условие срабатывания выводим из положения цены: триггер выше
-        // текущей цены — ждём роста, ниже — ждём падения.
-        final current = ref
-            .read(priceFeedProvider(
-              (symbol: widget.symbol, exchange: widget.exchange),
-            ))
-            .valueOrNull
-            ?.latest
-            ?.price;
-        final condition = (current != null && trigger < current)
-            ? StopCondition.lessOrEqual
-            : StopCondition.moreOrEqual;
         await repo.placeStopOrder(
           symbol: widget.symbol,
           exchange: widget.exchange,
           side: side,
-          condition: condition,
+          condition: _stopCondition,
           triggerPrice: trigger,
           quantity: qty.round(),
           limitPrice: double.tryParse(_stopLimitController.text),
@@ -290,6 +279,9 @@ class _TradePageState extends ConsumerState<TradePage> {
             priceController: _priceController,
             triggerController: _triggerController,
             stopLimitController: _stopLimitController,
+            stopCondition: _stopCondition,
+            onStopConditionChanged: (value) =>
+                setState(() => _stopCondition = value),
             onSubmit: _submit,
             submitting: _submitting,
             onSelectPrice: _selectPriceFromOrderBook,

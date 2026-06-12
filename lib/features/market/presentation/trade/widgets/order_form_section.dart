@@ -1,5 +1,6 @@
 import 'package:aloria/core/theme/tokens.dart';
 import 'package:aloria/features/learning_mode/presentation/order_form_coaching.dart';
+import 'package:aloria/features/market/domain/stop_order.dart';
 import 'package:aloria/features/market/domain/trade_order.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -17,8 +18,11 @@ class OrderFormSection extends StatelessWidget {
     required this.priceController,
     required this.triggerController,
     required this.stopLimitController,
+    required this.stopCondition,
+    required this.onStopConditionChanged,
     required this.onSubmit,
     required this.submitting,
+    this.currentPrice,
   });
 
   /// Выбранный вид заявки.
@@ -39,11 +43,53 @@ class OrderFormSection extends StatelessWidget {
   /// Контроллер лимитной цены стоп-заявки (пусто — стоп-маркет).
   final TextEditingController stopLimitController;
 
+  /// Условие срабатывания стоп-заявки (выбирается явно).
+  final StopCondition stopCondition;
+
+  /// Смена условия срабатывания.
+  final ValueChanged<StopCondition> onStopConditionChanged;
+
+  /// Текущая цена инструмента — для подсказки у поля срабатывания.
+  final double? currentPrice;
+
   /// Отправка заявки указанной стороной.
   final ValueChanged<OrderSide> onSubmit;
 
   /// Идёт отправка — кнопки заблокированы.
   final bool submitting;
+
+  Widget _conditionChip(
+    BuildContext context, {
+    required String label,
+    required IconData icon,
+    required StopCondition value,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+    final selected = stopCondition == value;
+    final down = value == StopCondition.lessOrEqual;
+    final accent = down ? AppColors.error : AppColors.success;
+    return ChoiceChip(
+      avatar: Icon(
+        icon,
+        size: 16,
+        color: selected ? accent : scheme.onSurfaceVariant,
+      ),
+      label: Text(label),
+      selected: selected,
+      showCheckmark: false,
+      selectedColor: accent.withValues(alpha: 0.14),
+      backgroundColor: scheme.surfaceContainerHighest,
+      labelStyle: text.bodyMedium?.copyWith(
+        color: selected ? accent : scheme.onSurface,
+        fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+      ),
+      side: BorderSide(
+        color: selected ? accent : scheme.outline.withValues(alpha: 0.6),
+      ),
+      onSelected: (_) => onStopConditionChanged(value),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -139,6 +185,30 @@ class OrderFormSection extends StatelessWidget {
           ),
         ],
         if (kind == OrderFormKind.stop) ...[
+          const SizedBox(height: 14),
+          Text(
+            'Сработает, когда цена…',
+            style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _conditionChip(
+                context,
+                label: 'будет меньше, чем',
+                icon: Icons.south,
+                value: StopCondition.lessOrEqual,
+              ),
+              _conditionChip(
+                context,
+                label: 'будет больше, чем',
+                icon: Icons.north,
+                value: StopCondition.moreOrEqual,
+              ),
+            ],
+          ),
           const SizedBox(height: 12),
           TextField(
             controller: triggerController,
@@ -147,7 +217,12 @@ class OrderFormSection extends StatelessWidget {
             ),
             textInputAction: TextInputAction.next,
             onSubmitted: (_) => FocusScope.of(context).nextFocus(),
-            decoration: field('Цена срабатывания'),
+            decoration: field(
+              'Цена срабатывания',
+              hint: currentPrice != null
+                  ? 'сейчас ${currentPrice!.toStringAsFixed(2)}'
+                  : null,
+            ),
           ),
           const SizedBox(height: 12),
           TextField(

@@ -2,6 +2,7 @@ import 'package:aloria/core/utils/layout_utils.dart';
 import 'package:aloria/features/market/application/price_feed_notifier.dart';
 import 'package:aloria/features/market/domain/market_news.dart';
 import 'package:aloria/features/market/domain/order_book.dart';
+import 'package:aloria/features/market/domain/stop_order.dart';
 import 'package:aloria/features/market/domain/trade_order.dart';
 import 'package:aloria/features/market/presentation/trade/trade_providers.dart';
 import 'package:aloria/features/market/presentation/trade/widgets/candle_chart.dart';
@@ -29,6 +30,8 @@ class TradeBody extends StatelessWidget {
     required this.priceController,
     required this.triggerController,
     required this.stopLimitController,
+    required this.stopCondition,
+    required this.onStopConditionChanged,
     required this.onSubmit,
     required this.submitting,
     required this.onSelectPrice,
@@ -73,6 +76,12 @@ class TradeBody extends StatelessWidget {
 
   /// Контроллер лимитной цены стоп-заявки.
   final TextEditingController stopLimitController;
+
+  /// Условие срабатывания стоп-заявки.
+  final StopCondition stopCondition;
+
+  /// Смена условия срабатывания.
+  final ValueChanged<StopCondition> onStopConditionChanged;
 
   /// Отправка заявки.
   final ValueChanged<OrderSide> onSubmit;
@@ -136,6 +145,9 @@ class TradeBody extends StatelessWidget {
                 priceController: priceController,
                 triggerController: triggerController,
                 stopLimitController: stopLimitController,
+                stopCondition: stopCondition,
+                onStopConditionChanged: onStopConditionChanged,
+                currentPrice: latest?.price,
                 onSubmit: onSubmit,
                 submitting: submitting,
               ),
