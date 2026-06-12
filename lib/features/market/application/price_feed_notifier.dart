@@ -62,7 +62,7 @@ class PriceFeedState {
     }
 
     // Ограничиваем до 10 последних свечей
-    const maxCandles = 10;
+    const maxCandles = 40; // буфер потока; график показывает последние 20
     final trimmed = updated.length > maxCandles
         ? updated.sublist(updated.length - maxCandles)
         : updated;
@@ -103,6 +103,9 @@ class PriceFeedNotifier
     final history = await repo.fetchHistoryPrices(
       symbol: params.symbol,
       exchange: params.exchange,
+      // Трое суток часовых баров: с запасом покрывает 20 свечей графика
+      // даже через ночь и выходные.
+      lookback: const Duration(hours: 72),
     );
     if (history.isNotEmpty) {
       // Фильтруем только данные текущего инструмента перед merge
@@ -124,7 +127,7 @@ class PriceFeedNotifier
       );
 
       // Обрезаем свечи до 10 последних сразу при загрузке
-      const maxCandles = 10;
+      const maxCandles = 40; // буфер потока; график показывает последние 20
       final trimmedCandles = history.length > maxCandles
           ? history.sublist(history.length - maxCandles)
           : history;
@@ -160,7 +163,7 @@ class PriceFeedNotifier
     // from = время самой молодой (последней) свечи, чтобы обновлять активную свечу
     final fromTime = current.candles.isNotEmpty
         ? current.candles.last.ts
-        : DateTime.now().subtract(const Duration(hours: 10));
+        : DateTime.now().subtract(const Duration(hours: 72));
 
     _candleSubscription = repo
         .watchCandles(
