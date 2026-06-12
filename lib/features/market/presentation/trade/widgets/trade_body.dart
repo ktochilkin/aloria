@@ -23,10 +23,12 @@ class TradeBody extends StatelessWidget {
     required this.news,
     required this.feedTab,
     required this.onFeedTabChanged,
-    required this.isLimit,
-    required this.onToggleType,
+    required this.kind,
+    required this.onKindChanged,
     required this.qtyController,
     required this.priceController,
+    required this.triggerController,
+    required this.stopLimitController,
     required this.onSubmit,
     required this.submitting,
     required this.onSelectPrice,
@@ -54,17 +56,23 @@ class TradeBody extends StatelessWidget {
   /// Колбэк выбора вкладки «Пульса рынка».
   final ValueChanged<FeedTab> onFeedTabChanged;
 
-  /// Выбран лимитный тип заявки.
-  final bool isLimit;
+  /// Выбранный вид заявки.
+  final OrderFormKind kind;
 
-  /// Переключение типа заявки.
-  final ValueChanged<bool> onToggleType;
+  /// Смена вида заявки.
+  final ValueChanged<OrderFormKind> onKindChanged;
 
   /// Контроллер поля количества.
   final TextEditingController qtyController;
 
-  /// Контроллер поля цены.
+  /// Контроллер поля цены (лимитная).
   final TextEditingController priceController;
+
+  /// Контроллер цены срабатывания (стоп).
+  final TextEditingController triggerController;
+
+  /// Контроллер лимитной цены стоп-заявки.
+  final TextEditingController stopLimitController;
 
   /// Отправка заявки.
   final ValueChanged<OrderSide> onSubmit;
@@ -122,10 +130,12 @@ class TradeBody extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               OrderFormSection(
-                isLimit: isLimit,
-                onToggleType: onToggleType,
+                kind: kind,
+                onKindChanged: onKindChanged,
                 qtyController: qtyController,
                 priceController: priceController,
+                triggerController: triggerController,
+                stopLimitController: stopLimitController,
                 onSubmit: onSubmit,
                 submitting: submitting,
               ),

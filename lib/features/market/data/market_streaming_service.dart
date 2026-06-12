@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:aloria/core/networking/realtime_client.dart';
 import 'package:aloria/features/market/data/market_cache.dart';
 import 'package:aloria/features/market/data/market_http_service.dart';
@@ -9,7 +8,9 @@ import 'package:aloria/features/market/domain/market_price.dart';
 import 'package:aloria/features/market/domain/order_book.dart';
 import 'package:aloria/features/market/domain/portfolio_order.dart';
 import 'package:aloria/features/market/domain/portfolio_summary.dart';
+import 'package:aloria/features/market/domain/portfolio_trade.dart';
 import 'package:aloria/features/market/domain/position.dart';
+import 'package:aloria/features/market/domain/stop_order.dart';
 import 'package:aloria/features/market/domain/trade_order.dart';
 
 class MarketStreamingService {
@@ -37,6 +38,8 @@ class MarketStreamingService {
   final _positionsSubs = <String, _SharedSubscription<List<Position>>>{};
   final _summarySubs = <String, _SharedSubscription<PortfolioSummary>>{};
   final _ordersSubs = <String, _SharedSubscription<List<ClientOrder>>>{};
+  final _tradesSubs = <String, _SharedSubscription<List<PortfolioTrade>>>{};
+  final _stopOrdersSubs = <String, _SharedSubscription<List<StopOrder>>>{};
 
   Stream<MarketPrice> watchPrice({
     required String symbol,
@@ -657,6 +660,229 @@ class MarketStreamingService {
     final key = '${position.exchange}:${position.symbol}'.toUpperCase();
     latest[key] = position;
     if (!controller.isClosed) controller.add(latest.values.toList());
+  }
+
+  /// Сделки по портфелю: `TradesGetAndSubscribeV2`. Снапшот истории +
+  /// живые сделки; устройство идентично [watchOrders].
+  Stream<List<PortfolioTrade>> watchTrades({
+    String portfolio = TradeOrder.defaultPortfolio,
+  }) async* {
+    final key = 'trades:$portfolio';
+    final existing = _tradesSubs[key];
+    if (existing != null) {
+      existing.listeners++;
+      yield* existing.controller.stream;
+      return;
+    }
+
+    final controller = StreamController<List<PortfolioTrade>>.broadcast();
+    final latest = <String, PortfolioTrade>{};
+    final subState = _SharedSubscription<List<PortfolioTrade>>(
+      controller: controller,
+      listeners: 1,
+    );
+    _tradesSubs[key] = subState;
+
+    Future<void> subscribe() async {
+      if (subState.disposed) return;
+      final token = await _tokenProvider.accessToken(forceRefresh: true);
+      if (token == null) {
+        await _handleReconnect(subscribe, subState.disposed, delayMs: 2000);
+        return;
+      }
+
+      await _portfolioRealtime.ensureConnected();
+      final subId =
+          'trades-$portfolio-${DateTime.now().millisecondsSinceEpoch}';
+      subState.subId = subId;
+      _portfolioRealtime.send({
+        'opcode': 'TradesGetAndSubscribeV2',
+        'token': token,
+        'guid': subId,
+        'portfolio': portfolio,
+        'exchange': 'TEREX',
+        'format': 'Simple',
+        'skipHistory': false,
+      });
+
+      subState.sub?.cancel();
+      subState.sub = _portfolioRealtime.stream.listen(
+        (event) async {
+          if (event['__ws_closed'] == true) {
+            await _handleReconnect(subscribe, subState.disposed);
+            return;
+          }
+          final guid = event['guid'] as String?;
+          if (guid != null && guid != subId) return;
+
+          final data = event['data'];
+          if (data is List) {
+            for (final e in data.whereType<Map<String, dynamic>>()) {
+              _emitTrade(e, latest, controller);
+            }
+            return;
+          }
+          if (data is Map<String, dynamic>) {
+            _emitTrade(data, latest, controller);
+          }
+        },
+        onError: (Object error, StackTrace stack) async {
+          if (!controller.isClosed) controller.addError(error, stack);
+          await _handleReconnect(subscribe, subState.disposed);
+        },
+        onDone: () async {
+          await _handleReconnect(subscribe, subState.disposed);
+        },
+      );
+    }
+
+    controller.onCancel = () async {
+      subState.listeners = 0;
+      subState.disposed = true;
+      if (subState.subId != null) {
+        _portfolioRealtime.send({
+          'opcode': 'Unsubscribe',
+          'guid': subState.subId,
+        });
+      }
+      await subState.sub?.cancel();
+      subState.sub = null;
+      await controller.close();
+      _tradesSubs.remove(key);
+    };
+
+    await subscribe();
+    yield* controller.stream;
+  }
+
+  /// Условные (стоп) заявки: `StopOrdersGetAndSubscribeV2`.
+  Stream<List<StopOrder>> watchStopOrders({
+    String portfolio = TradeOrder.defaultPortfolio,
+  }) async* {
+    final key = 'stoporders:$portfolio';
+    final existing = _stopOrdersSubs[key];
+    if (existing != null) {
+      existing.listeners++;
+      yield* existing.controller.stream;
+      return;
+    }
+
+    final controller = StreamController<List<StopOrder>>.broadcast();
+    final latest = <String, StopOrder>{};
+    final subState = _SharedSubscription<List<StopOrder>>(
+      controller: controller,
+      listeners: 1,
+    );
+    _stopOrdersSubs[key] = subState;
+
+    Future<void> subscribe() async {
+      if (subState.disposed) return;
+      final token = await _tokenProvider.accessToken(forceRefresh: true);
+      if (token == null) {
+        await _handleReconnect(subscribe, subState.disposed, delayMs: 2000);
+        return;
+      }
+
+      await _portfolioRealtime.ensureConnected();
+      final subId =
+          'stoporders-$portfolio-${DateTime.now().millisecondsSinceEpoch}';
+      subState.subId = subId;
+      _portfolioRealtime.send({
+        'opcode': 'StopOrdersGetAndSubscribeV2',
+        'token': token,
+        'guid': subId,
+        'portfolio': portfolio,
+        'exchange': 'TEREX',
+        'format': 'Simple',
+        'skipHistory': false,
+      });
+
+      subState.sub?.cancel();
+      subState.sub = _portfolioRealtime.stream.listen(
+        (event) async {
+          if (event['__ws_closed'] == true) {
+            await _handleReconnect(subscribe, subState.disposed);
+            return;
+          }
+          final guid = event['guid'] as String?;
+          if (guid != null && guid != subId) return;
+
+          final data = event['data'];
+          if (data is List) {
+            for (final e in data.whereType<Map<String, dynamic>>()) {
+              _emitStopOrder(e, latest, controller);
+            }
+            return;
+          }
+          if (data is Map<String, dynamic>) {
+            _emitStopOrder(data, latest, controller);
+          }
+        },
+        onError: (Object error, StackTrace stack) async {
+          if (!controller.isClosed) controller.addError(error, stack);
+          await _handleReconnect(subscribe, subState.disposed);
+        },
+        onDone: () async {
+          await _handleReconnect(subscribe, subState.disposed);
+        },
+      );
+    }
+
+    controller.onCancel = () async {
+      subState.listeners = 0;
+      subState.disposed = true;
+      if (subState.subId != null) {
+        _portfolioRealtime.send({
+          'opcode': 'Unsubscribe',
+          'guid': subState.subId,
+        });
+      }
+      await subState.sub?.cancel();
+      subState.sub = null;
+      await controller.close();
+      _stopOrdersSubs.remove(key);
+    };
+
+    await subscribe();
+    yield* controller.stream;
+  }
+
+  void _emitTrade(
+    Map<String, dynamic> raw,
+    Map<String, PortfolioTrade> latest,
+    StreamController<List<PortfolioTrade>> controller,
+  ) {
+    final trade = PortfolioTrade.fromMap(raw);
+    if (trade == null) return;
+    latest[trade.id] = trade;
+    final sorted = latest.values.toList()
+      ..sort((a, b) {
+        final aTime = a.date;
+        final bTime = b.date;
+        if (aTime != null && bTime != null) return bTime.compareTo(aTime);
+        return b.id.compareTo(a.id);
+      });
+    if (!controller.isClosed) controller.add(sorted);
+  }
+
+  void _emitStopOrder(
+    Map<String, dynamic> raw,
+    Map<String, StopOrder> latest,
+    StreamController<List<StopOrder>> controller,
+  ) {
+    final order = StopOrder.fromMap(raw);
+    if (order == null) return;
+    latest[order.id] = order;
+    final sorted = latest.values.toList()
+      ..sort((a, b) {
+        final activeCmp = (b.isActive ? 1 : 0) - (a.isActive ? 1 : 0);
+        if (activeCmp != 0) return activeCmp;
+        final aTime = a.transTime;
+        final bTime = b.transTime;
+        if (aTime != null && bTime != null) return bTime.compareTo(aTime);
+        return b.id.compareTo(a.id);
+      });
+    if (!controller.isClosed) controller.add(sorted);
   }
 
   void _emitOrder(

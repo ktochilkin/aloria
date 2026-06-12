@@ -11,13 +11,16 @@ import 'package:aloria/features/market/domain/market_price.dart';
 import 'package:aloria/features/market/domain/order_book.dart';
 import 'package:aloria/features/market/domain/portfolio_order.dart';
 import 'package:aloria/features/market/domain/portfolio_summary.dart';
+import 'package:aloria/features/market/domain/portfolio_trade.dart';
 import 'package:aloria/features/market/domain/position.dart';
+import 'package:aloria/features/market/domain/stop_order.dart';
 import 'package:aloria/features/market/domain/trade_order.dart';
 import 'package:aloria/features/market/presentation/positions/widgets/orders_list_section.dart';
 import 'package:aloria/features/market/presentation/positions/widgets/portfolio_hero.dart';
 import 'package:aloria/features/market/presentation/positions/widgets/portfolio_tabs_header.dart';
 import 'package:aloria/features/market/presentation/positions/widgets/portfolio_title_bar.dart';
 import 'package:aloria/features/market/presentation/positions/widgets/positions_list_section.dart';
+import 'package:aloria/features/market/presentation/positions/widgets/trades_list_section.dart';
 import 'package:aloria/features/market/presentation/trade_page.dart';
 import 'package:aloria/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -154,6 +157,65 @@ final _orders = <ClientOrder>[
     transTime: _ts.subtract(const Duration(hours: 3)),
     qty: 5,
     price: 4050,
+  ),
+];
+
+final _trades = <PortfolioTrade>[
+  PortfolioTrade(
+    id: '7001',
+    symbol: 'SBER',
+    exchange: 'TEREX',
+    side: OrderSide.buy,
+    existing: true,
+    orderId: '41003',
+    date: _ts.subtract(const Duration(minutes: 25)),
+    qty: 10,
+    qtyUnits: 100,
+    price: 298.10,
+    volume: 29810,
+  ),
+  PortfolioTrade(
+    id: '7000',
+    symbol: 'GAZP',
+    exchange: 'TEREX',
+    side: OrderSide.sell,
+    existing: true,
+    orderId: '41001',
+    date: _ts.subtract(const Duration(hours: 3)),
+    qty: 8,
+    qtyUnits: 80,
+    price: 124.85,
+    volume: 9988,
+  ),
+  PortfolioTrade(
+    id: '6999',
+    symbol: 'LKOH',
+    exchange: 'TEREX',
+    side: OrderSide.buy,
+    existing: true,
+    date: _ts.subtract(const Duration(days: 1, hours: 2)),
+    qty: 1,
+    qtyUnits: 1,
+    price: 7250,
+    volume: 7250,
+  ),
+];
+
+final _stopOrders = <StopOrder>[
+  StopOrder(
+    id: '9001',
+    symbol: 'SBER',
+    portfolio: 'T00013',
+    exchange: 'TEREX',
+    side: OrderSide.sell,
+    condition: StopCondition.lessOrEqual,
+    status: OrderStatus.working,
+    isStopLimit: true,
+    existing: true,
+    stopPrice: 285.00,
+    price: 284.50,
+    qty: 10,
+    transTime: _ts.subtract(const Duration(hours: 1)),
   ),
 ];
 
@@ -315,6 +377,8 @@ class _PortfolioScreen extends ConsumerWidget {
             Exception('boom'), StackTrace.empty)
         : const AsyncValue.data(_positions);
     final orders = AsyncValue.data(_orders);
+    final trades = AsyncValue.data(_trades);
+    final stopOrders = AsyncValue.data(_stopOrders);
     const summary = AsyncValue.data(_summary);
 
     return Scaffold(
@@ -337,14 +401,17 @@ class _PortfolioScreen extends ConsumerWidget {
                   PortfolioTabsHeader(
                     selected: tab,
                     positionsCount: 5,
-                    ordersCount: 2,
+                    ordersCount: 3,
+                    tradesCount: 3,
                     onSelected: (_) {},
                   ),
                   const SizedBox(height: 12),
                   if (tab == PortfolioTab.positions)
                     PositionsListSection(positions: positions)
+                  else if (tab == PortfolioTab.orders)
+                    OrdersListSection(orders: orders, stopOrders: stopOrders)
                   else
-                    OrdersListSection(orders: orders),
+                    TradesListSection(trades: trades),
                 ]),
               ),
             ),
@@ -434,6 +501,7 @@ void main() {
                     selected: PortfolioTab.positions,
                     positionsCount: 0,
                     ordersCount: 0,
+                    tradesCount: 0,
                     onSelected: (_) {},
                   ),
                   const SizedBox(height: 12),
@@ -450,6 +518,32 @@ void main() {
     await tester.pump(const Duration(milliseconds: 800));
     await snapKey(tester, key, '$_outDir/portfolio_empty.png');
     await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets('портфель — сделки', (tester) async {
+    await _shootScreen(
+      tester,
+      'portfolio_trades',
+      const _PortfolioScreen(tab: PortfolioTab.trades),
+    );
+  });
+
+  testWidgets('торговый экран — стоп-форма', (tester) async {
+    await _shootScreen(
+      tester,
+      'trade_stop_form',
+      const TradePage(symbol: 'SBER', shortName: 'Сбербанк'),
+      overrides: _marketOverrides(),
+      height: 1700,
+      act: (tester) async {
+        await tester.scrollUntilVisible(
+          find.text('Стоп'),
+          300,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await tester.tap(find.text('Стоп'), warnIfMissed: false);
+      },
+    );
   });
 
   testWidgets('портфель — ошибка загрузки', (tester) async {

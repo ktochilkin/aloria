@@ -4,30 +4,40 @@ import 'package:aloria/features/market/domain/trade_order.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-/// Блок «Новая заявка»: выбор типа (рыночная/лимитная), количество,
-/// цена для лимитной и кнопки «Купить» / «Продать».
+/// Блок «Новая заявка»: выбор вида (рыночная/лимитная/стоп), количество,
+/// цены и кнопки «Купить» / «Продать». Для стоп-заявки — цена срабатывания
+/// и необязательная лимитная цена (пустая = после срабатывания уйдёт
+/// рыночная заявка).
 class OrderFormSection extends StatelessWidget {
   const OrderFormSection({
     super.key,
-    required this.isLimit,
-    required this.onToggleType,
+    required this.kind,
+    required this.onKindChanged,
     required this.qtyController,
     required this.priceController,
+    required this.triggerController,
+    required this.stopLimitController,
     required this.onSubmit,
     required this.submitting,
   });
 
-  /// Выбран лимитный тип заявки.
-  final bool isLimit;
+  /// Выбранный вид заявки.
+  final OrderFormKind kind;
 
-  /// Переключение типа заявки (true — лимитная).
-  final ValueChanged<bool> onToggleType;
+  /// Смена вида заявки.
+  final ValueChanged<OrderFormKind> onKindChanged;
 
   /// Контроллер поля количества.
   final TextEditingController qtyController;
 
-  /// Контроллер поля цены (для лимитной).
+  /// Контроллер цены лимитной заявки.
   final TextEditingController priceController;
+
+  /// Контроллер цены срабатывания стоп-заявки.
+  final TextEditingController triggerController;
+
+  /// Контроллер лимитной цены стоп-заявки (пусто — стоп-маркет).
+  final TextEditingController stopLimitController;
 
   /// Отправка заявки указанной стороной.
   final ValueChanged<OrderSide> onSubmit;
@@ -39,6 +49,32 @@ class OrderFormSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
+
+    Widget kindChip(String label, OrderFormKind value) {
+      final selected = kind == value;
+      return ChoiceChip(
+        label: Text(label),
+        selected: selected,
+        selectedColor: scheme.primary.withValues(alpha: 0.18),
+        backgroundColor: scheme.surfaceContainerHighest,
+        labelStyle: text.bodyMedium?.copyWith(
+          color: selected ? scheme.primary : scheme.onSurface,
+        ),
+        side: BorderSide(
+          color: scheme.outline.withValues(alpha: 0.6),
+        ),
+        onSelected: (_) => onKindChanged(value),
+      );
+    }
+
+    InputDecoration field(String label, {String? hint}) => InputDecoration(
+          labelText: label,
+          hintText: hint,
+          border: const OutlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(12)),
+          ),
+        );
+
     // Выравнивание повторяет родительскую колонку TradeBody (start),
     // чтобы вынос секции не менял раскладку.
     return Column(
@@ -55,67 +91,42 @@ class OrderFormSection extends StatelessWidget {
               icon: const Icon(Icons.help_outline, size: 20),
               tooltip: 'Что такое заявка?',
               onPressed: () =>
-                  context.push('/learn/trading-basics/orderbook'),
+                  context.push('/learn/first-trade/order_basics'),
             ),
           ],
         ),
         const SizedBox(height: 8),
-        Row(
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
           children: [
-            ChoiceChip(
-              label: const Text('Рыночная'),
-              selected: !isLimit,
-              selectedColor: scheme.primary.withValues(alpha: 0.18),
-              backgroundColor: scheme.surfaceContainerHighest,
-              labelStyle: text.bodyMedium?.copyWith(
-                color: !isLimit ? scheme.primary : scheme.onSurface,
-              ),
-              side: BorderSide(
-                color: scheme.outline.withValues(alpha: 0.6),
-              ),
-              onSelected: (v) => onToggleType(false),
-            ),
-            const SizedBox(width: 8),
-            ChoiceChip(
-              label: const Text('Лимитная'),
-              selected: isLimit,
-              selectedColor: scheme.primary.withValues(alpha: 0.18),
-              backgroundColor: scheme.surfaceContainerHighest,
-              labelStyle: text.bodyMedium?.copyWith(
-                color: isLimit ? scheme.primary : scheme.onSurface,
-              ),
-              side: BorderSide(
-                color: scheme.outline.withValues(alpha: 0.6),
-              ),
-              onSelected: (v) => onToggleType(true),
-            ),
+            kindChip('Рыночная', OrderFormKind.market),
+            kindChip('Лимитная', OrderFormKind.limit),
+            kindChip('Стоп', OrderFormKind.stop),
           ],
         ),
-        OrderTypeHint(isLimit: isLimit),
+        OrderTypeHint(kind: kind),
         const SizedBox(height: 12),
         TextField(
           controller: qtyController,
           keyboardType: const TextInputType.numberWithOptions(
             decimal: true,
           ),
-          textInputAction: TextInputAction.next,
+          textInputAction: kind == OrderFormKind.market
+              ? TextInputAction.done
+              : TextInputAction.next,
           onSubmitted: (_) {
-            if (isLimit) {
-              FocusScope.of(context).nextFocus();
-            } else {
+            if (kind == OrderFormKind.market) {
               FocusScope.of(context).unfocus();
+            } else {
+              FocusScope.of(context).nextFocus();
             }
           },
-          decoration: const InputDecoration(
-            labelText: 'Количество',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.all(Radius.circular(12)),
-            ),
-          ),
+          decoration: field('Количество'),
         ),
         // Поле цены имеет смысл только для лимитной заявки. Для рыночной
         // прячем его целиком, чтобы не путать неактивным полем.
-        if (isLimit) ...[
+        if (kind == OrderFormKind.limit) ...[
           const SizedBox(height: 12),
           TextField(
             controller: priceController,
@@ -124,11 +135,31 @@ class OrderFormSection extends StatelessWidget {
             ),
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => FocusScope.of(context).unfocus(),
-            decoration: const InputDecoration(
-              labelText: 'Цена',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.all(Radius.circular(12)),
-              ),
+            decoration: field('Цена'),
+          ),
+        ],
+        if (kind == OrderFormKind.stop) ...[
+          const SizedBox(height: 12),
+          TextField(
+            controller: triggerController,
+            keyboardType: const TextInputType.numberWithOptions(
+              decimal: true,
+            ),
+            textInputAction: TextInputAction.next,
+            onSubmitted: (_) => FocusScope.of(context).nextFocus(),
+            decoration: field('Цена срабатывания'),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: stopLimitController,
+            keyboardType: const TextInputType.numberWithOptions(
+              decimal: true,
+            ),
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => FocusScope.of(context).unfocus(),
+            decoration: field(
+              'Лимитная цена (необязательно)',
+              hint: 'пусто — исполнится по рынку',
             ),
           ),
         ],

@@ -1,5 +1,8 @@
 enum OrderSide { buy, sell }
 
+/// Вид заявки в форме: рыночная, лимитная или условная (стоп).
+enum OrderFormKind { market, limit, stop }
+
 enum OrderType { market, limit }
 
 class TradeOrder {

@@ -10,7 +10,9 @@ import 'package:aloria/features/market/domain/market_price.dart';
 import 'package:aloria/features/market/domain/order_book.dart';
 import 'package:aloria/features/market/domain/portfolio_order.dart';
 import 'package:aloria/features/market/domain/portfolio_summary.dart';
+import 'package:aloria/features/market/domain/portfolio_trade.dart';
 import 'package:aloria/features/market/domain/position.dart';
+import 'package:aloria/features/market/domain/stop_order.dart';
 import 'package:aloria/features/market/domain/trade_order.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -103,6 +105,37 @@ class MarketDataRepository {
       _cache.loadHistory(symbol);
 
   Future<void> placeOrder(TradeOrder order) => _http.placeOrder(order);
+
+  /// Создать условную (стоп) заявку.
+  Future<void> placeStopOrder({
+    required String symbol,
+    required String exchange,
+    required OrderSide side,
+    required StopCondition condition,
+    required double triggerPrice,
+    required int quantity,
+    String portfolio = TradeOrder.defaultPortfolio,
+    double? limitPrice,
+  }) => _http.placeStopOrder(
+        symbol: symbol,
+        exchange: exchange,
+        side: side,
+        condition: condition,
+        triggerPrice: triggerPrice,
+        quantity: quantity,
+        portfolio: portfolio,
+        limitPrice: limitPrice,
+      );
+
+  /// Сделки по портфелю (поток).
+  Stream<List<PortfolioTrade>> watchTrades({
+    String portfolio = TradeOrder.defaultPortfolio,
+  }) => _streaming.watchTrades(portfolio: portfolio);
+
+  /// Условные (стоп) заявки по портфелю (поток).
+  Stream<List<StopOrder>> watchStopOrders({
+    String portfolio = TradeOrder.defaultPortfolio,
+  }) => _streaming.watchStopOrders(portfolio: portfolio);
 
   Future<void> cancelOrder({
     required String orderId,

@@ -6,15 +6,20 @@ import 'package:aloria/features/learning_mode/presentation/explainable.dart';
 import 'package:aloria/features/market/application/orders_provider.dart';
 import 'package:aloria/features/market/application/portfolio_summary_provider.dart';
 import 'package:aloria/features/market/application/positions_provider.dart';
+import 'package:aloria/features/market/application/stop_orders_provider.dart';
+import 'package:aloria/features/market/application/trades_provider.dart';
 import 'package:aloria/features/market/domain/portfolio_order.dart';
 import 'package:aloria/features/market/domain/portfolio_summary.dart';
+import 'package:aloria/features/market/domain/portfolio_trade.dart';
 import 'package:aloria/features/market/domain/position.dart';
+import 'package:aloria/features/market/domain/stop_order.dart';
 import 'package:aloria/features/market/presentation/positions/top_up_page.dart';
 import 'package:aloria/features/market/presentation/positions/widgets/orders_list_section.dart';
 import 'package:aloria/features/market/presentation/positions/widgets/portfolio_hero.dart';
 import 'package:aloria/features/market/presentation/positions/widgets/portfolio_tabs_header.dart';
 import 'package:aloria/features/market/presentation/positions/widgets/portfolio_title_bar.dart';
 import 'package:aloria/features/market/presentation/positions/widgets/positions_list_section.dart';
+import 'package:aloria/features/market/presentation/positions/widgets/trades_list_section.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -28,6 +33,8 @@ class PositionsPage extends ConsumerWidget {
     final positions = ref.watch(positionsProvider);
     final summary = ref.watch(portfolioSummaryProvider);
     final orders = ref.watch(ordersProvider);
+    final trades = ref.watch(tradesProvider);
+    final stopOrders = ref.watch(stopOrdersProvider);
     final auth = ref.read(authControllerProvider.notifier);
 
     // Как только видим хотя бы одну ненулевую позицию — отправляем
@@ -51,6 +58,8 @@ class PositionsPage extends ConsumerWidget {
           positions: positions,
           summary: summary,
           orders: orders,
+          trades: trades,
+          stopOrders: stopOrders,
           onLogout: auth.logout,
         ),
       ),
@@ -63,11 +72,15 @@ class _PositionsBlock extends ConsumerStatefulWidget {
     required this.positions,
     required this.summary,
     required this.orders,
+    required this.trades,
+    required this.stopOrders,
     required this.onLogout,
   });
   final AsyncValue<List<Position>> positions;
   final AsyncValue<PortfolioSummary> summary;
   final AsyncValue<List<ClientOrder>> orders;
+  final AsyncValue<List<PortfolioTrade>> trades;
+  final AsyncValue<List<StopOrder>> stopOrders;
   final Future<void> Function() onLogout;
 
   @override
@@ -93,8 +106,17 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
       data: (l) => l.where((p) => p.quantity != 0).length,
       orElse: () => 0,
     );
+    final activeStops = widget.stopOrders.maybeWhen(
+      data: (l) => l.where((s) => s.isActive).length,
+      orElse: () => 0,
+    );
     final activeOrdersCount = widget.orders.maybeWhen(
-      data: (l) => l.where((o) => o.isActive).length,
+          data: (l) => l.where((o) => o.isActive).length,
+          orElse: () => 0,
+        ) +
+        activeStops;
+    final tradesCount = widget.trades.maybeWhen(
+      data: (l) => l.length,
       orElse: () => 0,
     );
 
@@ -123,6 +145,7 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
                   selected: tab,
                   positionsCount: positionsCount,
                   ordersCount: activeOrdersCount,
+                  tradesCount: tradesCount,
                   onSelected: (next) {
                     ref.read(portfolioTabProvider.notifier).state = next;
                   },
@@ -131,8 +154,13 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
               const SizedBox(height: 12),
               if (tab == PortfolioTab.positions)
                 PositionsListSection(positions: widget.positions)
+              else if (tab == PortfolioTab.orders)
+                OrdersListSection(
+                  orders: widget.orders,
+                  stopOrders: widget.stopOrders,
+                )
               else
-                OrdersListSection(orders: widget.orders),
+                TradesListSection(trades: widget.trades),
             ]),
           ),
         ),

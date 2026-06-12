@@ -7,6 +7,7 @@ import 'package:aloria/features/market/application/orders_provider.dart';
 import 'package:aloria/features/market/application/price_feed_notifier.dart';
 import 'package:aloria/features/market/data/market_data_repository.dart';
 import 'package:aloria/features/market/domain/portfolio_order.dart';
+import 'package:aloria/features/market/domain/stop_order.dart';
 import 'package:aloria/features/market/domain/trade_order.dart';
 import 'package:aloria/features/market/presentation/trade/coinbase_theme.dart';
 import 'package:aloria/features/market/presentation/trade/trade_providers.dart';
@@ -40,8 +41,10 @@ class TradePage extends ConsumerStatefulWidget {
 class _TradePageState extends ConsumerState<TradePage> {
   final _qtyController = TextEditingController(text: '1');
   final _priceController = TextEditingController();
+  final _triggerController = TextEditingController();
+  final _stopLimitController = TextEditingController();
   late final ScrollController _scrollController;
-  bool _isLimit = false;
+  OrderFormKind _kind = OrderFormKind.market;
   bool _submitting = false;
   bool _showAppBarPrice = false;
 
@@ -82,6 +85,8 @@ class _TradePageState extends ConsumerState<TradePage> {
 
     _qtyController.dispose();
     _priceController.dispose();
+    _triggerController.dispose();
+    _stopLimitController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -89,7 +94,7 @@ class _TradePageState extends ConsumerState<TradePage> {
   void _selectPriceFromOrderBook(double price) {
     FocusScope.of(context).unfocus();
     setState(() {
-      _isLimit = true;
+      _kind = OrderFormKind.limit;
       _priceController.text = price.toStringAsFixed(2);
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -116,19 +121,60 @@ class _TradePageState extends ConsumerState<TradePage> {
 
     final qty = double.tryParse(_qtyController.text) ?? 0;
     final limitPrice = double.tryParse(_priceController.text);
-    final order = TradeOrder(
-      symbol: widget.symbol,
-      exchange: widget.exchange,
-      side: side,
-      type: _isLimit ? OrderType.limit : OrderType.market,
-      quantity: qty,
-      limitPrice: _isLimit ? limitPrice : null,
-    );
     setState(() => _submitting = true);
     try {
-      await repo.placeOrder(order);
-      if (mounted) {
-        showTopNotification(context, 'Заявка отправлена');
+      if (_kind == OrderFormKind.stop) {
+        final trigger = double.tryParse(_triggerController.text);
+        if (trigger == null) {
+          if (mounted) {
+            showTopNotification(
+              context,
+              'Укажи цену срабатывания стоп-заявки',
+              isError: true,
+            );
+            setState(() => _submitting = false);
+          }
+          return;
+        }
+        // Условие срабатывания выводим из положения цены: триггер выше
+        // текущей цены — ждём роста, ниже — ждём падения.
+        final current = ref
+            .read(priceFeedProvider(
+              (symbol: widget.symbol, exchange: widget.exchange),
+            ))
+            .valueOrNull
+            ?.latest
+            ?.price;
+        final condition = (current != null && trigger < current)
+            ? StopCondition.lessOrEqual
+            : StopCondition.moreOrEqual;
+        await repo.placeStopOrder(
+          symbol: widget.symbol,
+          exchange: widget.exchange,
+          side: side,
+          condition: condition,
+          triggerPrice: trigger,
+          quantity: qty.round(),
+          limitPrice: double.tryParse(_stopLimitController.text),
+        );
+        if (mounted) {
+          showTopNotification(context, 'Стоп-заявка выставлена');
+        }
+      } else {
+        final order = TradeOrder(
+          symbol: widget.symbol,
+          exchange: widget.exchange,
+          side: side,
+          type: _kind == OrderFormKind.limit
+              ? OrderType.limit
+              : OrderType.market,
+          quantity: qty,
+          limitPrice: _kind == OrderFormKind.limit ? limitPrice : null,
+        );
+        await repo.placeOrder(order);
+        if (mounted) {
+          showTopNotification(context, 'Заявка отправлена');
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -238,10 +284,12 @@ class _TradePageState extends ConsumerState<TradePage> {
             feedTab: feedTab,
             onFeedTabChanged: (tab) =>
                 ref.read(feedTabProvider(widget.symbol).notifier).state = tab,
-            isLimit: _isLimit,
-            onToggleType: (value) => setState(() => _isLimit = value),
+            kind: _kind,
+            onKindChanged: (value) => setState(() => _kind = value),
             qtyController: _qtyController,
             priceController: _priceController,
+            triggerController: _triggerController,
+            stopLimitController: _stopLimitController,
             onSubmit: _submit,
             submitting: _submitting,
             onSelectPrice: _selectPriceFromOrderBook,

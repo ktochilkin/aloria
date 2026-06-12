@@ -2,8 +2,8 @@ import 'package:aloria/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Вкладки портфеля: позиции или заявки.
-enum PortfolioTab { positions, orders }
+/// Вкладки портфеля: позиции, заявки или сделки.
+enum PortfolioTab { positions, orders, trades }
 
 /// Выбранная вкладка портфеля — переживает уход со страницы.
 final portfolioTabProvider = StateProvider<PortfolioTab>(
@@ -18,6 +18,7 @@ class PortfolioTabsHeader extends StatelessWidget {
     required this.selected,
     required this.positionsCount,
     required this.ordersCount,
+    required this.tradesCount,
     required this.onSelected,
   });
 
@@ -29,6 +30,9 @@ class PortfolioTabsHeader extends StatelessWidget {
 
   /// Количество активных заявок (бейдж).
   final int ordersCount;
+
+  /// Количество сделок (бейдж).
+  final int tradesCount;
 
   /// Колбэк выбора вкладки.
   final ValueChanged<PortfolioTab> onSelected;
@@ -57,6 +61,13 @@ class PortfolioTabsHeader extends StatelessWidget {
             count: ordersCount,
             selected: selected == PortfolioTab.orders,
             onTap: () => onSelected(PortfolioTab.orders),
+          ),
+          const SizedBox(width: 8),
+          _TabButton(
+            label: 'Сделки',
+            count: tradesCount,
+            selected: selected == PortfolioTab.trades,
+            onTap: () => onSelected(PortfolioTab.trades),
           ),
         ],
       ),
