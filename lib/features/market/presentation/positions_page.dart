@@ -912,16 +912,9 @@ class _PortfolioStackBar extends StatelessWidget {
 
   final List<Position> positions;
 
-  // Палитра по спецификации: 6 цветов, 7-й (серый) — для «Прочих» в long-tail.
-  static const _palette = [
-    Color(0xFF5D8CFF),
-    Color(0xFF7FA5FF),
-    Color(0xFF9CBBFF),
-    Color(0xFFFF9E7C),
-    Color(0xFFFFB89A),
-    Color(0xFFC8C8D0),
-  ];
-  static const _restColor = Color(0xFFC8C8D0);
+  // Палитра по спецификации: 6 цветов, серый — для «Прочих» в long-tail.
+  static const _palette = AppChartPalette.categorical;
+  static const _restColor = AppChartPalette.neutral;
 
   @override
   Widget build(BuildContext context) {

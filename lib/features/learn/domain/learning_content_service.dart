@@ -1,3 +1,4 @@
+import 'package:aloria/core/theme/tokens.dart';
 import 'package:aloria/features/learn/data/learning_api_client.dart';
 import 'package:aloria/features/learn/domain/models.dart';
 import 'package:flutter/material.dart';
@@ -204,26 +205,26 @@ class LearningContentService {
   static Color tintFor(String key) {
     switch (key) {
       case 'primary':
-        return const Color(0xFF5D8CFF);
+        return AppColors.accentBlue;
       case 'secondary':
-        return const Color(0xFFFF9E7C);
+        return AppColors.secondary;
       case 'success':
-        return const Color(0xFF37B38A);
+        return AppColors.success;
       case 'warning':
-        return const Color(0xFFF5C24D);
+        return AppColors.warning;
       // Fallback по slug этапа
       case 'why-market':
       case 'first-trade':
-        return const Color(0xFFF5C24D);
+        return AppColors.warning;
       case 'stocks':
       case 'bonds':
       case 'funds':
       case 'portfolio':
-        return const Color(0xFF37B38A);
+        return AppColors.success;
       case 'active-trading':
-        return const Color(0xFFFF9E7C);
+        return AppColors.secondary;
       default:
-        return const Color(0xFF5D8CFF);
+        return AppColors.accentBlue;
     }
   }
 

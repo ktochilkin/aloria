@@ -45,15 +45,15 @@ final scrollPositionProvider = StateProvider.family<double, String>(
 // чернильный текст + серый body, hairline-границы вместо теней, карты r24,
 // кнопки-пилюли, числа моноширинным, торговые зелёный/красный только как текст.
 // Применяется через scoped Theme только здесь — остальное не затрагивается.
-const _cbBlue = Color(0xFF0052FF); // brand voltage — только primary-CTA
-const _cbInk = Color(0xFF0A0B0D); // заголовки/эмфаза
-const _cbBody = Color(0xFF5B616E); // основной текст (прохладный серый)
-const _cbMuted = Color(0xFF7C828A); // подписи/мьютед
-const _cbHairline = Color(0xFFDEE1E6); // 1px разделители/границы карт
-const _cbCanvas = Color(0xFFFFFFFF); // холст
-const _cbSurfaceStrong = Color(0xFFEEF0F3); // вторичные кнопки/плашки
-const _cbUp = Color(0xFF05B169); // semantic up (только текст)
-const _cbDown = Color(0xFFCF202F); // semantic down (только текст)
+const _cbBlue = AppColors.primary; // brand voltage — только primary-CTA
+const _cbInk = AppLightColors.ink; // заголовки/эмфаза
+const _cbBody = AppLightColors.body; // основной текст (прохладный серый)
+const _cbMuted = TradeColors.muted; // подписи/мьютед
+const _cbHairline = AppLightColors.hairline; // 1px разделители/границы карт
+const _cbCanvas = AppLightColors.canvas; // холст
+const _cbSurfaceStrong = AppLightColors.surfaceStrong; // вторичные кнопки/плашки
+const _cbUp = TradeColors.up; // semantic up (только текст)
+const _cbDown = TradeColors.down; // semantic down (только текст)
 
 /// Стиль чисел: Nunito с табличными цифрами (одна ширина → ровные колонки),
 /// современнее моноширинного «терминального» шрифта.

@@ -19,7 +19,7 @@ class LessonAllocationPie extends StatefulWidget {
 }
 
 class _LessonAllocationPieState extends State<LessonAllocationPie> {
-  static const Color _gold = Color(0xFFE6B450);
+  static const Color _gold = BlockChartColors.gold;
 
   double _stocks = 60;
   double _bonds = 30;

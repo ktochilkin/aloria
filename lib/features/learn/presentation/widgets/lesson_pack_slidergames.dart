@@ -306,7 +306,7 @@ class _LessonPortfolioMixerState extends State<LessonPortfolioMixer> {
     _Slice('Акции', AppColors.error),
     _Slice('Облигации', AppColors.success),
     _Slice('Металл', AppColors.warning),
-    _Slice('Деньги', Color(0xFF6C8EBF)),
+    _Slice('Деньги', BlockChartColors.cashBlue),
   ];
 
   /// Возвращает доли [акции, облигации, металл, деньги], сумма = 100.
