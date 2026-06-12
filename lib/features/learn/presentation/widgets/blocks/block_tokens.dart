@@ -9,6 +9,7 @@
 //
 // Правило: в блоках использовать ТОЛЬКО эти значения. Хочется новое число —
 // сначала проверь, нет ли подходящего тут; новый токен заводим осознанно.
+import 'package:aloria/core/theme/tokens.dart';
 import 'package:flutter/material.dart';
 
 /// Шкала отступов (4-точечная сетка). Между элементами блока — `m`/`l`,
@@ -72,8 +73,17 @@ abstract final class BlockTint {
 
 /// Палитра графиков: акцент (приходит как tint) + семантика + нейтраль/сетка.
 abstract final class BlockChartColors {
-  static const Color success = Color(0xFF37B38A);
-  static const Color error = Color(0xFFF16B82);
+  static const Color success = AppColors.success;
+  static const Color error = AppColors.error;
+
+  /// Золото/металл (диаграмма распределения активов).
+  static const Color gold = Color(0xFFE6B450);
+
+  /// «Деньги» — приглушённый сине-серый (миксер портфеля).
+  static const Color cashBlue = Color(0xFF6C8EBF);
+
+  /// Вечерняя сессия (часы торговых сессий).
+  static const Color nightBlue = Color(0xFF6E8BD8);
 
   /// Цвет линии сетки (от темы).
   static Color grid(ColorScheme scheme) =>

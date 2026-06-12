@@ -381,7 +381,7 @@ class _LessonSessionClockState extends State<LessonSessionClock> {
     _Session('Вечерняя', 1145, 1430, _evening, true),
   ];
 
-  static const Color _evening = Color(0xFF6E8BD8);
+  static const Color _evening = BlockChartColors.nightBlue;
 
   int? _selected;
 

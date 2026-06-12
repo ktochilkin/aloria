@@ -63,7 +63,7 @@ class _LearningPill extends ConsumerWidget {
             child: Ink(
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF7BA3FF), AppColors.primary],
+                  colors: [AppColors.primaryBright, AppColors.primary],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
