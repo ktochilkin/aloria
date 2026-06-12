@@ -30,6 +30,8 @@ Lesson _lesson(
   String? group,
   int minutes = 4,
   String body = '',
+  String? recallPrompt,
+  String? recallAnswer,
 }) =>
     Lesson(
       id: id,
@@ -40,6 +42,9 @@ Lesson _lesson(
       body: body,
       estimatedMinutes: minutes,
       group: group,
+      recallPrompt: recallPrompt,
+      recallAnswer: recallAnswer,
+      serverId: recallPrompt == null ? null : 'fixture-42',
     );
 
 final _whyMarket = LearningSection(
@@ -80,7 +85,11 @@ final _basics = LearningSection(
     _lesson('risk_basics', 'Что такое риск и доходность', group: 'Риск',
         minutes: 5),
     _lesson('risk_types', 'Какие бывают риски', group: 'Риск', minutes: 5,
-        body: _riskBody),
+        body: _riskBody,
+        recallPrompt:
+            'Ты держишь акцию небольшой редкой компании. Какие минимум два вида риска тут особенно заметны?',
+        recallAnswer:
+            'Рыночный (цена сильно ходит) и ликвидности (трудно выйти, не уступив в цене).'),
     _lesson('liquidity', 'Ликвидность', group: 'Ликвидность'),
     _lesson('yield', 'Что такое доходность', group: 'Доходность', minutes: 5),
   ],

@@ -1,3 +1,4 @@
+import 'package:aloria/core/theme/tokens.dart';
 import 'package:flutter/material.dart';
 
 /// Карточка retrieval-practice: вопрос на вспоминание, затем самопроверка.
@@ -59,9 +60,9 @@ class _RecallCardState extends State<RecallCard> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest,
+        color: widget.tint.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: widget.tint.withValues(alpha: 0.4)),
+        border: Border.all(color: widget.tint.withValues(alpha: 0.35)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -86,7 +87,7 @@ class _RecallCardState extends State<RecallCard> {
             Row(
               children: [
                 const Icon(Icons.check_circle_outline,
-                    size: 18, color: Colors.green),
+                    size: 18, color: AppColors.success),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -118,8 +119,9 @@ class _RecallCardState extends State<RecallCard> {
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: widget.tint.withValues(alpha: 0.08),
+                color: scheme.surface,
                 borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: widget.tint.withValues(alpha: 0.25)),
               ),
               child: Text(
                 widget.answer?.trim().isNotEmpty == true

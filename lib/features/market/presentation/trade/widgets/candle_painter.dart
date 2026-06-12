@@ -8,7 +8,7 @@ class CandlePainter extends CustomPainter {
   CandlePainter({
     required this.data,
     required this.scheme,
-    this.selectedCandle,
+    this.selectedIndex,
   });
 
   /// Свечи для отрисовки.
@@ -17,8 +17,8 @@ class CandlePainter extends CustomPainter {
   /// Цветовая схема текущей темы.
   final ColorScheme scheme;
 
-  /// Выбранная тапом свеча (подсвечивается).
-  final Candle? selectedCandle;
+  /// Индекс выбранной тапом свечи в [data] (подсвечивается ровно одна).
+  final int? selectedIndex;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -128,11 +128,9 @@ class CandlePainter extends CustomPainter {
       final c = valid[i];
       final x = paddingLeft + i * (candleWidth + space) + candleWidth / 2;
 
-      // Подсветка выбранной свечи
-      final isSelected =
-          selectedCandle != null &&
-          c.ts.millisecondsSinceEpoch ==
-              selectedCandle!.ts.millisecondsSinceEpoch;
+      // Подсветка выбранной свечи — строго по индексу: сравнение по
+      // времени выделяло две свечи, когда поток присылал дубль текущего бара.
+      final isSelected = selectedIndex == i;
 
       if (isSelected) {
         final highlightPaint = Paint()

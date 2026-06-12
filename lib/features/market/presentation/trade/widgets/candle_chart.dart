@@ -18,29 +18,39 @@ class CandleChart extends StatefulWidget {
 }
 
 class _CandleChartState extends State<CandleChart> {
-  Candle? _selectedCandle;
+  /// Сколько последних свечей показываем: при большем количестве свечи
+  /// становятся нечитаемо тонкими.
+  static const int _visibleCount = 20;
 
-  @override
-  void didUpdateWidget(CandleChart oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // Если свеча была выбрана, обновляем её данные при изменении widget.data
-    if (_selectedCandle != null) {
-      final updatedCandle = widget.data.firstWhere(
-        (c) =>
-            c.ts.millisecondsSinceEpoch ==
-            _selectedCandle!.ts.millisecondsSinceEpoch,
-        orElse: () => _selectedCandle!,
-      );
-      if (updatedCandle != _selectedCandle) {
-        setState(() {
-          _selectedCandle = updatedCandle;
-        });
-      }
-    }
+  /// Время выбранной свечи. Выделение и панель данных резолвятся в индекс
+  /// на каждый кадр (живой поток может заменить сам объект свечи).
+  DateTime? _selectedTs;
+
+  /// Видимое окно: только валидные свечи, не больше [_visibleCount] последних.
+  /// И painter, и обработка тапа работают с одним этим списком — иначе
+  /// индексы разъезжаются.
+  List<Candle> get _visible {
+    final valid = widget.data.where((c) => c.isValid).toList();
+    return valid.length > _visibleCount
+        ? valid.sublist(valid.length - _visibleCount)
+        : valid;
+  }
+
+  /// Индекс выбранной свечи в видимом окне. Поток обновляет текущий бар и
+  /// может прислать дубль с тем же временем — берём последнее вхождение,
+  /// поэтому выделяется ровно одна свеча.
+  int? get _selectedIndex {
+    final ts = _selectedTs;
+    if (ts == null) return null;
+    final i = _visible.lastIndexWhere(
+      (c) => c.ts.millisecondsSinceEpoch == ts.millisecondsSinceEpoch,
+    );
+    return i < 0 ? null : i;
   }
 
   void _handleTap(TapDownDetails details) {
-    if (widget.data.isEmpty) return;
+    final data = _visible;
+    if (data.isEmpty) return;
 
     const paddingLeft = 48.0;
     const paddingRight = 12.0;
@@ -50,20 +60,13 @@ class _CandleChartState extends State<CandleChart> {
 
     // Если нажали вне графика, показываем последнюю свечу
     if (tapX < 0 || tapX > chartWidth) {
-      setState(() {
-        _selectedCandle = widget.data.last;
-      });
+      setState(() => _selectedTs = data.last.ts);
       return;
     }
 
-    final candleWidth = chartWidth / widget.data.length;
-    final index = (tapX / candleWidth).floor();
-
-    if (index >= 0 && index < widget.data.length) {
-      setState(() {
-        _selectedCandle = widget.data[index];
-      });
-    }
+    final candleWidth = chartWidth / data.length;
+    final index = (tapX / candleWidth).floor().clamp(0, data.length - 1);
+    setState(() => _selectedTs = data[index].ts);
   }
 
   String _formatCandleTime(DateTime dt) {
@@ -77,6 +80,9 @@ class _CandleChartState extends State<CandleChart> {
 
   @override
   Widget build(BuildContext context) {
+    final data = _visible;
+    final selectedIndex = _selectedIndex;
+    final selected = selectedIndex == null ? null : data[selectedIndex];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -86,15 +92,15 @@ class _CandleChartState extends State<CandleChart> {
             onTapDown: _handleTap,
             child: CustomPaint(
               painter: CandlePainter(
-                data: widget.data,
+                data: data,
                 scheme: widget.scheme,
-                selectedCandle: _selectedCandle,
+                selectedIndex: selectedIndex,
               ),
               child: Container(),
             ),
           ),
         ),
-        if (_selectedCandle != null) ...[
+        if (selected != null) ...[
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(12),
@@ -120,46 +126,46 @@ class _CandleChartState extends State<CandleChart> {
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                       visualDensity: VisualDensity.compact,
-                      onPressed: () => setState(() => _selectedCandle = null),
+                      onPressed: () => setState(() => _selectedTs = null),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
                 _CandleDataRow(
                   label: 'Цена на начало периода',
-                  value: '${_selectedCandle!.open.toStringAsFixed(2)} ₽',
+                  value: '${selected.open.toStringAsFixed(2)} ₽',
                   scheme: widget.scheme,
                 ),
                 const SizedBox(height: 6),
                 _CandleDataRow(
                   label: 'Цена на конец периода',
-                  value: '${_selectedCandle!.close.toStringAsFixed(2)} ₽',
+                  value: '${selected.close.toStringAsFixed(2)} ₽',
                   scheme: widget.scheme,
                 ),
                 const SizedBox(height: 6),
                 _CandleDataRow(
                   label: 'Максимальная цена',
-                  value: '${_selectedCandle!.high.toStringAsFixed(2)} ₽',
+                  value: '${selected.high.toStringAsFixed(2)} ₽',
                   scheme: widget.scheme,
                   valueColor: AppColors.success,
                 ),
                 const SizedBox(height: 6),
                 _CandleDataRow(
                   label: 'Минимальная цена',
-                  value: '${_selectedCandle!.low.toStringAsFixed(2)} ₽',
+                  value: '${selected.low.toStringAsFixed(2)} ₽',
                   scheme: widget.scheme,
                   valueColor: AppColors.error,
                 ),
                 const SizedBox(height: 6),
                 _CandleDataRow(
                   label: 'Количество сделок',
-                  value: _selectedCandle!.volume.toString(),
+                  value: selected.volume.toString(),
                   scheme: widget.scheme,
                 ),
                 const SizedBox(height: 6),
                 _CandleDataRow(
                   label: 'Время свечи',
-                  value: _formatCandleTime(_selectedCandle!.ts),
+                  value: _formatCandleTime(selected.ts),
                   scheme: widget.scheme,
                 ),
               ],
