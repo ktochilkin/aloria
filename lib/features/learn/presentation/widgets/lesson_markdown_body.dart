@@ -47,17 +47,9 @@ class LessonMarkdownBody extends ConsumerWidget {
               fontStyle: FontStyle.italic,
             ),
             blockquoteDecoration: BoxDecoration(
-              color: scheme.surface,
-              border: Border(
-                left: BorderSide(color: tint, width: 3),
-                top: BorderSide(color: scheme.outline),
-                right: BorderSide(color: scheme.outline),
-                bottom: BorderSide(color: scheme.outline),
-              ),
-              borderRadius: const BorderRadius.only(
-                topRight: Radius.circular(12),
-                bottomRight: Radius.circular(12),
-              ),
+              color: tint.withValues(alpha: 0.06),
+              border: Border.all(color: tint.withValues(alpha: 0.30)),
+              borderRadius: const BorderRadius.all(Radius.circular(12)),
             ),
             listBullet: text.bodyMedium,
             // Ненавязчивая ссылка: обычный цвет текста, заметное, но

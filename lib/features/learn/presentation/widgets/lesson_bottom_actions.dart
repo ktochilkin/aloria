@@ -1,6 +1,7 @@
 import 'package:aloria/features/learn/domain/models.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 /// Нижний блок действий урока: CTA «Следующий урок» / «К списку раздела»
 /// и кнопка возврата ко всем урокам.
@@ -52,7 +53,7 @@ class LessonBottomActions extends StatelessWidget {
                 backgroundColor: section.tint,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                textStyle: const TextStyle(
+                textStyle: GoogleFonts.nunito(
                   fontWeight: FontWeight.w800,
                   fontSize: 15,
                 ),

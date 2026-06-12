@@ -1,6 +1,7 @@
 import 'package:aloria/features/market/domain/market_news.dart';
 import 'package:aloria/features/market/presentation/widgets/news_detail_modal.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 /// Виджет для отображения новостей по инструменту
 class NewsWidget extends StatefulWidget {
@@ -106,7 +107,7 @@ class _NewsWidgetState extends State<NewsWidget> {
                         minimumSize: const Size.fromHeight(36),
                         padding: const EdgeInsets.symmetric(horizontal: 10),
                         iconSize: 16,
-                        textStyle: const TextStyle(
+                        textStyle: GoogleFonts.nunito(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                         ),
@@ -135,7 +136,7 @@ class _NewsWidgetState extends State<NewsWidget> {
                         minimumSize: const Size.fromHeight(36),
                         padding: const EdgeInsets.symmetric(horizontal: 10),
                         iconSize: 16,
-                        textStyle: const TextStyle(
+                        textStyle: GoogleFonts.nunito(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                         ),

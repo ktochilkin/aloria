@@ -357,8 +357,9 @@ Future<void> _shootScreen(
   Widget home, {
   List<Override> overrides = const [],
   Future<void> Function(WidgetTester)? act,
+  double height = 932,
 }) async {
-  await tester.binding.setSurfaceSize(_phone);
+  await tester.binding.setSurfaceSize(Size(_phone.width, height));
   tester.view.devicePixelRatio = 1.0;
   const key = ValueKey('screen-boundary');
   await tester.pumpWidget(
@@ -462,6 +463,7 @@ void main() {
       'trade_orderbook',
       const TradePage(symbol: 'SBER', shortName: 'Сбербанк'),
       overrides: _marketOverrides(),
+      height: 2100,
       act: (tester) async {
         await tester.tap(find.text('Стакан'), warnIfMissed: false);
       },
