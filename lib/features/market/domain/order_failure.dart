@@ -127,19 +127,28 @@ class OrderFailure {
   /// или имена (`NotEnoughCash`). Некоторые коды многозначные и уточняются
   /// по тексту; асинхронные отказы приходят вовсе без кода — только текст.
   static OrderFailureKind classify({String? code, String? message}) {
-    final c = code?.trim().toLowerCase();
+    // commandapi может прислать код как имя, число или «Имя (404)» —
+    // разбираем на части и пробуем каждую.
+    final parts = code == null
+        ? const <String>[]
+        : RegExp(r'[a-zA-Z]+|\d+')
+            .allMatches(code.toLowerCase())
+            .map((m) => m.group(0)!)
+            .toList();
 
     // OrderCreatesUncoveredRisk (400) — общий вердикт риск-движка: им
     // отклоняется и покупка без денег, и продажа бумаг, которых нет.
     // Конкретику Shepard кладёт только в текст.
-    if (c == '400' || c == 'ordercreatesuncoveredrisk') {
+    if (parts.contains('400') || parts.contains('ordercreatesuncoveredrisk')) {
       return _isShortSellMessage(message)
           ? OrderFailureKind.shortNotAllowed
           : OrderFailureKind.insufficientFunds;
     }
 
-    final byCode = _classifyCode(c);
-    if (byCode != null) return byCode;
+    for (final part in parts) {
+      final byCode = _classifyCode(part);
+      if (byCode != null) return byCode;
+    }
     final byMessage = _classifyMessage(message);
     if (byMessage != null) return byMessage;
     return OrderFailureKind.unknown;

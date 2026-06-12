@@ -2,10 +2,12 @@ import 'package:aloria/core/theme/components/list_items.dart';
 import 'package:aloria/core/theme/tokens.dart';
 import 'package:aloria/core/widgets/top_notification.dart';
 import 'package:aloria/features/market/application/orders_provider.dart';
+import 'package:aloria/features/market/domain/order_failure.dart';
 import 'package:aloria/features/market/domain/portfolio_order.dart';
 import 'package:aloria/features/market/domain/trade_order.dart';
 import 'package:aloria/features/market/presentation/numeric_text.dart';
 import 'package:aloria/features/market/presentation/positions/widgets/order_details_sheet.dart';
+import 'package:aloria/features/market/presentation/trade/widgets/order_failure_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -218,7 +220,27 @@ Future<void> _handleCancelOrder(
     }
   } catch (e) {
     if (context.mounted) {
-      showTopNotification(context, 'Ошибка отмены: $e', isError: true);
+      // Сырую ошибку не показываем — разбираем причину и объясняем
+      // человеческим языком (системные сбои — с кнопкой в поддержку).
+      showOrderFailureSheet(
+        context,
+        failure: OrderFailure.fromException(e),
+        symbol: order.symbol,
+        orderContext: {
+          'action': 'cancelOrder',
+          'orderId': order.id,
+          'symbol': order.symbol,
+          'type': order.type.name,
+        },
+        // Частый случай: рыночная заявка не ждёт в стакане, отменять её
+        // обычно уже нечего — она исполняется сразу после отправки.
+        note: order.type == OrderType.market
+            ? 'Это рыночная заявка: она не стоит в очереди, а исполняется '
+                'сразу по доступным ценам. Поэтому отменить её, как правило, '
+                'уже нельзя — она либо исполнилась, либо исполняется прямо '
+                'сейчас.'
+            : null,
+      );
     }
   }
 }

@@ -2,10 +2,12 @@ import 'package:aloria/core/theme/components/list_items.dart';
 import 'package:aloria/core/theme/tokens.dart';
 import 'package:aloria/core/widgets/top_notification.dart';
 import 'package:aloria/features/market/application/stop_orders_provider.dart';
+import 'package:aloria/features/market/domain/order_failure.dart';
 import 'package:aloria/features/market/domain/stop_order.dart';
 import 'package:aloria/features/market/domain/trade_order.dart';
 import 'package:aloria/features/market/presentation/numeric_text.dart';
 import 'package:aloria/features/market/presentation/positions/widgets/stop_order_details_sheet.dart';
+import 'package:aloria/features/market/presentation/trade/widgets/order_failure_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -61,7 +63,18 @@ class StopOrderTile extends ConsumerWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        showTopNotification(context, 'Ошибка отмены: $e', isError: true);
+        showOrderFailureSheet(
+          context,
+          failure: OrderFailure.fromException(e),
+          symbol: order.symbol,
+          orderContext: {
+            'action': 'cancelStopOrder',
+            'orderId': order.id,
+            'symbol': order.symbol,
+          },
+          note: 'Если условие уже выполнилось, стоп-заявка успела '
+              'превратиться в обычную — ищи её на вкладке «Заявки».',
+        );
       }
     }
   }

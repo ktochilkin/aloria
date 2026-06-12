@@ -19,6 +19,7 @@ Future<void> showOrderFailureSheet(
   required OrderFailure failure,
   required String symbol,
   Map<String, dynamic>? orderContext,
+  String? note,
 }) {
   return showModalBottomSheet<void>(
     context: context,
@@ -36,6 +37,7 @@ Future<void> showOrderFailureSheet(
       failure: failure,
       symbol: symbol,
       orderContext: orderContext,
+      note: note,
     ),
   );
 }
@@ -45,11 +47,16 @@ class _OrderFailureSheet extends ConsumerWidget {
     required this.failure,
     required this.symbol,
     this.orderContext,
+    this.note,
   });
 
   final OrderFailure failure;
   final String symbol;
   final Map<String, dynamic>? orderContext;
+
+  /// Дополнительное пояснение под основным текстом — для конкретной
+  /// ситуации вызова (например, отмена рыночной заявки).
+  final String? note;
 
   String get _title => switch (failure.kind) {
         OrderFailureKind.insufficientFunds => 'Не хватает свободных денег',
@@ -195,6 +202,25 @@ class _OrderFailureSheet extends ConsumerWidget {
                           _explanation,
                           style: text.bodyMedium?.copyWith(height: 1.5),
                         ),
+                        if (note != null) ...[
+                          const SizedBox(height: 10),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.06),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color:
+                                    AppColors.primary.withValues(alpha: 0.18),
+                              ),
+                            ),
+                            child: Text(
+                              note!,
+                              style: text.bodySmall?.copyWith(height: 1.45),
+                            ),
+                          ),
+                        ],
                         if (failure.kind == OrderFailureKind.insufficientFunds)
                           _FundsHelp(symbol: symbol),
                         if (failure.kind == OrderFailureKind.shortNotAllowed)

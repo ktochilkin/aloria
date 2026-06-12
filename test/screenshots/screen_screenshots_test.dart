@@ -538,6 +538,31 @@ void main() {
     );
   });
 
+  testWidgets('ошибка заявки — отмена рыночной', (tester) async {
+    await _shootScreen(
+      tester,
+      'order_failure_cancel_market',
+      const _PortfolioScreen(tab: PortfolioTab.orders),
+      overrides: _marketOverrides(),
+      act: (t) async {
+        final ctx = t.element(find.byType(PortfolioTitleBar));
+        unawaited(showOrderFailureSheet(
+          ctx,
+          failure: const OrderFailure(
+            kind: OrderFailureKind.orderNotFound,
+            code: 'OrderToCancelNotFound (404)',
+            message: 'Order to cancel not found',
+          ),
+          symbol: 'SHOP',
+          note: 'Это рыночная заявка: она не стоит в очереди, а исполняется '
+              'сразу по доступным ценам. Поэтому отменить её, как правило, '
+              'уже нельзя — она либо исполнилась, либо исполняется прямо '
+              'сейчас.',
+        ));
+      },
+    );
+  });
+
   testWidgets('ошибка заявки — цена вне лимита', (tester) async {
     await _shootScreen(
       tester,

@@ -60,6 +60,25 @@ void main() {
       expect(OrderFailure.classify(code: '411'), OrderFailureKind.noPrice);
     });
 
+    test('код в формате commandapi «Имя (404)» тоже распознаётся', () {
+      // Реальный формат поля code из openapi: 'OrderToCancelNotFound (404)'.
+      expect(
+        OrderFailure.classify(
+          code: 'OrderToCancelNotFound (404)',
+          message: 'Order to cancel not found',
+        ),
+        OrderFailureKind.orderNotFound,
+      );
+      expect(
+        OrderFailure.classify(code: 'OrderCreatesUncoveredRisk (400)'),
+        OrderFailureKind.insufficientFunds,
+      );
+      expect(
+        OrderFailure.classify(code: 'InternalErrorWithPrices (409)'),
+        OrderFailureKind.badPrice,
+      );
+    });
+
     test('таймаут команды → системный сбой', () {
       expect(
         OrderFailure.classify(code: 'CommandResponseTimeout'),
