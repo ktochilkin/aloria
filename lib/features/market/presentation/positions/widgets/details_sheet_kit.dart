@@ -59,11 +59,14 @@ class DetailsSheetShell extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final label = symbol.length > 2 ? symbol.substring(0, 2) : symbol;
     final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
+    // Под кнопкой оставляем минимум — ровно чтобы не залезть под
+    // home-indicator. Большую часть safe-area «съедаем», кнопка ближе к низу.
+    final bottomPad = (bottomInset - 18).clamp(8.0, 40.0);
 
     return Padding(
-      // Низ под кнопкой и зону home-indicator оставляем прозрачными: сквозь
-      // них виден затемнённый фон, кнопка «висит» отдельно от карточки.
-      padding: EdgeInsets.only(bottom: bottomInset + 10),
+      // Низ под кнопкой прозрачный: сквозь него виден затемнённый фон,
+      // кнопка «висит» отдельно от карточки у самого края.
+      padding: EdgeInsets.only(bottom: bottomPad),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
