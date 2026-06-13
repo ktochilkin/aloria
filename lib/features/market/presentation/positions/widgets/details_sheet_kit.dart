@@ -3,29 +3,27 @@ import 'package:aloria/features/market/presentation/numeric_text.dart';
 import 'package:aloria/features/market/presentation/widgets/instrument_avatar.dart';
 import 'package:flutter/material.dart';
 
-/// Открывает стандартную шторку деталей (позиция, заявка, сделка) с
-/// одинаковой формой и скруглением.
+/// Открывает стандартную шторку деталей (позиция, заявка, сделка).
 ///
-/// Высота ограничена ~двумя третями экрана: длинный список строк
-/// прокручивается внутри, а шапка с крестиком и кнопка действия всегда
-/// остаются на виду.
+/// Контент живёт в карточке-«поверхности», а кнопка действия висит ниже неё
+/// на прозрачном (затемнённом) фоне — поэтому фон самого окна прозрачный, а
+/// скругление рисует уже сама карточка. Высота карточки ограничена, длинный
+/// список строк прокручивается внутри.
 Future<void> showDetailsSheet(BuildContext context, WidgetBuilder builder) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     constraints: BoxConstraints(
-      maxHeight: MediaQuery.sizeOf(context).height * 0.66,
+      maxHeight: MediaQuery.sizeOf(context).height * 0.72,
     ),
-    backgroundColor: Theme.of(context).colorScheme.surface,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-    ),
+    backgroundColor: Colors.transparent,
     builder: builder,
   );
 }
 
-/// Каркас шторки деталей: ручка, шапка с аватаром инструмента и заголовком,
-/// прокручиваемый список строк и необязательная кнопка действия снизу.
+/// Каркас шторки деталей: карточка с ручкой, шапкой (аватар + заголовок) и
+/// прокручиваемым списком строк, а под ней — необязательная кнопка действия
+/// на прозрачном фоне.
 class DetailsSheetShell extends StatelessWidget {
   const DetailsSheetShell({
     super.key,
@@ -60,110 +58,98 @@ class DetailsSheetShell extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
     final label = symbol.length > 2 ? symbol.substring(0, 2) : symbol;
+    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
 
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: scheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(2),
-                ),
+    return Padding(
+      // Низ под кнопкой и зону home-indicator оставляем прозрачными: сквозь
+      // них виден затемнённый фон, кнопка «висит» отдельно от карточки.
+      padding: EdgeInsets.only(bottom: bottomInset + 10),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Flexible(
+            child: Container(
+              decoration: BoxDecoration(
+                color: scheme.surface,
+                borderRadius: BorderRadius.circular(24),
               ),
-            ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                InstrumentAvatar(symbol: symbol, label: label, size: 40),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: text.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      if (subtitle != null)
-                        Text(
-                          subtitle!,
-                          style: text.bodySmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Flexible(
-              child: Stack(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 14),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SingleChildScrollView(
-                    // Нижний отступ выводит последнюю строку из-под градиента,
-                    // когда список прокручен до конца.
-                    padding: const EdgeInsets.only(bottom: 24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: rows,
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: scheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
                   ),
-                  // Градиент-подсказка: контент уходит под низ и его можно
-                  // прокрутить — строки «растворяются», а не обрезаются кнопкой.
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    height: 28,
-                    child: IgnorePointer(
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              scheme.surface.withValues(alpha: 0),
-                              scheme.surface,
-                            ],
-                          ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      InstrumentAvatar(symbol: symbol, label: label, size: 40),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              title,
+                              style: text.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            if (subtitle != null)
+                              Text(
+                                subtitle!,
+                                style: text.bodySmall?.copyWith(
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                              ),
+                          ],
                         ),
+                      ),
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  // Список строк прокручивается внутри карточки; сама карточка
+                  // сжимается под контент и упирается в ограничение по высоте.
+                  Flexible(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: rows,
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-            if (actionLabel != null) ...[
-              const SizedBox(height: 4),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: onAction,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                  ),
-                  icon: Icon(actionIcon ?? Icons.show_chart, size: 18),
-                  label: Text(actionLabel!),
-                ),
+          ),
+          if (actionLabel != null) ...[
+            const SizedBox(height: 10),
+            FilledButton.icon(
+              onPressed: onAction,
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                minimumSize: const Size.fromHeight(50),
               ),
-            ],
+              icon: Icon(actionIcon ?? Icons.show_chart, size: 18),
+              label: Text(actionLabel!),
+            ),
           ],
-        ),
+        ],
       ),
     );
   }
