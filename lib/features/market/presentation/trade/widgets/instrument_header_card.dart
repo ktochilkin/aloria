@@ -69,8 +69,9 @@ String _typeLabel(String type) {
 }
 
 /// Богатая «coinbase»-шапка инструмента: аватар, тикер, название компании,
-/// крупная моно-цена + изменение (семантика) и сетка статов из котировки.
-class InstrumentHeaderCard extends ConsumerWidget {
+/// крупная моно-цена + изменение (семантика). Подробная сетка статов из
+/// котировки по умолчанию свёрнута и разворачивается тапом по «Подробнее».
+class InstrumentHeaderCard extends ConsumerStatefulWidget {
   const InstrumentHeaderCard({
     super.key,
     required this.symbol,
@@ -88,9 +89,20 @@ class InstrumentHeaderCard extends ConsumerWidget {
   final MarketPrice? price;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<InstrumentHeaderCard> createState() =>
+      _InstrumentHeaderCardState();
+}
+
+class _InstrumentHeaderCardState extends ConsumerState<InstrumentHeaderCard> {
+  /// Развёрнута ли подробная сетка статов. По умолчанию скрыта.
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final symbol = widget.symbol;
+    final exchange = widget.exchange;
     final text = Theme.of(context).textTheme;
-    final p = price;
+    final p = widget.price;
     // Шаг цены — из разовой REST-детали инструмента (в потоке котировок его нет).
     final minStep = ref
         .watch(instrumentDetailProvider((symbol: symbol, exchange: exchange)))
@@ -210,23 +222,61 @@ class InstrumentHeaderCard extends ConsumerWidget {
               ],
             ),
             if (stats.isNotEmpty) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               const Divider(height: 1),
-              const SizedBox(height: 14),
-              for (var i = 0; i < stats.length; i += 2)
-                Padding(
-                  padding: EdgeInsets.only(bottom: i + 2 < stats.length ? 14 : 0),
+              InkWell(
+                onTap: () => setState(() => _expanded = !_expanded),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
                   child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Expanded(child: _StatTile(item: stats[i])),
-                      Expanded(
-                        child: i + 1 < stats.length
-                            ? _StatTile(item: stats[i + 1])
-                            : const SizedBox.shrink(),
+                      Text(
+                        _expanded ? 'Свернуть' : 'Подробнее об инструменте',
+                        style: text.bodyMedium?.copyWith(
+                          color: cbBody,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        _expanded ? Icons.expand_less : Icons.expand_more,
+                        color: cbBody,
+                        size: 20,
                       ),
                     ],
                   ),
                 ),
+              ),
+              AnimatedSize(
+                duration: const Duration(milliseconds: 180),
+                alignment: Alignment.topCenter,
+                curve: Curves.easeOut,
+                child: _expanded
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 4),
+                          for (var i = 0; i < stats.length; i += 2)
+                            Padding(
+                              padding: EdgeInsets.only(
+                                bottom: i + 2 < stats.length ? 14 : 0,
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(child: _StatTile(item: stats[i])),
+                                  Expanded(
+                                    child: i + 1 < stats.length
+                                        ? _StatTile(item: stats[i + 1])
+                                        : const SizedBox.shrink(),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      )
+                    : const SizedBox(width: double.infinity),
+              ),
             ],
           ],
         ),

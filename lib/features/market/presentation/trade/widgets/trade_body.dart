@@ -6,6 +6,7 @@ import 'package:aloria/features/market/domain/stop_order.dart';
 import 'package:aloria/features/market/domain/trade_order.dart';
 import 'package:aloria/features/market/presentation/trade/trade_providers.dart';
 import 'package:aloria/features/market/presentation/trade/widgets/candle_chart.dart';
+import 'package:aloria/features/market/presentation/trade/widgets/chart_timeframe_bar.dart';
 import 'package:aloria/features/market/presentation/trade/widgets/feed_tabs_section.dart';
 import 'package:aloria/features/market/presentation/trade/widgets/instrument_header_card.dart';
 import 'package:aloria/features/market/presentation/trade/widgets/order_form_section.dart';
@@ -120,12 +121,27 @@ class TradeBody extends StatelessWidget {
                 margin: EdgeInsets.zero,
                 child: Padding(
                   padding: const EdgeInsets.all(16),
-                  child: candles.isEmpty
-                      ? const SizedBox(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      ChartTimeframeBar(symbol: symbol),
+                      const SizedBox(height: 14),
+                      if (state.candlesLoading)
+                        const SizedBox(
                           height: 200,
-                          child: Center(child: Text('Нет данных для графика')),
+                          child: Center(child: CircularProgressIndicator()),
                         )
-                      : CandleChart(data: candles, scheme: scheme),
+                      else if (candles.isEmpty)
+                        const SizedBox(
+                          height: 200,
+                          child: Center(
+                            child: Text('Нет данных для графика'),
+                          ),
+                        )
+                      else
+                        CandleChart(data: candles, scheme: scheme),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 12),

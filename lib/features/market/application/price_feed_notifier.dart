@@ -5,17 +5,63 @@ import 'package:aloria/features/market/domain/candle.dart';
 import 'package:aloria/features/market/domain/market_price.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+/// Таймфрейм графика. [code] — значение Alor `tf` (в секундах) для истории
+/// (REST `/md/v2/history`) и потока `BarsGetAndSubscribe`; [label] — подпись
+/// для UI; [lookback] — глубина истории, чтобы набрать достаточно баров.
+class ChartTimeframe {
+  const ChartTimeframe(this.code, this.label, this.lookback);
+
+  final String code;
+  final String label;
+  final Duration lookback;
+}
+
+/// Поддерживаемые таймфреймы графика (по возрастанию).
+const kChartTimeframes = <ChartTimeframe>[
+  ChartTimeframe('60', '1м', Duration(hours: 6)),
+  ChartTimeframe('300', '5м', Duration(days: 1)),
+  ChartTimeframe('900', '15м', Duration(days: 3)),
+  ChartTimeframe('3600', '1ч', Duration(days: 14)),
+  ChartTimeframe('86400', '1д', Duration(days: 180)),
+];
+
+/// Таймфрейм по умолчанию (1 минута).
+const kDefaultTimeframeCode = '60';
+
+ChartTimeframe timeframeByCode(String code) => kChartTimeframes.firstWhere(
+  (t) => t.code == code,
+  orElse: () => kChartTimeframes.first,
+);
+
+/// Выбранный таймфрейм графика по символу. Переживает уход со страницы, чтобы
+/// при возврате на инструмент остался прежний масштаб.
+final chartTimeframeProvider = StateProvider.family<String, String>((
+  ref,
+  symbol,
+) {
+  ref.keepAlive();
+  return kDefaultTimeframeCode;
+});
+
 class PriceFeedState {
   final MarketPrice? latest;
   final List<MarketPrice> history;
   final List<Candle> candles;
   final bool fromCache;
 
+  /// Текущий таймфрейм графика (код Alor `tf`).
+  final String timeframe;
+
+  /// true — идёт перезагрузка свечей под новый таймфрейм (остальной экран жив).
+  final bool candlesLoading;
+
   const PriceFeedState({
     required this.latest,
     required this.history,
     required this.candles,
     required this.fromCache,
+    this.timeframe = kDefaultTimeframeCode,
+    this.candlesLoading = false,
   });
 
   PriceFeedState copyWith({
@@ -23,12 +69,16 @@ class PriceFeedState {
     List<MarketPrice>? history,
     List<Candle>? candles,
     bool? fromCache,
+    String? timeframe,
+    bool? candlesLoading,
   }) {
     return PriceFeedState(
       latest: latest ?? this.latest,
       history: history ?? this.history,
       candles: candles ?? this.candles,
       fromCache: fromCache ?? this.fromCache,
+      timeframe: timeframe ?? this.timeframe,
+      candlesLoading: candlesLoading ?? this.candlesLoading,
     );
   }
 
@@ -43,7 +93,6 @@ class PriceFeedState {
 
   PriceFeedState updateCandle(Candle newCandle) {
     if (candles.isEmpty) {
-      // Добавляем первую свечу и ограничиваем до 10
       return copyWith(candles: [newCandle]);
     }
 
@@ -61,14 +110,17 @@ class PriceFeedState {
       updated = [...candles, newCandle];
     }
 
-    // Ограничиваем до 10 последних свечей
-    const maxCandles = 40; // буфер потока; график показывает последние 20
-    final trimmed = updated.length > maxCandles
-        ? updated.sublist(updated.length - maxCandles)
+    final trimmed = updated.length > _PriceFeedNotifierLimits.maxCandles
+        ? updated.sublist(updated.length - _PriceFeedNotifierLimits.maxCandles)
         : updated;
 
     return copyWith(candles: trimmed);
   }
+}
+
+class _PriceFeedNotifierLimits {
+  /// Буфер потока свечей; график показывает последние 20.
+  static const int maxCandles = 40;
 }
 
 typedef PriceFeedParams = ({String symbol, String exchange});
@@ -79,36 +131,60 @@ class PriceFeedNotifier
   StreamSubscription<Candle>? _candleSubscription;
   Timer? _keepAliveTimer;
 
+  /// Текущий таймфрейм графика.
+  String _timeframe = kDefaultTimeframeCode;
+
+  /// Метка «поколения» подписки на свечи: переключение таймфрейма увеличивает
+  /// её, и все асинхронные результаты прошлого таймфрейма отбрасываются.
+  int _candleEpoch = 0;
+
+  /// true после онуления провайдера — гард от записи в [state] после dispose.
+  bool _disposed = false;
+
   @override
   FutureOr<PriceFeedState> build(PriceFeedParams params) async {
-    // Сохраняем провайдер активным для сохранения состояния
-    final link = ref.keepAlive();
+    _disposed = false;
 
-    // Автоматически очищаем через 60 секунд неактивности
+    final link = ref.keepAlive();
     _keepAliveTimer?.cancel();
     _keepAliveTimer = Timer(const Duration(seconds: 60), link.close);
 
-    final repo = await ref.watch(marketDataRepositoryProvider.future);
+    // Текущий таймфрейм — из общего провайдера (переживает уход со страницы).
+    _timeframe = ref.read(chartTimeframeProvider(params.symbol));
+    // Смена таймфрейма из UI: точечно переключаем только свечи, не трогая
+    // цену, стакан и общий статус экрана (без вспышки загрузки).
+    ref.listen(chartTimeframeProvider(params.symbol), (_, next) {
+      _applyTimeframe(next);
+    });
 
-    // Загружаем кэшированную историю для данного инструмента
+    // Экран показывается уже после кэша (ниже), поэтому таймфрейм можно
+    // переключить ещё до конца build. Если это случилось — отдаём управление
+    // свечами _applyTimeframe и не подписываемся/не перетираем их здесь.
+    final buildEpoch = _candleEpoch;
+    bool ownsCandles() => !_disposed && _candleEpoch == buildEpoch;
+
+    final repo = await ref.watch(marketDataRepositoryProvider.future);
+    final tf = timeframeByCode(_timeframe);
+
+    // Кэшированная история инструмента — мгновенная отрисовка.
     final cachedHistory = await repo.loadCachedHistory(params.symbol);
     var current = PriceFeedState(
       latest: cachedHistory.isNotEmpty ? cachedHistory.last : null,
       history: cachedHistory,
       candles: const [],
       fromCache: cachedHistory.isNotEmpty,
+      timeframe: _timeframe,
     );
     state = AsyncData(current);
 
     final history = await repo.fetchHistoryPrices(
       symbol: params.symbol,
       exchange: params.exchange,
-      // Трое суток часовых баров: с запасом покрывает 20 свечей графика
-      // даже через ночь и выходные.
-      lookback: const Duration(hours: 72),
+      tf: _tfSeconds(_timeframe),
+      lookback: tf.lookback,
     );
     if (history.isNotEmpty) {
-      // Фильтруем только данные текущего инструмента перед merge
+      // Фильтруем только данные текущего инструмента перед merge.
       final filtered = current.history
           .where((p) => p.instrumentId == params.symbol)
           .toList();
@@ -126,15 +202,10 @@ class PriceFeedNotifier
             .toList(),
       );
 
-      // Обрезаем свечи до 10 последних сразу при загрузке
-      const maxCandles = 40; // буфер потока; график показывает последние 20
-      final trimmedCandles = history.length > maxCandles
-          ? history.sublist(history.length - maxCandles)
-          : history;
-
       current = current.copyWith(
         history: merged,
-        candles: trimmedCandles,
+        // Свечи трогаем, только если их не перехватил переключатель таймфрейма.
+        candles: ownsCandles() ? _trimCandles(history) : current.candles,
         latest: merged.isNotEmpty ? merged.last : current.latest,
         fromCache: false,
       );
@@ -153,38 +224,103 @@ class PriceFeedNotifier
     _priceSubscription = repo
         .watchPrice(symbol: params.symbol, exchange: params.exchange)
         .listen((price) {
-          // Проверяем что цена относится к нашему инструменту
-          if (price.instrumentId != params.symbol) return;
+          if (_disposed || price.instrumentId != params.symbol) return;
           final next = (state.value ?? current).append(price);
           state = AsyncData(next);
         });
 
-    // Подписываемся на обновления свечей
-    // from = время самой молодой (последней) свечи, чтобы обновлять активную свечу
-    final fromTime = current.candles.isNotEmpty
-        ? current.candles.last.ts
-        : DateTime.now().subtract(const Duration(hours: 72));
-
-    _candleSubscription = repo
-        .watchCandles(
-          symbol: params.symbol,
-          exchange: params.exchange,
-          timeframe: '60', // 1 час
-          fromTime: fromTime,
-        )
-        .listen((candle) {
-          final next = (state.value ?? current).updateCandle(candle);
-          state = AsyncData(next);
-        });
+    // Если за время build таймфрейм переключили — свечами уже занимается
+    // _applyTimeframe: не плодим вторую подписку и не перетираем его состояние.
+    if (ownsCandles()) {
+      _subscribeCandles(params, repo, current.candles, buildEpoch);
+    }
 
     ref.onDispose(() async {
+      _disposed = true;
       _keepAliveTimer?.cancel();
       await _priceSubscription?.cancel();
       await _candleSubscription?.cancel();
     });
 
-    return current;
+    return ownsCandles() ? current : (state.value ?? current);
   }
+
+  /// Подписка на живые свечи текущего таймфрейма. [epoch] фиксируется в
+  /// замыкании — события «старого» таймфрейма игнорируются.
+  void _subscribeCandles(
+    PriceFeedParams params,
+    MarketDataRepository repo,
+    List<Candle> seed,
+    int epoch,
+  ) {
+    final fromTime = seed.isNotEmpty
+        ? seed.last.ts
+        : DateTime.now().subtract(timeframeByCode(_timeframe).lookback);
+    _candleSubscription = repo
+        .watchCandles(
+          symbol: params.symbol,
+          exchange: params.exchange,
+          timeframe: _timeframe,
+          fromTime: fromTime,
+        )
+        .listen((candle) {
+          if (_disposed || epoch != _candleEpoch) return;
+          final c = state.value;
+          if (c == null) return;
+          state = AsyncData(c.updateCandle(candle));
+        });
+  }
+
+  /// Переключение таймфрейма графика. Снимает старую подписку на свечи,
+  /// подгружает историю под новый масштаб и подписывается заново — цена и
+  /// стакан остаются на месте, общий статус экрана не сбрасывается в загрузку.
+  Future<void> _applyTimeframe(String code) async {
+    if (_disposed || code == _timeframe) return;
+    _timeframe = code;
+    final epoch = ++_candleEpoch;
+
+    await _candleSubscription?.cancel();
+    _candleSubscription = null;
+    if (_disposed || epoch != _candleEpoch) return;
+
+    // Показываем загрузку только на графике, не трогая остальное состояние.
+    final base = state.value;
+    if (base != null) {
+      state = AsyncData(
+        base.copyWith(timeframe: code, candles: const [], candlesLoading: true),
+      );
+    }
+
+    final params = arg;
+    final repo = await ref.read(marketDataRepositoryProvider.future);
+    if (_disposed || epoch != _candleEpoch) return;
+
+    final bars = await repo.fetchHistoryPrices(
+      symbol: params.symbol,
+      exchange: params.exchange,
+      tf: _tfSeconds(code),
+      lookback: timeframeByCode(code).lookback,
+    );
+    if (_disposed || epoch != _candleEpoch) return;
+
+    final trimmed = _trimCandles(bars);
+    final cur = state.value;
+    if (cur != null) {
+      state = AsyncData(cur.copyWith(candles: trimmed, candlesLoading: false));
+    }
+
+    _subscribeCandles(params, repo, trimmed, epoch);
+  }
+
+  List<Candle> _trimCandles(List<Candle> bars) {
+    final valid = bars.where((c) => c.isValid).toList();
+    const max = _PriceFeedNotifierLimits.maxCandles;
+    return valid.length > max ? valid.sublist(valid.length - max) : valid;
+  }
+
+  /// Код таймфрейма Alor в секундах для REST-истории (числовые коды), с
+  /// фолбэком на 1 минуту.
+  int _tfSeconds(String code) => int.tryParse(code) ?? 60;
 }
 
 List<MarketPrice> _mergeHistory(List<MarketPrice> a, List<MarketPrice> b) {
@@ -210,9 +346,9 @@ final priceFeedProvider =
 /// несёт статику, которой нет в потоке котировок (минимальный шаг цены и т.п.).
 final instrumentDetailProvider = FutureProvider.autoDispose
     .family<MarketPrice?, PriceFeedParams>((ref, params) async {
-  final repo = await ref.watch(marketDataRepositoryProvider.future);
-  return repo.fetchInstrumentDetail(
-    symbol: params.symbol,
-    exchange: params.exchange,
-  );
-});
+      final repo = await ref.watch(marketDataRepositoryProvider.future);
+      return repo.fetchInstrumentDetail(
+        symbol: params.symbol,
+        exchange: params.exchange,
+      );
+    });

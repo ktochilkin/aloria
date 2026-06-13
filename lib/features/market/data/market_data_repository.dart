@@ -58,13 +58,13 @@ class MarketDataRepository {
     required String symbol,
     required String exchange,
     Duration lookback = const Duration(hours: 4),
-    int tfMinutes = 60,
+    int tf = 60,
   }) {
     return _http.fetchHistoryPrices(
       symbol: symbol,
       exchange: exchange,
       lookback: lookback,
-      tfMinutes: tfMinutes,
+      tf: tf,
     );
   }
 
