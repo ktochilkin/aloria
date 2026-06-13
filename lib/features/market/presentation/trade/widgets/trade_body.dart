@@ -121,11 +121,11 @@ class TradeBody extends StatelessWidget {
                 margin: EdgeInsets.zero,
                 child: Padding(
                   padding: const EdgeInsets.all(16),
+                  // Переключатель таймфрейма — ПОД графиком: так удобнее
+                  // управлять большим пальцем и сразу видеть результат сверху.
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      ChartTimeframeBar(symbol: symbol),
-                      const SizedBox(height: 14),
                       if (state.candlesLoading)
                         const SizedBox(
                           height: 200,
@@ -140,6 +140,8 @@ class TradeBody extends StatelessWidget {
                         )
                       else
                         CandleChart(data: candles, scheme: scheme),
+                      const SizedBox(height: 14),
+                      ChartTimeframeBar(symbol: symbol),
                     ],
                   ),
                 ),

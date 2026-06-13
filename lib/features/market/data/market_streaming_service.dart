@@ -344,6 +344,11 @@ class MarketStreamingService {
       if (subState.listeners > 0) return;
       subState.listeners = 0;
       subState.disposed = true;
+      // Снимаем подписку из кэша СИНХРОННО, до await: иначе при быстром
+      // переключении таймфрейма (X → Y → X) переподписка на тот же ключ
+      // переиспользует уже закрывающийся контроллер и график «зависает».
+      // Параллельная переподписка тогда создаст свежую подписку с нуля.
+      if (identical(_candleSubs[key], subState)) _candleSubs.remove(key);
       if (subState.subId != null) {
         final token = await _tokenProvider.accessToken();
         if (token != null) {
@@ -357,7 +362,6 @@ class MarketStreamingService {
       await subState.sub?.cancel();
       subState.sub = null;
       await controller.close();
-      _candleSubs.remove(key);
     };
 
     await subscribe();

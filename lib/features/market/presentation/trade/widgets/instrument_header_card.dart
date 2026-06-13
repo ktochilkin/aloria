@@ -146,7 +146,7 @@ class _InstrumentHeaderCardState extends ConsumerState<InstrumentHeaderCard> {
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 6),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -192,7 +192,7 @@ class _InstrumentHeaderCardState extends ConsumerState<InstrumentHeaderCard> {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -222,12 +222,12 @@ class _InstrumentHeaderCardState extends ConsumerState<InstrumentHeaderCard> {
               ],
             ),
             if (stats.isNotEmpty) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
               const Divider(height: 1),
               InkWell(
                 onTap: () => setState(() => _expanded = !_expanded),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  padding: const EdgeInsets.symmetric(vertical: 9),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

@@ -180,7 +180,7 @@ class PriceFeedNotifier
     final history = await repo.fetchHistoryPrices(
       symbol: params.symbol,
       exchange: params.exchange,
-      tf: _tfSeconds(_timeframe),
+      tf: _timeframe,
       lookback: tf.lookback,
     );
     if (history.isNotEmpty) {
@@ -256,6 +256,9 @@ class PriceFeedNotifier
     final fromTime = seed.isNotEmpty
         ? seed.last.ts
         : DateTime.now().subtract(timeframeByCode(_timeframe).lookback);
+    // Защита от перезаписи: всегда снимаем прежнюю подписку перед новой,
+    // чтобы ни при каких гонках не осталось «висящего» слушателя свечей.
+    _candleSubscription?.cancel();
     _candleSubscription = repo
         .watchCandles(
           symbol: params.symbol,
@@ -298,7 +301,7 @@ class PriceFeedNotifier
     final bars = await repo.fetchHistoryPrices(
       symbol: params.symbol,
       exchange: params.exchange,
-      tf: _tfSeconds(code),
+      tf: code,
       lookback: timeframeByCode(code).lookback,
     );
     if (_disposed || epoch != _candleEpoch) return;
@@ -317,10 +320,6 @@ class PriceFeedNotifier
     const max = _PriceFeedNotifierLimits.maxCandles;
     return valid.length > max ? valid.sublist(valid.length - max) : valid;
   }
-
-  /// Код таймфрейма Alor в секундах для REST-истории (числовые коды), с
-  /// фолбэком на 1 минуту.
-  int _tfSeconds(String code) => int.tryParse(code) ?? 60;
 }
 
 List<MarketPrice> _mergeHistory(List<MarketPrice> a, List<MarketPrice> b) {
