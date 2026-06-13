@@ -393,6 +393,9 @@ class MarketStreamingService {
       }
 
       await _portfolioRealtime.ensureConnected();
+      // Снапшот придёт целиком заново — сбрасываем накопленное, чтобы после
+      // переподключения не показать закрытые позиции.
+      latest.clear();
       final subId =
           'positions-$portfolio-${DateTime.now().millisecondsSinceEpoch}';
       subState.subId = subId;
@@ -416,6 +419,17 @@ class MarketStreamingService {
           }
           final guid = event['guid'] as String?;
           if (guid != null && guid != subId) return;
+
+          // Снапшот получен (возможно пустой) — публикуем текущий снимок,
+          // чтобы провайдер вышел из загрузки даже без позиций.
+          if (_isSubscriptionAck(event, subId)) {
+            _pushPositions(latest, controller);
+            return;
+          }
+          if (_isSubscriptionError(event, subId)) {
+            _emitSubscriptionError(event, controller);
+            return;
+          }
 
           final positionsRaw = event['positions'] ?? event['data'];
           if (positionsRaw is List) {
@@ -576,6 +590,9 @@ class MarketStreamingService {
       }
 
       await _portfolioRealtime.ensureConnected();
+      // Снапшот придёт целиком заново — сбрасываем накопленное, чтобы после
+      // переподключения не «воскресить» уже отменённые/исполненные заявки.
+      latest.clear();
       final subId =
           'orders-$portfolio-${DateTime.now().millisecondsSinceEpoch}';
       subState.subId = subId;
@@ -599,6 +616,18 @@ class MarketStreamingService {
           }
           final guid = event['guid'] as String?;
           if (guid != null && guid != subId) return;
+
+          // Снапшот получен (возможно пустой — заявки обнуляются каждый
+          // торговый день). Публикуем снимок, иначе при пустом списке поток
+          // не эмитит ничего и вкладка «Заявки» вечно крутит загрузку.
+          if (_isSubscriptionAck(event, subId)) {
+            _pushOrders(latest, controller);
+            return;
+          }
+          if (_isSubscriptionError(event, subId)) {
+            _emitSubscriptionError(event, controller);
+            return;
+          }
 
           final data = event['data'];
           if (data is List) {
@@ -659,7 +688,44 @@ class MarketStreamingService {
     if (position.symbol.isEmpty) return;
     final key = '${position.exchange}:${position.symbol}'.toUpperCase();
     latest[key] = position;
+    _pushPositions(latest, controller);
+  }
+
+  void _pushPositions(
+    Map<String, Position> latest,
+    StreamController<List<Position>> controller,
+  ) {
     if (!controller.isClosed) controller.add(latest.values.toList());
+  }
+
+  /// Подтверждение подписки `*GetAndSubscribeV2` (ServiceMessage200): сервер
+  /// прислал его с `requestGuid` нашей подписки и `httpCode` 200, когда
+  /// обработал запрос и доставил снапшот — пусть даже пустой.
+  ///
+  /// Это и есть сигнал «снапшот получен». Без него поток ничего не эмитит,
+  /// если коллекция пуста (заявки и сделки система обнуляет каждый торговый
+  /// день, и тогда снапшот приходит пустым), а провайдер навсегда зависает
+  /// в состоянии загрузки.
+  bool _isSubscriptionAck(Map<String, dynamic> event, String subId) =>
+      event['requestGuid'] == subId && event['httpCode'] == 200;
+
+  /// Ошибка подписки (ServiceMessage400/401): тот же `requestGuid`, но
+  /// `httpCode` не 200 — например, 401 при просроченном токене. Превращаем в
+  /// ошибку потока: UI покажет «не получилось загрузить» с кнопкой «Обновить»,
+  /// а не вечный спиннер (см. §7 — никакого бесконечного индикатора загрузки).
+  bool _isSubscriptionError(Map<String, dynamic> event, String subId) {
+    if (event['requestGuid'] != subId) return false;
+    final code = event['httpCode'];
+    return code != null && code != 200;
+  }
+
+  void _emitSubscriptionError<T>(
+    Map<String, dynamic> event,
+    StreamController<T> controller,
+  ) {
+    if (controller.isClosed) return;
+    final message = event['message']?.toString() ?? 'Подписка отклонена';
+    controller.addError(Exception(message));
   }
 
   /// Сделки по портфелю: `TradesGetAndSubscribeV2`. Снапшот истории +
@@ -692,6 +758,9 @@ class MarketStreamingService {
       }
 
       await _portfolioRealtime.ensureConnected();
+      // Снапшот придёт целиком заново — сбрасываем накопленное, чтобы после
+      // переподключения не показать устаревшую историю сделок.
+      latest.clear();
       final subId =
           'trades-$portfolio-${DateTime.now().millisecondsSinceEpoch}';
       subState.subId = subId;
@@ -714,6 +783,18 @@ class MarketStreamingService {
           }
           final guid = event['guid'] as String?;
           if (guid != null && guid != subId) return;
+
+          // Снапшот получен (возможно пустой — сделки обнуляются каждый
+          // торговый день). Публикуем снимок, иначе вкладка «Сделки» вечно
+          // крутит загрузку при пустой истории.
+          if (_isSubscriptionAck(event, subId)) {
+            _pushTrades(latest, controller);
+            return;
+          }
+          if (_isSubscriptionError(event, subId)) {
+            _emitSubscriptionError(event, controller);
+            return;
+          }
 
           final data = event['data'];
           if (data is List) {
@@ -784,6 +865,9 @@ class MarketStreamingService {
       }
 
       await _portfolioRealtime.ensureConnected();
+      // Снапшот придёт целиком заново — сбрасываем накопленное, чтобы после
+      // переподключения не «воскресить» снятые условные заявки.
+      latest.clear();
       final subId =
           'stoporders-$portfolio-${DateTime.now().millisecondsSinceEpoch}';
       subState.subId = subId;
@@ -806,6 +890,17 @@ class MarketStreamingService {
           }
           final guid = event['guid'] as String?;
           if (guid != null && guid != subId) return;
+
+          // Снапшот получен (возможно пустой). Публикуем снимок, чтобы
+          // провайдер вышел из загрузки даже без условных заявок.
+          if (_isSubscriptionAck(event, subId)) {
+            _pushStopOrders(latest, controller);
+            return;
+          }
+          if (_isSubscriptionError(event, subId)) {
+            _emitSubscriptionError(event, controller);
+            return;
+          }
 
           final data = event['data'];
           if (data is List) {
@@ -855,6 +950,14 @@ class MarketStreamingService {
     final trade = PortfolioTrade.fromMap(raw);
     if (trade == null) return;
     latest[trade.id] = trade;
+    _pushTrades(latest, controller);
+  }
+
+  void _pushTrades(
+    Map<String, PortfolioTrade> latest,
+    StreamController<List<PortfolioTrade>> controller,
+  ) {
+    if (controller.isClosed) return;
     final sorted = latest.values.toList()
       ..sort((a, b) {
         final aTime = a.date;
@@ -862,7 +965,7 @@ class MarketStreamingService {
         if (aTime != null && bTime != null) return bTime.compareTo(aTime);
         return b.id.compareTo(a.id);
       });
-    if (!controller.isClosed) controller.add(sorted);
+    controller.add(sorted);
   }
 
   void _emitStopOrder(
@@ -873,6 +976,14 @@ class MarketStreamingService {
     final order = StopOrder.fromMap(raw);
     if (order == null) return;
     latest[order.id] = order;
+    _pushStopOrders(latest, controller);
+  }
+
+  void _pushStopOrders(
+    Map<String, StopOrder> latest,
+    StreamController<List<StopOrder>> controller,
+  ) {
+    if (controller.isClosed) return;
     final sorted = latest.values.toList()
       ..sort((a, b) {
         final activeCmp = (b.isActive ? 1 : 0) - (a.isActive ? 1 : 0);
@@ -882,7 +993,7 @@ class MarketStreamingService {
         if (aTime != null && bTime != null) return bTime.compareTo(aTime);
         return b.id.compareTo(a.id);
       });
-    if (!controller.isClosed) controller.add(sorted);
+    controller.add(sorted);
   }
 
   void _emitOrder(
@@ -893,6 +1004,14 @@ class MarketStreamingService {
     final order = ClientOrder.fromMap(raw);
     if (order == null) return;
     latest[order.id] = order;
+    _pushOrders(latest, controller);
+  }
+
+  void _pushOrders(
+    Map<String, ClientOrder> latest,
+    StreamController<List<ClientOrder>> controller,
+  ) {
+    if (controller.isClosed) return;
     final sorted = latest.values.toList()
       ..sort((a, b) {
         final activeCmp = (b.isActive ? 1 : 0) - (a.isActive ? 1 : 0);
@@ -904,7 +1023,7 @@ class MarketStreamingService {
         }
         return b.id.compareTo(a.id);
       });
-    if (!controller.isClosed) controller.add(sorted);
+    controller.add(sorted);
   }
 }
 
