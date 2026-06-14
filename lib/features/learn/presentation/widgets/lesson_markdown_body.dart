@@ -41,7 +41,7 @@ class LessonMarkdownBody extends ConsumerWidget {
           styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
             p: lead
                 ? text.bodyMedium?.copyWith(
-                    fontSize: 16.5,
+                    fontSize: 15.5,
                     height: 1.5,
                     fontWeight: FontWeight.w500,
                     color: scheme.onSurface,
