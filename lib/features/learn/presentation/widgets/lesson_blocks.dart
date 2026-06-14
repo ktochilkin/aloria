@@ -4,7 +4,6 @@ import 'package:aloria/features/learn/presentation/widgets/lesson_compound_growt
 import 'package:aloria/features/learn/presentation/widgets/lesson_divgap_chart.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_foundations.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_inflation_erosion.dart';
-import 'package:aloria/features/learn/presentation/widgets/lesson_journey.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_leverage_seesaw.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_market_vs_limit.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_orderbook_2col.dart';
@@ -88,8 +87,7 @@ const Map<String, LessonBlockBuilder> lessonBlockBuilders = {
   'kit-card': _kitCard,
   'kit-tokens': _kitTokens,
   'kit-bits': _kitBits,
-  // первый урок: карта пути + настоящая первая покупка
-  'journey': _journey,
+  // первый урок: настоящая первая покупка
   'try-buy': _tryBuy,
 };
 
@@ -246,8 +244,6 @@ Widget _kitTokens(BuildContext context, Color tint) => KitTokens(tint: tint);
 
 Widget _kitBits(BuildContext context, Color tint) => KitBits(tint: tint);
 
-Widget _journey(BuildContext context, Color tint) => LessonJourney(tint: tint);
-
 Widget _tryBuy(BuildContext context, Color tint) => LessonTryBuy(tint: tint);
 
 /// Сегмент тела урока: либо markdown-текст, либо именованный блок-директива.
@@ -267,11 +263,19 @@ class LessonBlock extends LessonSegment {
   final String name;
 }
 
+/// Выделенная врезка-лид: крупный вводный абзац с акцентной полосой.
+/// Внутри — обычный markdown (поддерживает **жирный** и `[[термины]]`).
+class LessonLead extends LessonSegment {
+  const LessonLead(this.markdown);
+
+  final String markdown;
+}
+
 final _directive = RegExp(r'^:::([a-z0-9-]+)\s*$');
 
-/// Разбивает тело урока на текстовые сегменты и блоки-директивы. Неизвестные
-/// директивы пропускаются (строка просто выкидывается), чтобы опечатка не
-/// ломала рендер урока.
+/// Разбивает тело урока на сегменты: текст, блоки-директивы `:::имя` и
+/// врезки-лиды `:::lead … :::`. Неизвестные директивы пропускаются (строка
+/// просто выкидывается), чтобы опечатка не ломала рендер урока.
 List<LessonSegment> parseLessonSegments(String body) {
   final segments = <LessonSegment>[];
   final buffer = StringBuffer();
@@ -282,13 +286,32 @@ List<LessonSegment> parseLessonSegments(String body) {
     buffer.clear();
   }
 
-  for (final line in body.split('\n')) {
-    final match = _directive.firstMatch(line.trim());
+  final lines = body.split('\n');
+  for (var i = 0; i < lines.length; i++) {
+    final trimmed = lines[i].trim();
+
+    // Врезка-лид: `:::lead` … `:::` (закрывающая ограда). Содержимое внутри —
+    // обычный markdown, рендерится крупным выделенным абзацем.
+    if (trimmed == ':::lead') {
+      flush();
+      final lead = StringBuffer();
+      var j = i + 1;
+      while (j < lines.length && lines[j].trim() != ':::') {
+        lead.writeln(lines[j]);
+        j++;
+      }
+      final t = lead.toString().trim();
+      if (t.isNotEmpty) segments.add(LessonLead(t));
+      i = j; // пропускаем содержимое и закрывающую ограду
+      continue;
+    }
+
+    final match = _directive.firstMatch(trimmed);
     if (match != null && lessonBlockBuilders.containsKey(match.group(1))) {
       flush();
       segments.add(LessonBlock(match.group(1)!));
     } else {
-      buffer.writeln(line);
+      buffer.writeln(lines[i]);
     }
   }
   flush();

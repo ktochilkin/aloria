@@ -19,7 +19,6 @@ import 'shot_kit.dart';
 /// Размещённые в уроках блоки → токен тинта этапа (как в stages.json).
 const _deployed = <String, String>{
   // why-market (tint: primary)
-  'journey': 'primary',
   'inflation-erosion': 'primary',
   'compound-growth': 'primary',
   'compound-race': 'primary',

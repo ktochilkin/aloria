@@ -7,6 +7,7 @@ import 'package:aloria/features/learn/domain/models.dart';
 import 'package:aloria/features/learn/presentation/learning_index_page.dart';
 import 'package:aloria/features/learn/presentation/learning_section_page.dart';
 import 'package:aloria/features/learn/presentation/lesson_page.dart';
+import 'package:aloria/features/learn/presentation/widgets/lesson_markdown_body.dart';
 import 'package:aloria/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -219,6 +220,32 @@ void main() {
       'lesson_page',
       const LessonPage(sectionId: 'basics', lessonId: 'risk_types'),
       height: 2400,
+    );
+  });
+
+  testWidgets('обучение — лид-врезка', (tester) async {
+    await _shoot(
+      tester,
+      'lesson_lead',
+      Scaffold(
+        backgroundColor: AppTheme.light.scaffoldBackgroundColor,
+        body: const SingleChildScrollView(
+          padding: EdgeInsets.all(16),
+          child: LessonMarkdownBody(
+            body: ':::lead\n'
+                'Если ты когда-нибудь открывал приложение брокера и почти '
+                'сразу его закрывал, потому что по экрану ползли графики, '
+                'мигали красные и зелёные числа, а вокруг стояли слова вроде '
+                '«лимитная заявка» и «стакан» — ты не один такой.\n'
+                ':::\n\n'
+                'Aloria придумана для этого случая. И сразу главное: это не '
+                'игрушка с нарисованными графиками. Внутри работает **тот же '
+                'торговый движок, что стоит за настоящим брокером**.',
+            tint: AppColors.primary,
+          ),
+        ),
+      ),
+      height: 600,
     );
   });
 }

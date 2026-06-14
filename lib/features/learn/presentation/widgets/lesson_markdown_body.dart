@@ -33,12 +33,20 @@ class LessonMarkdownBody extends ConsumerWidget {
     final processed = injectConceptLinks(body, catalog);
 
     // Текстовые сегменты рендерим одинаково; директивы `:::block`
-    // превращаются в интерактивные виджеты из реестра.
-    Widget markdown(String data) => MarkdownBody(
+    // превращаются в интерактивные виджеты из реестра. `lead: true` —
+    // крупный выделенный вводный абзац (врезка `:::lead`).
+    Widget markdown(String data, {bool lead = false}) => MarkdownBody(
           data: data,
           selectable: true,
           styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-            p: text.bodyMedium?.copyWith(height: 1.55),
+            p: lead
+                ? text.titleMedium?.copyWith(
+                    fontSize: 18,
+                    height: 1.5,
+                    fontWeight: FontWeight.w500,
+                    color: scheme.onSurface,
+                  )
+                : text.bodyMedium?.copyWith(height: 1.55),
             h1: text.titleMedium?.copyWith(fontSize: 22),
             h2: text.titleMedium?.copyWith(fontSize: 19),
             h3: text.titleMedium?.copyWith(fontSize: 17),
@@ -84,6 +92,15 @@ class LessonMarkdownBody extends ConsumerWidget {
         for (final segment in segments)
           if (segment is LessonText)
             markdown(segment.markdown)
+          else if (segment is LessonLead)
+            Container(
+              margin: const EdgeInsets.only(top: 2, bottom: 12),
+              padding: const EdgeInsets.fromLTRB(16, 4, 4, 4),
+              decoration: BoxDecoration(
+                border: Border(left: BorderSide(color: tint, width: 4)),
+              ),
+              child: markdown(segment.markdown, lead: true),
+            )
           else if (segment is LessonBlock)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 10),
