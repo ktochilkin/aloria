@@ -40,8 +40,8 @@ class LessonMarkdownBody extends ConsumerWidget {
           selectable: true,
           styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
             p: lead
-                ? text.titleMedium?.copyWith(
-                    fontSize: 18,
+                ? text.bodyMedium?.copyWith(
+                    fontSize: 16.5,
                     height: 1.5,
                     fontWeight: FontWeight.w500,
                     color: scheme.onSurface,
@@ -95,9 +95,9 @@ class LessonMarkdownBody extends ConsumerWidget {
           else if (segment is LessonLead)
             Container(
               margin: const EdgeInsets.only(top: 2, bottom: 12),
-              padding: const EdgeInsets.fromLTRB(16, 4, 4, 4),
+              padding: const EdgeInsets.fromLTRB(14, 2, 2, 2),
               decoration: BoxDecoration(
-                border: Border(left: BorderSide(color: tint, width: 4)),
+                border: Border(left: BorderSide(color: tint, width: 3)),
               ),
               child: markdown(segment.markdown, lead: true),
             )
