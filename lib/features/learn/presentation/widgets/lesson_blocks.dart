@@ -4,6 +4,7 @@ import 'package:aloria/features/learn/presentation/widgets/lesson_compound_growt
 import 'package:aloria/features/learn/presentation/widgets/lesson_divgap_chart.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_foundations.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_inflation_erosion.dart';
+import 'package:aloria/features/learn/presentation/widgets/lesson_journey.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_leverage_seesaw.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_market_vs_limit.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_orderbook_2col.dart';
@@ -21,6 +22,7 @@ import 'package:aloria/features/learn/presentation/widgets/lesson_scam_flags.dar
 import 'package:aloria/features/learn/presentation/widgets/lesson_static_blocks.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_stop_loss_sim.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_style_directions.dart';
+import 'package:aloria/features/learn/presentation/widgets/lesson_try_buy.dart';
 import 'package:flutter/material.dart';
 
 /// Строит интерактивный/визуальный блок урока по имени директивы.
@@ -86,6 +88,9 @@ const Map<String, LessonBlockBuilder> lessonBlockBuilders = {
   'kit-card': _kitCard,
   'kit-tokens': _kitTokens,
   'kit-bits': _kitBits,
+  // первый урок: карта пути + настоящая первая покупка
+  'journey': _journey,
+  'try-buy': _tryBuy,
 };
 
 Widget _calloutDemo(BuildContext context, Color tint) =>
@@ -240,6 +245,10 @@ Widget _kitCard(BuildContext context, Color tint) =>
 Widget _kitTokens(BuildContext context, Color tint) => KitTokens(tint: tint);
 
 Widget _kitBits(BuildContext context, Color tint) => KitBits(tint: tint);
+
+Widget _journey(BuildContext context, Color tint) => LessonJourney(tint: tint);
+
+Widget _tryBuy(BuildContext context, Color tint) => LessonTryBuy(tint: tint);
 
 /// Сегмент тела урока: либо markdown-текст, либо именованный блок-директива.
 sealed class LessonSegment {
