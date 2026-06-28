@@ -63,20 +63,27 @@ class _FocusReadingViewState extends State<FocusReadingView> {
     final beats = splitLessonIntoBeats(widget.body);
     final topInset = MediaQuery.paddingOf(context).top + kToolbarHeight;
 
-    return ListView(
-      controller: _controller,
-      padding: EdgeInsets.only(top: topInset, bottom: 40),
-      children: [
-        // Обложка компактная и скроллится как обычно (НЕ затухает) — тело идёт
-        // сразу за ней, без разрыва; гаснет только «Листай».
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: _hPad),
-          child: _hero(context),
-        ),
-        for (final b in beats)
-          _FocusItem(
-            tick: _tick,
-            child: beatIsBlock(b)
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Верхний отступ центрирует заголовок+описание+«Листай» в первом экране.
+        // Тело идёт сразу за «Листай» и скрыто, пока не тронешь скролл — поэтому
+        // на открытии видно только обложку по центру.
+        final visible = constraints.maxHeight - topInset;
+        final topSpace = ((visible - 250) / 2).clamp(0.0, 600.0);
+        return ListView(
+          controller: _controller,
+          padding: EdgeInsets.only(top: topInset, bottom: 40),
+          children: [
+            // Обложка скроллится как обычно (НЕ затухает) — гаснет «Листай».
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: _hPad),
+              child: _hero(context, topSpace),
+            ),
+            for (final b in beats)
+              _FocusItem(
+                tick: _tick,
+                controller: _controller,
+                child: beatIsBlock(b)
                 // Интерактив шире (меньше боковой отступ) и без мёртвого
                 // пространства — «весомее», но без больших пустот.
                 ? Padding(
@@ -98,30 +105,33 @@ class _FocusReadingViewState extends State<FocusReadingView> {
                       big: true,
                     ),
                   ),
-          ),
-        const SizedBox(height: 12),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: _hPad),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: widget.tail,
-          ),
-        ),
-      ],
+              ),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: _hPad),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: widget.tail,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
-  /// Обложка: заголовок и главная мысль, под ними вплотную — «Листай». Тело
-  /// урока идёт сразу за обложкой, поэтому текст приходит без разрыва и
-  /// задержки. Сама обложка не затухает — просто уезжает вверх со всем вместе.
-  Widget _hero(BuildContext context) {
+  /// Обложка по центру первого экрана: заголовок и главная мысль, под ними —
+  /// «Листай». Тело идёт сразу за «Листай» и скрыто до скролла, поэтому текст
+  /// «появляется» ровно на месте «Листай». Сама обложка не затухает.
+  Widget _hero(BuildContext context, double topSpace) {
     final text = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.only(top: 28, bottom: 12),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          SizedBox(height: topSpace),
           Text(
             widget.title,
             style: text.titleMedium?.copyWith(
@@ -229,9 +239,14 @@ class _ScrollFadeOutState extends State<_ScrollFadeOut> {
 /// краю мягко притухает — но не в ноль (минимум видимости остаётся, без
 /// «белого листа» в момент перехода между битами).
 class _FocusItem extends StatefulWidget {
-  const _FocusItem({required this.tick, required this.child});
+  const _FocusItem({
+    required this.tick,
+    required this.controller,
+    required this.child,
+  });
 
   final ValueListenable<int> tick;
+  final ScrollController controller;
   final Widget child;
 
   @override
@@ -239,7 +254,11 @@ class _FocusItem extends StatefulWidget {
 }
 
 class _FocusItemState extends State<_FocusItem> {
-  double _opacity = 1;
+  // На сколько пикселей прокрутки тело проявляется из скрытого состояния.
+  static const double _revealDistance = 60;
+
+  // Старт скрыт: на открытии видна только обложка по центру.
+  double _opacity = 0;
 
   @override
   void initState() {
@@ -271,7 +290,14 @@ class _FocusItemState extends State<_FocusItem> {
     } else {
       t = ((screenH - centerY) / (screenH - bottom)).clamp(0.0, 1.0);
     }
-    final o = 0.16 + 0.84 * t;
+
+    // Проявление: 0 в самом верху (только обложка) → 1 за первые ~60px скролла.
+    // Короткая дистанция — чтобы тело быстро вставало на место «Листай», без
+    // долгой бледной фазы.
+    final off = widget.controller.hasClients ? widget.controller.offset : 0.0;
+    final reveal = (off / _revealDistance).clamp(0.0, 1.0);
+
+    final o = (0.16 + 0.84 * t) * reveal;
     if ((o - _opacity).abs() > 0.012) {
       setState(() => _opacity = o);
     }
@@ -279,6 +305,10 @@ class _FocusItemState extends State<_FocusItem> {
 
   @override
   Widget build(BuildContext context) {
-    return Opacity(opacity: _opacity, child: widget.child);
+    return Opacity(
+      opacity: _opacity,
+      // Невидимый (ещё не проявленный) бит не ловит тапы.
+      child: IgnorePointer(ignoring: _opacity < 0.05, child: widget.child),
+    );
   }
 }
