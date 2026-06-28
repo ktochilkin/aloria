@@ -5,6 +5,7 @@ import 'package:aloria/features/learn/data/learning_api_client.dart';
 import 'package:aloria/features/learn/data/learning_content_cache.dart';
 import 'package:aloria/features/learn/domain/models.dart';
 import 'package:aloria/features/learn/presentation/widgets/fading_header.dart';
+import 'package:aloria/features/learn/presentation/widgets/focus_reading_view.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_bottom_actions.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_concepts.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_images.dart';
@@ -18,6 +19,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+/// Режим показа уроков первого раздела: `true` — фокус-скролл (воздушная
+/// подача с затуханием), `false` — обычный текст. Переключатель живёт в шапке
+/// урока. `keepAlive` — выбор переживает переходы между уроками за сессию.
+final lessonFocusModeProvider = StateProvider<bool>((ref) {
+  ref.keepAlive();
+  return true;
+});
 
 /// Экран урока. Структура:
 ///   1. Шапка-индикатор: «Урок i из N» + переключатели на пред./след. урок.
@@ -250,6 +259,16 @@ class _LessonViewState extends ConsumerState<_LessonView> {
     final isRead = entry?.read ?? _markedThisOpen;
     final total = widget.section.lessons.length;
     final hasNext = widget.index + 1 < total;
+    final isWhyMarket = widget.section.id == 'why-market';
+    final focusMode = ref.watch(lessonFocusModeProvider);
+
+    // Прототип «фокус-скролла»: первый раздел подаём воздушно — заголовок и
+    // главная мысль крупно, при прокрутке края затухают, интерактив
+    // разворачивается на весь экран. Переключатель в шапке возвращает обычный
+    // текст. Остальные разделы — всегда обычный скролл.
+    if (isWhyMarket && focusMode) {
+      return _buildFocus(context, hasNext);
+    }
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -269,6 +288,7 @@ class _LessonViewState extends ConsumerState<_LessonView> {
           widget.section.title,
           style: text.titleMedium?.copyWith(fontSize: 16),
         ),
+        actions: isWhyMarket ? [_modeToggle(toFocus: true)] : null,
       ),
       body: NotificationListener<ScrollNotification>(
         onNotification: (n) => updateHeaderFade(_headerFade, n),
@@ -335,71 +355,129 @@ class _LessonViewState extends ConsumerState<_LessonView> {
             body: _effectiveLesson.body,
             tint: widget.section.tint,
           ),
-          if (_effectiveLesson.hasServerQuiz) ...[
-            const SizedBox(height: 22),
-            ServerQuizBlock(
-              quizId: _effectiveLesson.serverQuizId!,
-              tint: widget.section.tint,
-              onPassed: (result) {
-                ref.read(learningProgressProvider.notifier).saveQuizResult(
-                      sectionId: widget.section.id,
-                      lessonId: _effectiveLesson.id,
-                      score: result.correctCount,
-                      total: result.totalQuestions,
-                    );
-              },
-            ),
-          ] else if (_effectiveLesson.quiz.isNotEmpty) ...[
-            const SizedBox(height: 22),
-            LessonQuizBlock(
-              questions: _effectiveLesson.quiz,
-              tint: widget.section.tint,
-              onCompleted: (score, total) {
-                ref.read(learningProgressProvider.notifier).saveQuizResult(
-                      sectionId: widget.section.id,
-                      lessonId: _effectiveLesson.id,
-                      score: score,
-                      total: total,
-                    );
-              },
-            ),
-          ],
-          if ((_effectiveLesson.recallPrompt ?? '').trim().isNotEmpty &&
-              _effectiveLesson.serverId != null) ...[
-            const SizedBox(height: 22),
-            RecallCard(
-              prompt: _effectiveLesson.recallPrompt!.trim(),
-              answer: _effectiveLesson.recallAnswer,
-              tint: widget.section.tint,
-              onGrade: (remembered) {
-                final client = ref.read(learningApiClientProvider);
-                final portfolioId = ref.read(aloriaPortfolioIdProvider);
-                return client.gradeReview(
-                  lessonId: _effectiveLesson.serverId!,
-                  remembered: remembered,
-                  portfolioId: portfolioId,
-                );
-              },
-            ),
-          ],
-          if ((_effectiveLesson.practiceText ?? '').trim().isNotEmpty) ...[
-            const SizedBox(height: 22),
-            LessonPracticeCard(
-              tint: widget.section.tint,
-              text: _effectiveLesson.practiceText!.trim(),
-              symbol: _effectiveLesson.practiceSymbol,
-            ),
-          ],
-          const SizedBox(height: 22),
-          LessonBottomActions(
-            section: widget.section,
-            lessonIndex: widget.index,
-            hasNext: hasNext,
-          ),
-          const SizedBox(height: 12),
+          ..._lessonTail(hasNext),
         ],
         ),
       ),
     );
+  }
+
+  /// Переключатель режима в шапке: [toFocus] — в какой режим переводит тап.
+  Widget _modeToggle({required bool toFocus}) {
+    return IconButton(
+      icon: Icon(toFocus ? Icons.auto_stories_outlined : Icons.subject),
+      tooltip: toFocus ? 'Фокус-режим' : 'Обычный текст',
+      onPressed: () =>
+          ref.read(lessonFocusModeProvider.notifier).state = toFocus,
+    );
+  }
+
+  /// Фокус-скролл (прототип): воздушная подача урока с затуханием по краям и
+  /// интерактивами «на весь экран». Только первый раздел.
+  Widget _buildFocus(BuildContext context, bool hasNext) {
+    final text = Theme.of(context).textTheme;
+    final lesson = _effectiveLesson;
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: FadingHeader(
+        fade: _headerFade,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/learn/${widget.section.id}');
+            }
+          },
+        ),
+        title: Text(
+          widget.section.title,
+          style: text.titleMedium?.copyWith(fontSize: 16),
+        ),
+        actions: [_modeToggle(toFocus: false)],
+      ),
+      body: lesson.body.trim().isEmpty
+          ? const Center(child: CircularProgressIndicator())
+          : NotificationListener<ScrollNotification>(
+              onNotification: (n) => updateHeaderFade(_headerFade, n),
+              child: FocusReadingView(
+                title: lesson.title,
+                description: lesson.description,
+                body: lesson.body,
+                tint: widget.section.tint,
+                tail: _lessonTail(hasNext),
+              ),
+            ),
+    );
+  }
+
+  /// Хвост урока: тест, повторение, практика, кнопки завершения. Общий для
+  /// обычного скролла и фокус-режима.
+  List<Widget> _lessonTail(bool hasNext) {
+    return [
+      if (_effectiveLesson.hasServerQuiz) ...[
+        const SizedBox(height: 22),
+        ServerQuizBlock(
+          quizId: _effectiveLesson.serverQuizId!,
+          tint: widget.section.tint,
+          onPassed: (result) {
+            ref.read(learningProgressProvider.notifier).saveQuizResult(
+                  sectionId: widget.section.id,
+                  lessonId: _effectiveLesson.id,
+                  score: result.correctCount,
+                  total: result.totalQuestions,
+                );
+          },
+        ),
+      ] else if (_effectiveLesson.quiz.isNotEmpty) ...[
+        const SizedBox(height: 22),
+        LessonQuizBlock(
+          questions: _effectiveLesson.quiz,
+          tint: widget.section.tint,
+          onCompleted: (score, total) {
+            ref.read(learningProgressProvider.notifier).saveQuizResult(
+                  sectionId: widget.section.id,
+                  lessonId: _effectiveLesson.id,
+                  score: score,
+                  total: total,
+                );
+          },
+        ),
+      ],
+      if ((_effectiveLesson.recallPrompt ?? '').trim().isNotEmpty &&
+          _effectiveLesson.serverId != null) ...[
+        const SizedBox(height: 22),
+        RecallCard(
+          prompt: _effectiveLesson.recallPrompt!.trim(),
+          answer: _effectiveLesson.recallAnswer,
+          tint: widget.section.tint,
+          onGrade: (remembered) {
+            final client = ref.read(learningApiClientProvider);
+            final portfolioId = ref.read(aloriaPortfolioIdProvider);
+            return client.gradeReview(
+              lessonId: _effectiveLesson.serverId!,
+              remembered: remembered,
+              portfolioId: portfolioId,
+            );
+          },
+        ),
+      ],
+      if ((_effectiveLesson.practiceText ?? '').trim().isNotEmpty) ...[
+        const SizedBox(height: 22),
+        LessonPracticeCard(
+          tint: widget.section.tint,
+          text: _effectiveLesson.practiceText!.trim(),
+          symbol: _effectiveLesson.practiceSymbol,
+        ),
+      ],
+      const SizedBox(height: 22),
+      LessonBottomActions(
+        section: widget.section,
+        lessonIndex: widget.index,
+        hasNext: hasNext,
+      ),
+      const SizedBox(height: 12),
+    ];
   }
 }

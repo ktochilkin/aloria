@@ -14,6 +14,7 @@ class LessonMarkdownBody extends ConsumerWidget {
     super.key,
     required this.body,
     required this.tint,
+    this.big = false,
   });
 
   /// Сырое markdown-тело урока.
@@ -21,6 +22,9 @@ class LessonMarkdownBody extends ConsumerWidget {
 
   /// Акцент раздела — цвет блок-цитат, картинок-фолбэков и блоков.
   final Color tint;
+
+  /// «Воздушный» режим фокус-скролла: крупнее шрифт и заголовки.
+  final bool big;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -41,15 +45,21 @@ class LessonMarkdownBody extends ConsumerWidget {
           styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
             p: lead
                 ? text.bodyMedium?.copyWith(
-                    fontSize: 15.5,
+                    fontSize: big ? 17 : 15.5,
                     height: 1.5,
                     fontWeight: FontWeight.w500,
                     color: scheme.onSurface,
                   )
-                : text.bodyMedium?.copyWith(height: 1.55),
-            h1: text.titleMedium?.copyWith(fontSize: 22),
-            h2: text.titleMedium?.copyWith(fontSize: 19),
-            h3: text.titleMedium?.copyWith(fontSize: 17),
+                : text.bodyMedium?.copyWith(
+                    height: big ? 1.5 : 1.55,
+                    fontSize: big ? 17 : null,
+                  ),
+            h1: text.titleMedium?.copyWith(fontSize: big ? 27 : 22),
+            h2: text.titleMedium?.copyWith(
+              fontSize: big ? 24 : 19,
+              fontWeight: big ? FontWeight.w800 : null,
+            ),
+            h3: text.titleMedium?.copyWith(fontSize: big ? 19 : 17),
             blockquote: text.bodyMedium?.copyWith(
               color: scheme.onSurfaceVariant,
               fontStyle: FontStyle.italic,
