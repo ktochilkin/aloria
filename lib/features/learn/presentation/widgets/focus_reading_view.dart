@@ -5,16 +5,15 @@ import 'package:flutter/material.dart';
 
 /// Урок как «фокус-скролл»: воздушная подача без визуальной нагрузки.
 ///
-/// На открытии — заголовок и главная мысль крупно и свободно. По мере
-/// прокрутки то, что уходит за края экрана, **затухает**, а в центре —
-/// читаемый «светлый» пояс. Интерактивный блок, когда доходишь до него,
-/// занимает почти весь экран, а соседи гаснут.
+/// На открытии — обложка во весь экран: заголовок и главная мысль. Остальной
+/// текст полностью прозрачен, пока не начнёшь листать. По мере прокрутки в
+/// центре экрана — «светлый» бит, а соседи (и сверху, и снизу) гаснут в ноль.
+/// Интерактив, дойдя до центра, остаётся один в фокусе.
 class FocusReadingView extends StatefulWidget {
   const FocusReadingView({
     super.key,
     required this.title,
     required this.description,
-    required this.estimatedMinutes,
     required this.body,
     required this.tint,
     required this.tail,
@@ -22,7 +21,6 @@ class FocusReadingView extends StatefulWidget {
 
   final String title;
   final String description;
-  final int? estimatedMinutes;
 
   /// Markdown-тело урока.
   final String body;
@@ -30,7 +28,7 @@ class FocusReadingView extends StatefulWidget {
   /// Акцент раздела.
   final Color tint;
 
-  /// Хвост урока: тест/повторение/практика/кнопки — без затухания.
+  /// Хвост урока: тест/повторение/практика/кнопки.
   final List<Widget> tail;
 
   @override
@@ -57,28 +55,43 @@ class _FocusReadingViewState extends State<FocusReadingView> {
     super.dispose();
   }
 
+  static const double _hPad = 20;
+
   @override
   Widget build(BuildContext context) {
     final beats = splitLessonIntoBeats(widget.body);
-    final screenH = MediaQuery.sizeOf(context).height;
+    final topInset = MediaQuery.paddingOf(context).top + kToolbarHeight;
 
     return ListView(
       controller: _controller,
-      padding: EdgeInsets.fromLTRB(
-        20,
-        MediaQuery.paddingOf(context).top + kToolbarHeight,
-        20,
-        40,
-      ),
+      padding: EdgeInsets.only(top: topInset, bottom: 40),
       children: [
-        _FocusItem(tick: _tick, child: _hero(context, screenH)),
+        _FocusItem(
+          tick: _tick,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: _hPad),
+            child: _hero(context),
+          ),
+        ),
         for (final b in beats)
           _FocusItem(
             tick: _tick,
             child: beatIsBlock(b)
-                ? _blockBeat(b, screenH)
+                // Интерактив шире (меньше боковой отступ) и без мёртвого
+                // пространства — «весомее», но без больших пустот.
+                ? Padding(
+                    padding: const EdgeInsets.fromLTRB(8, 30, 8, 30),
+                    child: LessonMarkdownBody(
+                      body: b,
+                      tint: widget.tint,
+                      big: true,
+                    ),
+                  )
                 : Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 26),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: _hPad,
+                      vertical: 26,
+                    ),
                     child: LessonMarkdownBody(
                       body: b,
                       tint: widget.tint,
@@ -87,37 +100,29 @@ class _FocusReadingViewState extends State<FocusReadingView> {
                   ),
           ),
         const SizedBox(height: 12),
-        ...widget.tail,
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: _hPad),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: widget.tail,
+          ),
+        ),
       ],
     );
   }
 
-  /// Обложка: заголовок и главная мысль, свободно — занимает ~половину экрана.
-  Widget _hero(BuildContext context, double screenH) {
+  /// Обложка: заголовок и главная мысль, по центру верхней части экрана —
+  /// воздушно, без визуальной нагрузки. Ненавязчивый «Листай» — сразу под ними.
+  Widget _hero(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
     return ConstrainedBox(
-      constraints: BoxConstraints(minHeight: screenH * 0.46),
+      constraints:
+          BoxConstraints(minHeight: MediaQuery.sizeOf(context).height * 0.52),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          if (widget.estimatedMinutes != null)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: widget.tint.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(100),
-              ),
-              child: Text(
-                '${widget.estimatedMinutes} мин',
-                style: text.labelMedium?.copyWith(
-                  color: widget.tint,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
-          const SizedBox(height: 16),
           Text(
             widget.title,
             style: text.titleMedium?.copyWith(
@@ -130,44 +135,41 @@ class _FocusReadingViewState extends State<FocusReadingView> {
             const SizedBox(height: 14),
             Text(
               widget.description,
-              style: text.bodyLarge?.copyWith(
-                color: scheme.onSurfaceVariant,
-                height: 1.5,
+              style: text.bodyMedium?.copyWith(
                 fontSize: 18,
+                height: 1.5,
+                color: scheme.onSurface,
               ),
             ),
           ],
-          const SizedBox(height: 28),
-          Row(
-            children: [
-              Icon(Icons.keyboard_arrow_down,
-                  size: 20, color: scheme.onSurfaceVariant),
-              const SizedBox(width: 4),
-              Text(
-                'листай — без спешки',
-                style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-              ),
-            ],
+          const SizedBox(height: 30),
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.keyboard_arrow_down,
+                  size: 24,
+                  color: scheme.onSurfaceVariant,
+                ),
+                Text(
+                  'Листай',
+                  style: text.bodyMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
-      ),
-    );
-  }
-
-  /// Интерактивный блок «на весь экран»: даём ему высоту почти во весь экран,
-  /// чтобы при прокрутке он становился единственным в фокусе.
-  Widget _blockBeat(String beat, double screenH) {
-    return ConstrainedBox(
-      constraints: BoxConstraints(minHeight: screenH * 0.7),
-      child: Center(
-        child: LessonMarkdownBody(body: beat, tint: widget.tint, big: true),
       ),
     );
   }
 }
 
 /// Обёртка с затуханием по положению в экране: ярко в центральном поясе,
-/// гаснет к верхнему и нижнему краю.
+/// гаснет в ноль к верхнему и нижнему краю (контент за поясом не «проступает»).
 class _FocusItem extends StatefulWidget {
   const _FocusItem({required this.tick, required this.child});
 
@@ -201,8 +203,8 @@ class _FocusItemState extends State<_FocusItem> {
     final screenH = MediaQuery.sizeOf(context).height;
     final centerY = box.localToGlobal(Offset(0, box.size.height / 2)).dy;
 
-    // Светлый «пояс чтения» в середине экрана; у краёв — затухание.
-    final top = screenH * 0.20;
+    // Светлый «пояс чтения» в середине экрана; к краям — затухание в ноль.
+    final top = screenH * 0.22;
     final bottom = screenH * 0.80;
     double t;
     if (centerY >= top && centerY <= bottom) {
@@ -212,9 +214,8 @@ class _FocusItemState extends State<_FocusItem> {
     } else {
       t = ((screenH - centerY) / (screenH - bottom)).clamp(0.0, 1.0);
     }
-    final o = 0.16 + 0.84 * t;
-    if ((o - _opacity).abs() > 0.012) {
-      setState(() => _opacity = o);
+    if ((t - _opacity).abs() > 0.012) {
+      setState(() => _opacity = t);
     }
   }
 

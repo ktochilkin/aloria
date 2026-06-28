@@ -243,7 +243,6 @@ void main() {
         body: FocusReadingView(
           title: 'Добро пожаловать',
           description: 'Почему здесь не страшно и можно спокойно ошибаться.',
-          estimatedMinutes: 3,
           body: focusBody,
           tint: AppColors.primary,
           tail: [],

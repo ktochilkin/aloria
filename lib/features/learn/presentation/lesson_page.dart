@@ -404,7 +404,6 @@ class _LessonViewState extends ConsumerState<_LessonView> {
               child: FocusReadingView(
                 title: lesson.title,
                 description: lesson.description,
-                estimatedMinutes: lesson.estimatedMinutes,
                 body: lesson.body,
                 tint: widget.section.tint,
                 tail: _lessonTail(hasNext),
