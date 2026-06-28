@@ -20,6 +20,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// Режим показа уроков первого раздела: `true` — фокус-скролл (воздушная
+/// подача с затуханием), `false` — обычный текст. Переключатель живёт в шапке
+/// урока. `keepAlive` — выбор переживает переходы между уроками за сессию.
+final lessonFocusModeProvider = StateProvider<bool>((ref) {
+  ref.keepAlive();
+  return true;
+});
+
 /// Экран урока. Структура:
 ///   1. Шапка-индикатор: «Урок i из N» + переключатели на пред./след. урок.
 ///   2. Картинка урока (если есть).
@@ -251,11 +259,14 @@ class _LessonViewState extends ConsumerState<_LessonView> {
     final isRead = entry?.read ?? _markedThisOpen;
     final total = widget.section.lessons.length;
     final hasNext = widget.index + 1 < total;
+    final isWhyMarket = widget.section.id == 'why-market';
+    final focusMode = ref.watch(lessonFocusModeProvider);
 
     // Прототип «фокус-скролла»: первый раздел подаём воздушно — заголовок и
     // главная мысль крупно, при прокрутке края затухают, интерактив
-    // разворачивается на весь экран. Остальные разделы — обычным скроллом.
-    if (widget.section.id == 'why-market') {
+    // разворачивается на весь экран. Переключатель в шапке возвращает обычный
+    // текст. Остальные разделы — всегда обычный скролл.
+    if (isWhyMarket && focusMode) {
       return _buildFocus(context, hasNext);
     }
 
@@ -277,6 +288,7 @@ class _LessonViewState extends ConsumerState<_LessonView> {
           widget.section.title,
           style: text.titleMedium?.copyWith(fontSize: 16),
         ),
+        actions: isWhyMarket ? [_modeToggle(toFocus: true)] : null,
       ),
       body: NotificationListener<ScrollNotification>(
         onNotification: (n) => updateHeaderFade(_headerFade, n),
@@ -350,6 +362,16 @@ class _LessonViewState extends ConsumerState<_LessonView> {
     );
   }
 
+  /// Переключатель режима в шапке: [toFocus] — в какой режим переводит тап.
+  Widget _modeToggle({required bool toFocus}) {
+    return IconButton(
+      icon: Icon(toFocus ? Icons.auto_stories_outlined : Icons.subject),
+      tooltip: toFocus ? 'Фокус-режим' : 'Обычный текст',
+      onPressed: () =>
+          ref.read(lessonFocusModeProvider.notifier).state = toFocus,
+    );
+  }
+
   /// Фокус-скролл (прототип): воздушная подача урока с затуханием по краям и
   /// интерактивами «на весь экран». Только первый раздел.
   Widget _buildFocus(BuildContext context, bool hasNext) {
@@ -373,6 +395,7 @@ class _LessonViewState extends ConsumerState<_LessonView> {
           widget.section.title,
           style: text.titleMedium?.copyWith(fontSize: 16),
         ),
+        actions: [_modeToggle(toFocus: false)],
       ),
       body: lesson.body.trim().isEmpty
           ? const Center(child: CircularProgressIndicator())
