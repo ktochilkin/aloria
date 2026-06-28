@@ -61,7 +61,7 @@ class _FocusReadingViewState extends State<FocusReadingView> {
   @override
   Widget build(BuildContext context) {
     final beats = splitLessonIntoBeats(widget.body);
-    final topInset = MediaQuery.viewPaddingOf(context).top + kToolbarHeight;
+    final topInset = MediaQuery.paddingOf(context).top + kToolbarHeight;
 
     return ListView(
       controller: _controller,
