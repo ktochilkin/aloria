@@ -7,6 +7,7 @@ import 'package:aloria/features/learn/domain/models.dart';
 import 'package:aloria/features/learn/presentation/learning_index_page.dart';
 import 'package:aloria/features/learn/presentation/learning_section_page.dart';
 import 'package:aloria/features/learn/presentation/lesson_page.dart';
+import 'package:aloria/features/learn/presentation/widgets/focus_reading_view.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_markdown_body.dart';
 import 'package:aloria/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -220,6 +221,49 @@ void main() {
       'lesson_page',
       const LessonPage(sectionId: 'basics', lessonId: 'risk_types'),
       height: 2400,
+    );
+  });
+
+  // Фокус-скролл (прототип): воздушная подача с затуханием по краям.
+  const focusBody = ':::lead\n'
+      'Открывал когда-нибудь приложение брокера и почти сразу закрывал? '
+      'Графики ползут, мигают красные и зелёные числа, всюду «заявки» и '
+      '«стаканы».\n\n'
+      'Если узнал себя, ты не один такой.\n'
+      ':::\n\n'
+      'Aloria для этого и придумана. Внутри работает **тот же торговый '
+      'движок, что и у настоящего брокера**, просто на учебной бирже и без '
+      'реальных денег.\n\n'
+      '## Тут нечего терять\n\n'
+      'Ты торгуешь не рублями, а **внутренней валютой учебного мира**. '
+      'Поэтому можно спокойно нажимать и пробовать. Нажал не ту кнопку — '
+      'ничего не сгорело.';
+
+  Widget focusHome() => const Scaffold(
+        body: FocusReadingView(
+          title: 'Добро пожаловать',
+          description: 'Почему здесь не страшно и можно спокойно ошибаться.',
+          estimatedMinutes: 3,
+          body: focusBody,
+          tint: AppColors.primary,
+          tail: [],
+        ),
+      );
+
+  testWidgets('обучение — фокус: открытие', (tester) async {
+    await _shoot(tester, 'focus_open', focusHome(), height: 880);
+  });
+
+  testWidgets('обучение — фокус: прокрутка', (tester) async {
+    await _shoot(
+      tester,
+      'focus_scroll',
+      focusHome(),
+      height: 880,
+      act: (t) async {
+        await t.drag(find.byType(Scrollable), const Offset(0, -460));
+        await t.pumpAndSettle();
+      },
     );
   });
 
