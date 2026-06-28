@@ -8,6 +8,7 @@ import 'package:aloria/features/learn/presentation/learning_index_page.dart';
 import 'package:aloria/features/learn/presentation/learning_section_page.dart';
 import 'package:aloria/features/learn/presentation/lesson_page.dart';
 import 'package:aloria/features/learn/presentation/widgets/lesson_markdown_body.dart';
+import 'package:aloria/features/learn/presentation/widgets/swipe_lesson_view.dart';
 import 'package:aloria/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -247,6 +248,53 @@ void main() {
         ),
       ),
       height: 600,
+    );
+  });
+
+  // Свайп-прототип (первый раздел): обложка и карточка контента.
+  const swipeBody = ':::lead\n'
+      'Открывал когда-нибудь приложение брокера и почти сразу закрывал? '
+      'Графики ползут, мигают красные и зелёные числа, всюду «заявки» и '
+      '«стаканы». Со стороны биржа и правда похожа на кабину самолёта, где '
+      'лучше ничего не трогать.\n\n'
+      'Если узнал себя, ты не один такой.\n'
+      ':::\n\n'
+      'Aloria для этого и придумана. Внутри работает **тот же торговый '
+      'движок, что и у настоящего брокера**, просто на учебной бирже и без '
+      'реальных денег.\n\n'
+      '## Тут нечего терять\n\n'
+      'Ты торгуешь не рублями, а **внутренней валютой учебного мира**. '
+      'Поэтому можно спокойно нажимать и пробовать.';
+
+  Widget swipeHome() => Scaffold(
+        backgroundColor: AppTheme.light.scaffoldBackgroundColor,
+        body: const SwipeLessonView(
+          title: 'Добро пожаловать',
+          description:
+              'С чего начать, почему здесь не страшно и можно ошибаться.',
+          estimatedMinutes: 3,
+          body: swipeBody,
+          tint: AppColors.primary,
+          outro: SizedBox.shrink(),
+        ),
+      );
+
+  testWidgets('обучение — свайп: обложка', (tester) async {
+    await _shoot(tester, 'swipe_hero', swipeHome(), height: 760);
+  });
+
+  testWidgets('обучение — свайп: карточка контента', (tester) async {
+    await _shoot(
+      tester,
+      'swipe_card',
+      swipeHome(),
+      height: 760,
+      act: (t) async {
+        for (var i = 0; i < 3; i++) {
+          await t.drag(find.byType(PageView), const Offset(-400, 0));
+          await t.pumpAndSettle();
+        }
+      },
     );
   });
 }

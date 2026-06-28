@@ -14,6 +14,7 @@ class LessonMarkdownBody extends ConsumerWidget {
     super.key,
     required this.body,
     required this.tint,
+    this.card = false,
   });
 
   /// Сырое markdown-тело урока.
@@ -21,6 +22,9 @@ class LessonMarkdownBody extends ConsumerWidget {
 
   /// Акцент раздела — цвет блок-цитат, картинок-фолбэков и блоков.
   final Color tint;
+
+  /// Карточный (свайп) режим: крупнее шрифт и заголовки — «снэкбл» подача.
+  final bool card;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -46,10 +50,13 @@ class LessonMarkdownBody extends ConsumerWidget {
                     fontWeight: FontWeight.w500,
                     color: scheme.onSurface,
                   )
-                : text.bodyMedium?.copyWith(height: 1.55),
-            h1: text.titleMedium?.copyWith(fontSize: 22),
-            h2: text.titleMedium?.copyWith(fontSize: 19),
-            h3: text.titleMedium?.copyWith(fontSize: 17),
+                : text.bodyMedium?.copyWith(height: card ? 1.5 : 1.55, fontSize: card ? 17 : null),
+            h1: text.titleMedium?.copyWith(fontSize: card ? 26 : 22),
+            h2: text.titleMedium?.copyWith(
+              fontSize: card ? 23 : 19,
+              fontWeight: card ? FontWeight.w800 : null,
+            ),
+            h3: text.titleMedium?.copyWith(fontSize: card ? 19 : 17),
             blockquote: text.bodyMedium?.copyWith(
               color: scheme.onSurfaceVariant,
               fontStyle: FontStyle.italic,

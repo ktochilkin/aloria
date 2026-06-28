@@ -14,6 +14,7 @@ import 'package:aloria/features/learn/presentation/widgets/lesson_progress_heade
 import 'package:aloria/features/learn/presentation/widgets/lesson_quiz_block.dart';
 import 'package:aloria/features/learn/presentation/widgets/recall_card.dart';
 import 'package:aloria/features/learn/presentation/widgets/server_quiz_block.dart';
+import 'package:aloria/features/learn/presentation/widgets/swipe_lesson_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -251,6 +252,12 @@ class _LessonViewState extends ConsumerState<_LessonView> {
     final total = widget.section.lessons.length;
     final hasNext = widget.index + 1 < total;
 
+    // Прототип свайп-карточек: первый раздел подаём «снэкбл» — одна мысль на
+    // экран (как Stories). Остальные разделы пока обычным скроллом.
+    if (widget.section.id == 'why-market') {
+      return _buildSwipe(context, hasNext);
+    }
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: FadingHeader(
@@ -335,71 +342,139 @@ class _LessonViewState extends ConsumerState<_LessonView> {
             body: _effectiveLesson.body,
             tint: widget.section.tint,
           ),
-          if (_effectiveLesson.hasServerQuiz) ...[
-            const SizedBox(height: 22),
-            ServerQuizBlock(
-              quizId: _effectiveLesson.serverQuizId!,
-              tint: widget.section.tint,
-              onPassed: (result) {
-                ref.read(learningProgressProvider.notifier).saveQuizResult(
-                      sectionId: widget.section.id,
-                      lessonId: _effectiveLesson.id,
-                      score: result.correctCount,
-                      total: result.totalQuestions,
-                    );
-              },
-            ),
-          ] else if (_effectiveLesson.quiz.isNotEmpty) ...[
-            const SizedBox(height: 22),
-            LessonQuizBlock(
-              questions: _effectiveLesson.quiz,
-              tint: widget.section.tint,
-              onCompleted: (score, total) {
-                ref.read(learningProgressProvider.notifier).saveQuizResult(
-                      sectionId: widget.section.id,
-                      lessonId: _effectiveLesson.id,
-                      score: score,
-                      total: total,
-                    );
-              },
-            ),
-          ],
-          if ((_effectiveLesson.recallPrompt ?? '').trim().isNotEmpty &&
-              _effectiveLesson.serverId != null) ...[
-            const SizedBox(height: 22),
-            RecallCard(
-              prompt: _effectiveLesson.recallPrompt!.trim(),
-              answer: _effectiveLesson.recallAnswer,
-              tint: widget.section.tint,
-              onGrade: (remembered) {
-                final client = ref.read(learningApiClientProvider);
-                final portfolioId = ref.read(aloriaPortfolioIdProvider);
-                return client.gradeReview(
-                  lessonId: _effectiveLesson.serverId!,
-                  remembered: remembered,
-                  portfolioId: portfolioId,
-                );
-              },
-            ),
-          ],
-          if ((_effectiveLesson.practiceText ?? '').trim().isNotEmpty) ...[
-            const SizedBox(height: 22),
-            LessonPracticeCard(
-              tint: widget.section.tint,
-              text: _effectiveLesson.practiceText!.trim(),
-              symbol: _effectiveLesson.practiceSymbol,
-            ),
-          ],
-          const SizedBox(height: 22),
-          LessonBottomActions(
-            section: widget.section,
-            lessonIndex: widget.index,
-            hasNext: hasNext,
-          ),
-          const SizedBox(height: 12),
+          ..._lessonTail(hasNext),
         ],
         ),
       ),
     );
+  }
+
+  /// Свайп-режим урока (прототип): обложка → карточки тела → финал с тестом
+  /// и кнопками завершения.
+  Widget _buildSwipe(BuildContext context, bool hasNext) {
+    final text = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    final lesson = _effectiveLesson;
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/learn/${widget.section.id}');
+            }
+          },
+        ),
+        title: Text(
+          widget.section.title,
+          style: text.titleMedium?.copyWith(fontSize: 16),
+        ),
+      ),
+      body: lesson.body.trim().isEmpty
+          ? const Center(child: CircularProgressIndicator())
+          : SwipeLessonView(
+              title: lesson.title,
+              description: lesson.description,
+              estimatedMinutes: lesson.estimatedMinutes,
+              body: lesson.body,
+              tint: widget.section.tint,
+              outro: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.check_circle, color: widget.section.tint),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Урок пройден',
+                        style: text.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Если есть тест — проверь себя и иди дальше.',
+                    style: text.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                  ..._lessonTail(hasNext),
+                ],
+              ),
+            ),
+    );
+  }
+
+  /// Хвост урока: тест, повторение, практика, кнопки завершения. Общий для
+  /// обычного (скролл) и свайп-режима.
+  List<Widget> _lessonTail(bool hasNext) {
+    return [
+      if (_effectiveLesson.hasServerQuiz) ...[
+        const SizedBox(height: 22),
+        ServerQuizBlock(
+          quizId: _effectiveLesson.serverQuizId!,
+          tint: widget.section.tint,
+          onPassed: (result) {
+            ref.read(learningProgressProvider.notifier).saveQuizResult(
+                  sectionId: widget.section.id,
+                  lessonId: _effectiveLesson.id,
+                  score: result.correctCount,
+                  total: result.totalQuestions,
+                );
+          },
+        ),
+      ] else if (_effectiveLesson.quiz.isNotEmpty) ...[
+        const SizedBox(height: 22),
+        LessonQuizBlock(
+          questions: _effectiveLesson.quiz,
+          tint: widget.section.tint,
+          onCompleted: (score, total) {
+            ref.read(learningProgressProvider.notifier).saveQuizResult(
+                  sectionId: widget.section.id,
+                  lessonId: _effectiveLesson.id,
+                  score: score,
+                  total: total,
+                );
+          },
+        ),
+      ],
+      if ((_effectiveLesson.recallPrompt ?? '').trim().isNotEmpty &&
+          _effectiveLesson.serverId != null) ...[
+        const SizedBox(height: 22),
+        RecallCard(
+          prompt: _effectiveLesson.recallPrompt!.trim(),
+          answer: _effectiveLesson.recallAnswer,
+          tint: widget.section.tint,
+          onGrade: (remembered) {
+            final client = ref.read(learningApiClientProvider);
+            final portfolioId = ref.read(aloriaPortfolioIdProvider);
+            return client.gradeReview(
+              lessonId: _effectiveLesson.serverId!,
+              remembered: remembered,
+              portfolioId: portfolioId,
+            );
+          },
+        ),
+      ],
+      if ((_effectiveLesson.practiceText ?? '').trim().isNotEmpty) ...[
+        const SizedBox(height: 22),
+        LessonPracticeCard(
+          tint: widget.section.tint,
+          text: _effectiveLesson.practiceText!.trim(),
+          symbol: _effectiveLesson.practiceSymbol,
+        ),
+      ],
+      const SizedBox(height: 22),
+      LessonBottomActions(
+        section: widget.section,
+        lessonIndex: widget.index,
+        hasNext: hasNext,
+      ),
+      const SizedBox(height: 12),
+    ];
   }
 }
