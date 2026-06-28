@@ -79,17 +79,21 @@ class _FocusReadingViewState extends State<FocusReadingView> {
               padding: const EdgeInsets.symmetric(horizontal: _hPad),
               child: _hero(context, topSpace),
             ),
-            for (final b in beats)
+            for (var i = 0; i < beats.length; i++)
               _FocusItem(
                 tick: _tick,
                 controller: _controller,
-                child: beatIsBlock(b)
+                // Первый бит проявляется только по скроллу (без «пояса») —
+                // встаёт на место стрелки и сразу нормальный, не висит
+                // полупрозрачным.
+                isFirst: i == 0,
+                child: beatIsBlock(beats[i])
                 // Интерактив шире (меньше боковой отступ) и без мёртвого
                 // пространства — «весомее», но без больших пустот.
                 ? Padding(
                     padding: const EdgeInsets.fromLTRB(8, 30, 8, 30),
                     child: LessonMarkdownBody(
-                      body: b,
+                      body: beats[i],
                       tint: widget.tint,
                       big: true,
                     ),
@@ -100,7 +104,7 @@ class _FocusReadingViewState extends State<FocusReadingView> {
                       vertical: 26,
                     ),
                     child: LessonMarkdownBody(
-                      body: b,
+                      body: beats[i],
                       tint: widget.tint,
                       big: true,
                     ),
@@ -151,29 +155,18 @@ class _FocusReadingViewState extends State<FocusReadingView> {
               ),
             ),
           ],
-          const SizedBox(height: 30),
-          // Гаснет, как только пошёл скролл — текст занимает его место.
+          const SizedBox(height: 28),
+          // Только стрелка — гаснет, как только пошёл скролл; текст занимает
+          // её место.
           _ScrollFadeOut(
             tick: _tick,
             controller: _controller,
             distance: 80,
             child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.keyboard_arrow_down,
-                    size: 24,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                  Text(
-                    'Листай',
-                    style: text.bodyMedium?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
+              child: Icon(
+                Icons.keyboard_arrow_down,
+                size: 26,
+                color: scheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -243,11 +236,16 @@ class _FocusItem extends StatefulWidget {
     required this.tick,
     required this.controller,
     required this.child,
+    this.isFirst = false,
   });
 
   final ValueListenable<int> tick;
   final ScrollController controller;
   final Widget child;
+
+  /// Первый бит: проявляется только по скроллу (без «пояса»), чтобы вставать
+  /// на место стрелки и сразу быть нормальным, а не висеть полупрозрачным.
+  final bool isFirst;
 
   @override
   State<_FocusItem> createState() => _FocusItemState();
@@ -292,12 +290,12 @@ class _FocusItemState extends State<_FocusItem> {
     }
 
     // Проявление: 0 в самом верху (только обложка) → 1 за первые ~60px скролла.
-    // Короткая дистанция — чтобы тело быстро вставало на место «Листай», без
-    // долгой бледной фазы.
     final off = widget.controller.hasClients ? widget.controller.offset : 0.0;
     final reveal = (off / _revealDistance).clamp(0.0, 1.0);
 
-    final o = (0.16 + 0.84 * t) * reveal;
+    // Первый бит — только проявление (полный сразу, без «пояса»): встаёт на
+    // место стрелки и не висит полупрозрачным. Остальные — «пояс» × проявление.
+    final o = widget.isFirst ? reveal : (0.16 + 0.84 * t) * reveal;
     if ((o - _opacity).abs() > 0.012) {
       setState(() => _opacity = o);
     }
