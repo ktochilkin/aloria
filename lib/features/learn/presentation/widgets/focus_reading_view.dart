@@ -76,6 +76,7 @@ class _FocusReadingViewState extends State<FocusReadingView> {
         for (final b in beats)
           _FocusItem(
             tick: _tick,
+            controller: _controller,
             child: beatIsBlock(b)
                 // Интерактив шире (меньше боковой отступ) и без мёртвого
                 // пространства — «весомее», но без больших пустот.
@@ -228,10 +229,19 @@ class _ScrollFadeOutState extends State<_ScrollFadeOut> {
 /// Обёртка с «поясом чтения»: бит в центре экрана яркий, к верхнему и нижнему
 /// краю мягко притухает — но не в ноль (минимум видимости остаётся, без
 /// «белого листа» в момент перехода между битами).
+///
+/// Плюс «проявление по скроллу»: пока статья не тронута (offset 0), всё тело
+/// скрыто — на первом экране только обложка. Как только пошёл скролл, тело за
+/// [_revealDistance] пикселей плавно проявляется на своих местах (без разрыва).
 class _FocusItem extends StatefulWidget {
-  const _FocusItem({required this.tick, required this.child});
+  const _FocusItem({
+    required this.tick,
+    required this.controller,
+    required this.child,
+  });
 
   final ValueListenable<int> tick;
+  final ScrollController controller;
   final Widget child;
 
   @override
@@ -239,7 +249,10 @@ class _FocusItem extends StatefulWidget {
 }
 
 class _FocusItemState extends State<_FocusItem> {
-  double _opacity = 1;
+  static const double _revealDistance = 110;
+
+  // Старт скрыт: на открытии видна только обложка.
+  double _opacity = 0;
 
   @override
   void initState() {
@@ -271,7 +284,12 @@ class _FocusItemState extends State<_FocusItem> {
     } else {
       t = ((screenH - centerY) / (screenH - bottom)).clamp(0.0, 1.0);
     }
-    final o = 0.16 + 0.84 * t;
+
+    // Множитель проявления: 0 в самом верху статьи → 1 после первого движения.
+    final off = widget.controller.hasClients ? widget.controller.offset : 0.0;
+    final reveal = (off / _revealDistance).clamp(0.0, 1.0);
+
+    final o = (0.16 + 0.84 * t) * reveal;
     if ((o - _opacity).abs() > 0.012) {
       setState(() => _opacity = o);
     }
@@ -279,6 +297,11 @@ class _FocusItemState extends State<_FocusItem> {
 
   @override
   Widget build(BuildContext context) {
-    return Opacity(opacity: _opacity, child: widget.child);
+    return Opacity(
+      opacity: _opacity,
+      // Невидимый (ещё не проявленный) бит не ловит тапы — нельзя случайно
+      // нажать скрытый интерактив на первом экране.
+      child: IgnorePointer(ignoring: _opacity < 0.05, child: widget.child),
+    );
   }
 }
