@@ -260,7 +260,7 @@ void main() {
       focusHome(),
       height: 880,
       act: (t) async {
-        await t.drag(find.byType(Scrollable), const Offset(0, -460));
+        await t.drag(find.byType(ListView), const Offset(0, -460));
         await t.pumpAndSettle();
       },
     );

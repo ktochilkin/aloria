@@ -5,10 +5,11 @@ import 'package:flutter/material.dart';
 
 /// Урок как «фокус-скролл»: воздушная подача без визуальной нагрузки.
 ///
-/// На открытии — обложка во весь экран: заголовок и главная мысль. Остальной
-/// текст полностью прозрачен, пока не начнёшь листать. По мере прокрутки в
-/// центре экрана — «светлый» бит, а соседи (и сверху, и снизу) гаснут в ноль.
-/// Интерактив, дойдя до центра, остаётся один в фокусе.
+/// Начало: заголовок, главная мысль и «Листай» — вплотную, компактно. Как
+/// только начинаешь листать, «Листай» плавно гаснет, а текст занимает его
+/// место; заголовок с описанием не затухают — просто уезжают вверх вместе со
+/// всем. Дальше по тексту работает «пояс чтения»: бит в центре экрана яркий, а
+/// к краям мягко притухает (но не пропадает — белого листа нет).
 class FocusReadingView extends StatefulWidget {
   const FocusReadingView({
     super.key,
@@ -60,18 +61,17 @@ class _FocusReadingViewState extends State<FocusReadingView> {
   @override
   Widget build(BuildContext context) {
     final beats = splitLessonIntoBeats(widget.body);
-    final topInset = MediaQuery.paddingOf(context).top + kToolbarHeight;
+    final topInset = MediaQuery.viewPaddingOf(context).top + kToolbarHeight;
 
     return ListView(
       controller: _controller,
       padding: EdgeInsets.only(top: topInset, bottom: 40),
       children: [
-        _FocusItem(
-          tick: _tick,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: _hPad),
-            child: _hero(context),
-          ),
+        // Обложка компактная и скроллится как обычно (НЕ затухает) — тело идёт
+        // сразу за ней, без разрыва; гаснет только «Листай».
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: _hPad),
+          child: _hero(context),
         ),
         for (final b in beats)
           _FocusItem(
@@ -111,17 +111,16 @@ class _FocusReadingViewState extends State<FocusReadingView> {
     );
   }
 
-  /// Обложка: заголовок и главная мысль, по центру верхней части экрана —
-  /// воздушно, без визуальной нагрузки. Ненавязчивый «Листай» — сразу под ними.
+  /// Обложка: заголовок и главная мысль, под ними вплотную — «Листай». Тело
+  /// урока идёт сразу за обложкой, поэтому текст приходит без разрыва и
+  /// задержки. Сама обложка не затухает — просто уезжает вверх со всем вместе.
   Widget _hero(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
-    return ConstrainedBox(
-      constraints:
-          BoxConstraints(minHeight: MediaQuery.sizeOf(context).height * 0.52),
+    return Padding(
+      padding: const EdgeInsets.only(top: 28, bottom: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
             widget.title,
@@ -143,23 +142,29 @@ class _FocusReadingViewState extends State<FocusReadingView> {
             ),
           ],
           const SizedBox(height: 30),
-          Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.keyboard_arrow_down,
-                  size: 24,
-                  color: scheme.onSurfaceVariant,
-                ),
-                Text(
-                  'Листай',
-                  style: text.bodyMedium?.copyWith(
+          // Гаснет, как только пошёл скролл — текст занимает его место.
+          _ScrollFadeOut(
+            tick: _tick,
+            controller: _controller,
+            distance: 80,
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.keyboard_arrow_down,
+                    size: 24,
                     color: scheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w600,
                   ),
-                ),
-              ],
+                  Text(
+                    'Листай',
+                    style: text.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -168,8 +173,61 @@ class _FocusReadingViewState extends State<FocusReadingView> {
   }
 }
 
-/// Обёртка с затуханием по положению в экране: ярко в центральном поясе,
-/// гаснет в ноль к верхнему и нижнему краю (контент за поясом не «проступает»).
+/// «Листай»: видно в начале статьи, плавно гаснет за первые [distance] пикселей
+/// прокрутки — и больше не возвращается мешать.
+class _ScrollFadeOut extends StatefulWidget {
+  const _ScrollFadeOut({
+    required this.tick,
+    required this.controller,
+    required this.child,
+    required this.distance,
+  });
+
+  final ValueListenable<int> tick;
+  final ScrollController controller;
+  final Widget child;
+  final double distance;
+
+  @override
+  State<_ScrollFadeOut> createState() => _ScrollFadeOutState();
+}
+
+class _ScrollFadeOutState extends State<_ScrollFadeOut> {
+  double _opacity = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.tick.addListener(_recompute);
+  }
+
+  @override
+  void dispose() {
+    widget.tick.removeListener(_recompute);
+    super.dispose();
+  }
+
+  void _recompute() {
+    if (!mounted) return;
+    final off = widget.controller.hasClients ? widget.controller.offset : 0.0;
+    final o = (1 - off / widget.distance).clamp(0.0, 1.0);
+    if ((o - _opacity).abs() > 0.012) {
+      setState(() => _opacity = o);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: _opacity,
+      child: IgnorePointer(ignoring: _opacity < 0.05, child: widget.child),
+    );
+  }
+}
+
+/// Обёртка с «поясом чтения»: бит в центре экрана яркий, к верхнему и нижнему
+/// краю мягко притухает — но не в ноль (минимум видимости остаётся, без
+/// «белого листа» в момент перехода между битами).
 class _FocusItem extends StatefulWidget {
   const _FocusItem({required this.tick, required this.child});
 
@@ -203,8 +261,7 @@ class _FocusItemState extends State<_FocusItem> {
     final screenH = MediaQuery.sizeOf(context).height;
     final centerY = box.localToGlobal(Offset(0, box.size.height / 2)).dy;
 
-    // Светлый «пояс чтения» в середине экрана; к краям — затухание в ноль.
-    final top = screenH * 0.22;
+    final top = screenH * 0.20;
     final bottom = screenH * 0.80;
     double t;
     if (centerY >= top && centerY <= bottom) {
@@ -214,8 +271,9 @@ class _FocusItemState extends State<_FocusItem> {
     } else {
       t = ((screenH - centerY) / (screenH - bottom)).clamp(0.0, 1.0);
     }
-    if ((t - _opacity).abs() > 0.012) {
-      setState(() => _opacity = t);
+    final o = 0.16 + 0.84 * t;
+    if ((o - _opacity).abs() > 0.012) {
+      setState(() => _opacity = o);
     }
   }
 
