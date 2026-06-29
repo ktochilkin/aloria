@@ -1,5 +1,6 @@
 import 'package:aloria/features/market/domain/market_news.dart';
 import 'package:aloria/features/market/presentation/widgets/news_detail_modal.dart';
+import 'package:aloria/features/market/presentation/widgets/news_meta.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -72,6 +73,8 @@ class _NewsWidgetState extends State<NewsWidget> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              NewsMetaRow(news: currentNews),
+              const SizedBox(height: 8),
               Text(
                 currentNews.title,
                 style: text.titleMedium?.copyWith(fontWeight: FontWeight.w600),

@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:aloria/features/market/domain/market_news.dart';
 import 'package:aloria/features/market/presentation/widgets/news_instrument_card.dart';
+import 'package:aloria/features/market/presentation/widgets/news_meta.dart';
 import 'package:flutter/material.dart';
 
 /// Показать полную новость в модальном окне
@@ -75,6 +76,11 @@ void showNewsDetailModal(BuildContext context, MarketNews news) {
                         controller: scrollController,
                         padding: EdgeInsets.zero,
                         children: [
+                          // Тональность · тип события · охват
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+                            child: NewsMetaRow(news: news),
+                          ),
                           // Заголовок
                           Container(
                             padding: const EdgeInsets.fromLTRB(12, 2, 12, 4),

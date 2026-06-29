@@ -316,6 +316,58 @@ using (var scope = app.Services.CreateScope())
             ON ""SupportTickets"" (""UserId"", ""CreatedAt"");
     ");
 
+    // Экономический мир (секторы, компании, новости, макросостояние).
+    // EnsureCreated не докатывает новые таблицы к существующей БД — создаём вручную.
+    await db.Database.ExecuteSqlRawAsync(@"
+        CREATE TABLE IF NOT EXISTS ""Sectors"" (
+            ""Id"" TEXT NOT NULL CONSTRAINT ""PK_Sectors"" PRIMARY KEY,
+            ""Slug"" TEXT NOT NULL,
+            ""Title"" TEXT NOT NULL,
+            ""Order"" INTEGER NOT NULL
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS ""IX_Sectors_Slug"" ON ""Sectors"" (""Slug"");
+
+        CREATE TABLE IF NOT EXISTS ""Companies"" (
+            ""Id"" TEXT NOT NULL CONSTRAINT ""PK_Companies"" PRIMARY KEY,
+            ""Symbol"" TEXT NOT NULL,
+            ""Name"" TEXT NOT NULL,
+            ""Theme"" TEXT NOT NULL DEFAULT '',
+            ""SectorId"" TEXT NOT NULL,
+            ""Order"" INTEGER NOT NULL,
+            FOREIGN KEY (""SectorId"") REFERENCES ""Sectors"" (""Id"") ON DELETE CASCADE
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS ""IX_Companies_Symbol"" ON ""Companies"" (""Symbol"");
+        CREATE INDEX IF NOT EXISTS ""IX_Companies_SectorId"" ON ""Companies"" (""SectorId"");
+
+        CREATE TABLE IF NOT EXISTS ""NewsItems"" (
+            ""Id"" TEXT NOT NULL CONSTRAINT ""PK_NewsItems"" PRIMARY KEY,
+            ""Headline"" TEXT NOT NULL,
+            ""Content"" TEXT NOT NULL,
+            ""PublishDate"" TEXT NOT NULL,
+            ""Sentiment"" TEXT NOT NULL,
+            ""EventType"" TEXT NOT NULL,
+            ""Scope"" TEXT NOT NULL,
+            ""Symbols"" TEXT NOT NULL DEFAULT '',
+            ""SectorSlug"" TEXT NULL,
+            ""Urgency"" INTEGER NOT NULL,
+            ""Source"" TEXT NOT NULL,
+            ""CreatedAt"" TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS ""IX_NewsItems_PublishDate"" ON ""NewsItems"" (""PublishDate"");
+        CREATE INDEX IF NOT EXISTS ""IX_NewsItems_SectorSlug"" ON ""NewsItems"" (""SectorSlug"");
+
+        CREATE TABLE IF NOT EXISTS ""MacroStates"" (
+            ""Id"" TEXT NOT NULL CONSTRAINT ""PK_MacroStates"" PRIMARY KEY,
+            ""Regime"" TEXT NOT NULL,
+            ""KeyRate"" REAL NOT NULL,
+            ""Inflation"" REAL NOT NULL,
+            ""CycleDay"" INTEGER NOT NULL,
+            ""CycleLength"" INTEGER NOT NULL,
+            ""Source"" TEXT NOT NULL,
+            ""UpdatedAt"" TEXT NOT NULL
+        );
+    ");
+
     // Импорт markdown-уроков: при первом запуске (пустая БД) либо явно по флагу
     // --seed. Импортёр идемпотентный — обновляет уроки по (section, slug) и
     // добавляет новые, поэтому повторный прогон безопасен.
@@ -340,6 +392,10 @@ using (var scope = app.Services.CreateScope())
         await SeedDefaultTopUpQuizzesAsync(db);
         app.Logger.LogInformation("Seeded default top-up quizzes");
     }
+
+    // Экономический мир: секторы/компании/макро/новости. Идемпотентно — сидит
+    // только пустые таблицы. На шаге 1 это мок-данные, позже их заменит ИИ-режиссёр.
+    await MarketMockSeeder.SeedAsync(db);
 }
 
 // Режим разового засева: уроки переимпортированы, сервер поднимать не нужно.
@@ -378,6 +434,7 @@ app.MapProgressEndpoints();
 app.MapAdminEndpoints();
 app.MapDeviceEndpoints();
 app.MapSupportEndpoints();
+app.MapMarketEndpoints();
 
 app.Run();
 

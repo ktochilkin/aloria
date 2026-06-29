@@ -32,6 +32,12 @@ public class AloriaDbContext(DbContextOptions<AloriaDbContext> options) : DbCont
     public DbSet<TradeEvent> TradeEvents => Set<TradeEvent>();
     public DbSet<SupportTicket> SupportTickets => Set<SupportTicket>();
 
+    // Экономический мир (макроэкономика, новости, события)
+    public DbSet<Sector> Sectors => Set<Sector>();
+    public DbSet<Company> Companies => Set<Company>();
+    public DbSet<NewsItem> NewsItems => Set<NewsItem>();
+    public DbSet<MacroState> MacroStates => Set<MacroState>();
+
     protected override void OnModelCreating(ModelBuilder b)
     {
         base.OnModelCreating(b);
@@ -194,6 +200,43 @@ public class AloriaDbContext(DbContextOptions<AloriaDbContext> options) : DbCont
             e.Property(x => x.Status).HasMaxLength(16).IsRequired();
             e.Property(x => x.Subject).HasMaxLength(256).IsRequired();
             e.Property(x => x.ErrorCode).HasMaxLength(64);
+        });
+
+        // Экономический мир -------------------------------------------------
+
+        b.Entity<Sector>(e =>
+        {
+            e.HasIndex(x => x.Slug).IsUnique();
+            e.Property(x => x.Slug).HasMaxLength(32).IsRequired();
+            e.Property(x => x.Title).HasMaxLength(128).IsRequired();
+            e.HasMany(x => x.Companies).WithOne(x => x.Sector!).HasForeignKey(x => x.SectorId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<Company>(e =>
+        {
+            e.HasIndex(x => x.Symbol).IsUnique();
+            e.Property(x => x.Symbol).HasMaxLength(16).IsRequired();
+            e.Property(x => x.Name).HasMaxLength(128).IsRequired();
+            e.Property(x => x.Theme).HasMaxLength(128);
+        });
+
+        b.Entity<NewsItem>(e =>
+        {
+            e.HasIndex(x => x.PublishDate);
+            e.HasIndex(x => x.SectorSlug);
+            e.Property(x => x.Headline).HasMaxLength(256).IsRequired();
+            e.Property(x => x.Sentiment).HasMaxLength(16).IsRequired();
+            e.Property(x => x.EventType).HasMaxLength(32).IsRequired();
+            e.Property(x => x.Scope).HasMaxLength(16).IsRequired();
+            e.Property(x => x.Symbols).HasMaxLength(128);
+            e.Property(x => x.SectorSlug).HasMaxLength(32);
+            e.Property(x => x.Source).HasMaxLength(16).IsRequired();
+        });
+
+        b.Entity<MacroState>(e =>
+        {
+            e.Property(x => x.Regime).HasMaxLength(16).IsRequired();
+            e.Property(x => x.Source).HasMaxLength(16).IsRequired();
         });
     }
 }

@@ -1,82 +1,65 @@
-import 'package:aloria/core/errors/error_types.dart';
+import 'package:aloria/core/env/env.dart';
+import 'package:aloria/core/logging/logger.dart';
 import 'package:aloria/core/networking/api_client.dart';
 import 'package:aloria/features/market/domain/market_news.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+/// Репозиторий новостей экономического мира (aloria-api).
+///
+/// Раньше новости брались из торгового `/news/graphql` (фильтр только по
+/// тикеру, не расширяемо). Теперь — из aloria-api: фильтр по symbol/сектору/типу,
+/// данные несут тональность и тип события. Писатель на шаге 1 — мок-сидер бэка,
+/// позже — ИИ-режиссёр.
 class MarketNewsRepository {
-  MarketNewsRepository(this._dio);
+  MarketNewsRepository({
+    required String baseUrl,
+    required bool enableLogging,
+  }) : _dio = Dio(
+          BaseOptions(
+            baseUrl: baseUrl,
+            connectTimeout: const Duration(seconds: 6),
+            receiveTimeout: const Duration(seconds: 12),
+            sendTimeout: const Duration(seconds: 6),
+            headers: const {'Accept': 'application/json'},
+          ),
+        ) {
+    if (enableLogging) {
+      _dio.interceptors.add(
+        InterceptorsWrapper(
+          onError: (e, h) {
+            appLogger.w('news ✖ ${e.requestOptions.uri}: ${e.message}');
+            h.next(e);
+          },
+        ),
+      );
+    }
+  }
 
   final Dio _dio;
 
-  static const _newsQuery = r'''
-query ($order: [NewsSortInput!], $first: Int, $where: NewsFilterInput) {
-  news(order: $order, first: $first, where: $where) {
-    nodes {
-      id
-      headline
-      content
-      publishDate
-      symbols
-      __typename
-    }
-    pageInfo {
-      endCursor
-      hasNextPage
-      hasPreviousPage
-      startCursor
-      __typename
-    }
-    __typename
-  }
-}
-''';
-
+  /// Лента новостей. Фильтры опциональны: [symbol] — по инструменту,
+  /// [sector] — по сектору, [type] — по типу события.
   Future<List<MarketNews>> fetchNews({
     String? symbol,
-    List<String>? symbols,
+    String? sector,
+    String? type,
     int limit = 50,
   }) async {
-    final symbolsFilter = symbols ?? (symbol != null ? [symbol] : null);
-
-    final variables = <String, dynamic>{
-      'order': [
-        {'publishDate': 'DESC', 'id': 'DESC'},
-      ],
-      'first': limit,
-      'where': symbolsFilter == null
-          ? null
-          : {
-              'and': [
-                {
-                  'symbols': {'in': symbolsFilter},
-                },
-              ],
-            },
-    };
-
     try {
-      final res = await _dio.post<Map<String, dynamic>>(
-        '/news/graphql',
-        data: {'variables': variables, 'query': _newsQuery},
-        options: Options(contentType: Headers.jsonContentType),
+      final res = await _dio.get<List<dynamic>>(
+        '/api/v1/market/news',
+        queryParameters: {
+          if (symbol != null && symbol.isNotEmpty) 'symbol': symbol,
+          if (sector != null && sector.isNotEmpty) 'sector': sector,
+          if (type != null && type.isNotEmpty) 'type': type,
+          'limit': limit,
+        },
       );
-      final data = res.data ?? const <String, dynamic>{};
-      final errors = data['errors'];
-      if (errors is List && errors.isNotEmpty) {
-        final first = errors.first;
-        final message = first is Map<String, dynamic>
-            ? first['message'] as String?
-            : first?.toString();
-        throw AppError.server(message ?? 'news_graphql_error');
-      }
-      final newsData = (data['data'] as Map?)?['news'] as Map?;
-      final nodes = newsData?['nodes'] as List?;
-      if (nodes == null) return const [];
-      return nodes
+      return (res.data ?? const [])
           .whereType<Map<String, dynamic>>()
           .map(MarketNews.fromJson)
-          .toList();
+          .toList(growable: false);
     } on DioException catch (e) {
       throw e.toTypedError();
     }
@@ -84,6 +67,9 @@ query ($order: [NewsSortInput!], $first: Int, $where: NewsFilterInput) {
 }
 
 final marketNewsRepositoryProvider = Provider<MarketNewsRepository>((ref) {
-  final dio = ref.watch(dioProvider);
-  return MarketNewsRepository(dio);
+  final config = ref.watch(appConfigProvider);
+  return MarketNewsRepository(
+    baseUrl: config.aloriaApiBaseUrl,
+    enableLogging: config.enableLogging,
+  );
 });
