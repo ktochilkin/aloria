@@ -78,6 +78,25 @@ public static class MarketEndpoints
                 .FirstOrDefaultAsync(ct);
             return m == null ? Results.NotFound() : Results.Ok(ToDto(m));
         }).WithTags("Market");
+
+        // Календарь цикла: ближайшие события с указанного мирового дня.
+        app.MapGet("/api/v1/macro/calendar", async (
+            int? fromDay,
+            int? limit,
+            AloriaDbContext db,
+            CancellationToken ct) =>
+        {
+            var take = Math.Clamp(limit ?? 50, 1, 200);
+            var q = db.CycleCalendar.AsQueryable();
+            if (fromDay is { } d) q = q.Where(x => x.Day >= d);
+
+            var rows = await q
+                .OrderBy(x => x.Day).ThenBy(x => x.TickOfDay)
+                .Take(take)
+                .ToListAsync(ct);
+            return Results.Ok(rows.Select(x =>
+                new CalendarItemDto(x.Day, x.TickOfDay, x.Type, x.Symbol)));
+        }).WithTags("Market");
     }
 
     private static void MapAdmin(IEndpointRouteBuilder app)
@@ -113,11 +132,69 @@ public static class MarketEndpoints
             if (input.Inflation is { } inf) m.Inflation = inf;
             if (input.CycleDay is { } cd) m.CycleDay = cd;
             if (input.CycleLength is { } cl) m.CycleLength = cl;
-            m.Source = "mock";
+            m.Source = string.IsNullOrWhiteSpace(input.Source) ? "mock" : input.Source!;
             m.UpdatedAt = DateTime.UtcNow;
 
             await db.SaveChangesAsync(ct);
             return Results.Ok(ToDto(m));
+        });
+
+        // Ингест новости от Aloria Director.
+        admin.MapPost("/news", async (
+            DirectorNewsInput input,
+            AloriaDbContext db,
+            CancellationToken ct) =>
+        {
+            if (string.IsNullOrWhiteSpace(input.Headline) || string.IsNullOrWhiteSpace(input.Content))
+                return Results.BadRequest("headline и content обязательны");
+
+            var item = new NewsItem
+            {
+                Id = Guid.NewGuid(),
+                Headline = input.Headline.Length > 256 ? input.Headline[..256] : input.Headline,
+                Content = input.Content,
+                PublishDate = DateTime.UtcNow,
+                Sentiment = input.Sentiment is "positive" or "negative" ? input.Sentiment : "neutral",
+                EventType = string.IsNullOrWhiteSpace(input.EventType) ? "operations" : input.EventType!,
+                Scope = input.Scope is "macro" or "sector" ? input.Scope! : "company",
+                Symbols = input.Symbols ?? string.Empty,
+                SectorSlug = input.SectorSlug,
+                Urgency = Math.Clamp(input.Urgency ?? 2, 1, 3),
+                Source = string.IsNullOrWhiteSpace(input.Source) ? "director" : input.Source!,
+                CreatedAt = DateTime.UtcNow,
+            };
+            db.NewsItems.Add(item);
+            await db.SaveChangesAsync(ct);
+            return Results.Ok(new { id = item.Id });
+        });
+
+        // Ингест календаря цикла от Aloria Director (идемпотентно по ключу события).
+        admin.MapPost("/calendar", async (
+            CalendarItemInput[] input,
+            AloriaDbContext db,
+            CancellationToken ct) =>
+        {
+            var added = 0;
+            foreach (var e in input)
+            {
+                var exists = await db.CycleCalendar.AnyAsync(x =>
+                    x.Day == e.Day && x.TickOfDay == e.TickOfDay
+                    && x.Type == e.Type && x.Symbol == e.Symbol, ct);
+                if (exists) continue;
+
+                db.CycleCalendar.Add(new CycleCalendarItem
+                {
+                    Id = Guid.NewGuid(),
+                    Day = e.Day,
+                    TickOfDay = e.TickOfDay,
+                    Type = e.Type,
+                    Symbol = e.Symbol,
+                    CreatedAt = DateTime.UtcNow,
+                });
+                added++;
+            }
+            await db.SaveChangesAsync(ct);
+            return Results.Ok(new { added });
         });
     }
 

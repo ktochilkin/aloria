@@ -1,0 +1,23 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v10.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v10.0": {
+      "Aloria.Director.Core/1.0.0": {
+        "runtime": {
+          "Aloria.Director.Core.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "Aloria.Director.Core/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}
