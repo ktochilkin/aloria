@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Aloria.Director.Core")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+05434f4828a934df4fbcf20372570b5a8e753497")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d75454bc4689bca47059e94fb1b655bc79e86d5d")]
 [assembly: System.Reflection.AssemblyProductAttribute("Aloria.Director.Core")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Aloria.Director.Core")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

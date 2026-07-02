@@ -93,36 +93,27 @@ public sealed class DirectorWorker : BackgroundService
         return true;
     }
 
-    /// <summary>
-    /// Ветка-симуляция: клонирует ТЕКУЩИЙ мир и быстро прогоняет N дней вперёд
-    /// (шаблонный нарратор, без БД/HTTP). Возвращает сводку — «одно возможное
-    /// будущее» при заданных ручках. ~2 сек на 120 дней.
-    /// </summary>
-    public async Task<object?> SimulateBranchAsync(
-        int days, int? seed, WorldTuning? tuning, CancellationToken ct = default)
+    /// <summary>Итог одного прогона-ветки (для одиночного ответа и ансамбля).</summary>
+    private sealed record BranchStats(
+        int Seed,
+        int FromDay,
+        double CrisisShare,
+        int? FirstCrisisAfterDays,
+        List<string> Defaults,
+        double NewsPerDay,
+        Dictionary<string, int> RegimeDays,
+        List<double> IndexDaily,
+        List<string> RegimeDaily,
+        List<bool> CrisisDaily,
+        WorldSnapshot Final);
+
+    private async Task<BranchStats> RunBranchAsync(
+        WorldPersistDto snapshot, int days, int seed, WorldTuning? tuning, CancellationToken ct)
     {
-        if (_engine is null) return null;
-
-        WorldPersistDto snapshot;
-        await _engineLock.WaitAsync(ct);
-        try
-        {
-            snapshot = _engine.Persist();
-        }
-        finally
-        {
-            _engineLock.Release();
-        }
-
-        days = Math.Clamp(days, 1, 365);
-        // Без явного seed каждый прогон — новый бросок костей: жми «Прогнать»
-        // несколько раз и смотри разброс возможных будущих. Фиксированный seed
-        // передавай, когда нужен воспроизводимый прогон.
-        var branchSeed = seed ?? Random.Shared.Next();
         var branch = new WorldEngine(
-            new WorldConfig { Seed = branchSeed, TicksPerDay = _options.TicksPerDay },
+            new WorldConfig { Seed = seed, TicksPerDay = _options.TicksPerDay },
             snapshot with { Tuning = (tuning ?? snapshot.Tuning ?? new WorldTuning()).Clamped() });
-        var narrator = new TemplateNarrator(new Rng(branchSeed ^ 0x5EED));
+        var narrator = new TemplateNarrator(new Rng(seed ^ 0x5EED));
 
         var startDay = branch.State.Day;
         int? firstCrisisDay = null;
@@ -158,22 +149,149 @@ public sealed class DirectorWorker : BackgroundService
             }
         }
 
+        return new BranchStats(
+            seed, startDay,
+            Math.Round((double)crisisTicks / totalTicks, 3),
+            firstCrisisDay - startDay,
+            defaults,
+            Math.Round((double)newsTotal / days, 1),
+            regimeDays, indexDaily, regimeDaily, crisisDaily,
+            branch.Snapshot());
+    }
+
+    /// <summary>
+    /// Ветка-симуляция: клонирует ТЕКУЩИЙ мир и быстро прогоняет N дней вперёд
+    /// (шаблонный нарратор, без БД/HTTP). Возвращает сводку — «одно возможное
+    /// будущее» при заданных ручках. ~2 сек на 120 дней.
+    /// </summary>
+    public async Task<object?> SimulateBranchAsync(
+        int days, int? seed, WorldTuning? tuning, CancellationToken ct = default)
+    {
+        if (_engine is null) return null;
+
+        WorldPersistDto snapshot;
+        await _engineLock.WaitAsync(ct);
+        try
+        {
+            snapshot = _engine.Persist();
+        }
+        finally
+        {
+            _engineLock.Release();
+        }
+
+        days = Math.Clamp(days, 1, 365);
+        // Без явного seed каждый прогон — новый бросок костей.
+        var s = await RunBranchAsync(snapshot, days, seed ?? Random.Shared.Next(), tuning, ct);
+
         return new
         {
-            fromDay = startDay,
+            fromDay = s.FromDay,
             days,
-            seed = branchSeed,
-            tuning = branch.Tuning,
-            newsPerDay = Math.Round((double)newsTotal / days, 1),
-            crisisShareOfTime = Math.Round((double)crisisTicks / totalTicks, 3),
-            firstCrisisDay,
-            firstCrisisAfterDays = firstCrisisDay - startDay,
-            regimeDays,
-            defaults,
-            indexDaily,
-            regimeDaily,
-            crisisDaily,
-            finalSnapshot = branch.Snapshot(),
+            seed = s.Seed,
+            newsPerDay = s.NewsPerDay,
+            crisisShareOfTime = s.CrisisShare,
+            firstCrisisAfterDays = s.FirstCrisisAfterDays,
+            regimeDays = s.RegimeDays,
+            defaults = s.Defaults,
+            indexDaily = s.IndexDaily,
+            regimeDaily = s.RegimeDaily,
+            crisisDaily = s.CrisisDaily,
+            finalSnapshot = s.Final,
+        };
+    }
+
+    /// <summary>
+    /// Ансамбль: N независимых веток от одного и того же текущего мира.
+    /// Один прогон — лотерея; ансамбль — статистика: средние, вероятности,
+    /// коридор траекторий индекса (перцентили) и вероятность кризиса по дням.
+    /// Ветки считаются параллельно по ядрам.
+    /// </summary>
+    public async Task<object?> SimulateEnsembleAsync(
+        int days, int runs, WorldTuning? tuning, CancellationToken ct = default)
+    {
+        if (_engine is null) return null;
+
+        WorldPersistDto snapshot;
+        await _engineLock.WaitAsync(ct);
+        try
+        {
+            snapshot = _engine.Persist();
+        }
+        finally
+        {
+            _engineLock.Release();
+        }
+
+        days = Math.Clamp(days, 1, 365);
+        runs = Math.Clamp(runs, 2, 64);
+
+        var stats = new System.Collections.Concurrent.ConcurrentBag<BranchStats>();
+        await Parallel.ForEachAsync(
+            Enumerable.Range(0, runs),
+            new ParallelOptions
+            {
+                MaxDegreeOfParallelism = Math.Max(2, Environment.ProcessorCount - 1),
+                CancellationToken = ct,
+            },
+            async (_, token) =>
+                stats.Add(await RunBranchAsync(snapshot, days, Random.Shared.Next(), tuning, token)));
+
+        var all = stats.ToList();
+        var dayCount = all.Min(s => s.IndexDaily.Count);
+
+        static double Percentile(List<double> sorted, double p)
+        {
+            var idx = (sorted.Count - 1) * p;
+            var lo = (int)Math.Floor(idx);
+            var hi = (int)Math.Ceiling(idx);
+            return sorted[lo] + (sorted[hi] - sorted[lo]) * (idx - lo);
+        }
+
+        var p10 = new List<double>();
+        var p50 = new List<double>();
+        var p90 = new List<double>();
+        var crisisProbDaily = new List<double>();
+        for (var d = 0; d < dayCount; d++)
+        {
+            var vals = all.Select(s => s.IndexDaily[d]).OrderBy(v => v).ToList();
+            p10.Add(Math.Round(Percentile(vals, 0.10), 2));
+            p50.Add(Math.Round(Percentile(vals, 0.50), 2));
+            p90.Add(Math.Round(Percentile(vals, 0.90), 2));
+            crisisProbDaily.Add(Math.Round(all.Count(s => s.CrisisDaily[d]) / (double)runs, 2));
+        }
+
+        var firstDays = all
+            .Where(s => s.FirstCrisisAfterDays.HasValue)
+            .Select(s => (double)s.FirstCrisisAfterDays!.Value)
+            .OrderBy(v => v)
+            .ToList();
+        var defaultProb = all
+            .SelectMany(s => s.Defaults.Distinct())
+            .GroupBy(sym => sym)
+            .ToDictionary(g => g.Key, g => Math.Round(g.Count() / (double)runs, 2));
+
+        return new
+        {
+            fromDay = all[0].FromDay,
+            days,
+            runs,
+            crisisShare = new
+            {
+                mean = Math.Round(all.Average(s => s.CrisisShare), 3),
+                min = all.Min(s => s.CrisisShare),
+                max = all.Max(s => s.CrisisShare),
+            },
+            pAnyCrisis = Math.Round(all.Count(s => s.FirstCrisisAfterDays.HasValue) / (double)runs, 2),
+            firstCrisisMedianDays = firstDays.Count > 0
+                ? (double?)Math.Round(Percentile(firstDays, 0.5))
+                : null,
+            defaultProb,
+            newsPerDay = Math.Round(all.Average(s => s.NewsPerDay), 1),
+            indexP10 = p10,
+            indexP50 = p50,
+            indexP90 = p90,
+            crisisProbDaily,
         };
     }
 

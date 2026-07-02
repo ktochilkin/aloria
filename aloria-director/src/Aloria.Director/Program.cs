@@ -150,9 +150,12 @@ app.MapPut("/director/tuning", async (WorldTuning input, DirectorWorker worker) 
     await worker.SetTuningAsync(input) is { } t ? Results.Ok(t) : Results.NotFound());
 
 // Ветка-симуляция от ТЕКУЩЕГО мира: {"days":60,"tuning":{...}} → сводка будущего.
+// runs > 1 → ансамбль: N независимых веток, статистика вместо одной траектории.
 app.MapPost("/director/simulate", async (SimulateInput input, DirectorWorker worker) =>
 {
-    var result = await worker.SimulateBranchAsync(input.Days ?? 60, input.Seed, input.Tuning);
+    var result = (input.Runs ?? 1) > 1
+        ? await worker.SimulateEnsembleAsync(input.Days ?? 60, input.Runs!.Value, input.Tuning)
+        : await worker.SimulateBranchAsync(input.Days ?? 60, input.Seed, input.Tuning);
     return result is null ? Results.NotFound() : Results.Ok(result);
 });
 
@@ -174,4 +177,4 @@ string ArgString(string name, string fallback)
 
 internal sealed record RegimeInput(string Regime);
 
-internal sealed record SimulateInput(int? Days, int? Seed, WorldTuning? Tuning);
+internal sealed record SimulateInput(int? Days, int? Seed, WorldTuning? Tuning, int? Runs);

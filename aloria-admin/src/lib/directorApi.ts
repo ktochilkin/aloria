@@ -81,12 +81,30 @@ export const defaultTuning: WorldTuning = {
   volatilityMultiplier: 1.0,
 };
 
+/// Итог ансамбля из N независимых веток: статистика вместо одной траектории.
+export type EnsembleResult = {
+  fromDay: number;
+  days: number;
+  runs: number;
+  crisisShare: { mean: number; min: number; max: number };
+  pAnyCrisis: number;
+  firstCrisisMedianDays: number | null;
+  defaultProb: Record<string, number>;
+  newsPerDay: number;
+  indexP10: number[];
+  indexP50: number[];
+  indexP90: number[];
+  crisisProbDaily: number[];
+};
+
 export const directorApi = {
   state: () => api.get<DirectorState>('/director/state'),
   tuning: () => api.get<WorldTuning>('/director/tuning'),
   saveTuning: (t: WorldTuning) => api.put<WorldTuning>('/director/tuning', t),
   simulate: (body: { days: number; seed?: number | null; tuning?: WorldTuning | null }) =>
     api.post<SimResult>('/director/simulate', body),
+  simulateEnsemble: (body: { days: number; runs: number; tuning?: WorldTuning | null }) =>
+    api.post<EnsembleResult>('/director/simulate', body),
   forceCrisis: () => api.post<{ crisis: boolean }>('/director/crisis'),
   forceRegime: (regime: string) => api.post<{ forced: string }>('/director/regime', { regime }),
 };

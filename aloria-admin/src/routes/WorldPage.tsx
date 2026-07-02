@@ -6,6 +6,7 @@ import {
   defaultTuning,
   directorApi,
   regimeRu,
+  type EnsembleResult,
   type SimResult,
   type WorldTuning,
 } from '../lib/directorApi';
@@ -105,6 +106,75 @@ function Stat({ label, value }: { label: string; value: React.ReactNode }) {
     <div>
       <div className="text-xs font-semibold uppercase tracking-wider text-(--color-fg-muted)">{label}</div>
       <div className="text-xl font-bold text-(--color-fg) mt-0.5 tabular-nums">{value}</div>
+    </div>
+  );
+}
+
+/// Веерный график ансамбля: коридор p10–p90, медиана и полоса P(кризис) по дням.
+function FanChart({ ens }: { ens: EnsembleResult }) {
+  const n = ens.indexP50.length;
+  if (n < 2) return null;
+  const w = 560;
+  const h = 150;
+  const padL = 4;
+  const plotW = w - padL - 4;
+  const min = Math.min(...ens.indexP10);
+  const max = Math.max(...ens.indexP90);
+  const span = max - min || 1;
+  const x = (i: number) => padL + (i / (n - 1)) * plotW;
+  const y = (v: number) => h - 34 - ((v - min) / span) * (h - 52);
+
+  const median = ens.indexP50.map((v, i) => `${x(i)},${y(v)}`).join(' ');
+  const band =
+    ens.indexP90.map((v, i) => `${x(i)},${y(v)}`).join(' ') +
+    ' ' +
+    [...ens.indexP10].reverse().map((v, i) => `${x(n - 1 - i)},${y(v)}`).join(' ');
+  const dayW = plotW / (n - 1);
+
+  return (
+    <div>
+      <svg viewBox={`0 0 ${w} ${h}`} className="w-full">
+        <polygon points={band} fill="rgba(93,140,255,0.16)" />
+        <polyline points={median} fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinejoin="round" />
+        {/* Полоса вероятности кризиса по дням */}
+        {ens.crisisProbDaily.map((p, i) =>
+          p > 0 ? (
+            <rect
+              key={i}
+              x={x(i) - dayW / 2}
+              y={h - 26}
+              width={dayW + 0.5}
+              height={8}
+              fill={`rgba(208,59,59,${Math.min(0.9, 0.15 + p)})`}
+            />
+          ) : null,
+        )}
+        <text x={padL} y={12} fontSize="10" fill="var(--color-fg-muted)">{max.toFixed(0)}</text>
+        <text x={padL} y={h - 38} fontSize="10" fill="var(--color-fg-muted)">{min.toFixed(0)}</text>
+        <text x={padL} y={h - 18} fontSize="9" fill="var(--color-fg-muted)">P(кризис)</text>
+        {[0.25, 0.5, 0.75].map((f) => {
+          const i = Math.round(f * (n - 1));
+          return (
+            <text key={f} x={x(i)} y={h - 4} fontSize="10" fill="var(--color-fg-muted)" textAnchor="middle">
+              д.{ens.fromDay + i}
+            </text>
+          );
+        })}
+      </svg>
+      <div className="flex flex-wrap gap-3 mt-1 text-[11px] text-(--color-fg-muted)">
+        <span className="inline-flex items-center gap-1">
+          <span className="inline-block w-3 h-1 rounded-sm" style={{ background: 'var(--color-primary)' }} />
+          медиана индекса
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <span className="inline-block w-3 h-3 rounded-sm" style={{ background: 'rgba(93,140,255,0.16)' }} />
+          коридор 10–90% прогонов
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <span className="inline-block w-3 h-3 rounded-sm" style={{ background: 'rgba(208,59,59,0.6)' }} />
+          доля прогонов в кризисе в этот день
+        </span>
+      </div>
     </div>
   );
 }
@@ -212,7 +282,9 @@ export function WorldPage() {
 
   const [simDays, setSimDays] = useState(120);
   const [useFormTuning, setUseFormTuning] = useState(true);
+  const [ensembleMode, setEnsembleMode] = useState(true);
   const [simResult, setSimResult] = useState<SimResult | null>(null);
+  const [ensResult, setEnsResult] = useState<EnsembleResult | null>(null);
   const [showDocs, setShowDocs] = useState(false);
 
   const saveTuning = useMutation({
@@ -224,12 +296,19 @@ export function WorldPage() {
   });
 
   const simulate = useMutation({
-    mutationFn: () =>
-      directorApi.simulate({
-        days: simDays,
-        tuning: useFormTuning ? effectiveForm : null,
-      }),
-    onSuccess: setSimResult,
+    mutationFn: async () => {
+      const tuning = useFormTuning ? effectiveForm : null;
+      if (ensembleMode) {
+        const r = await directorApi.simulateEnsemble({ days: simDays, runs: 20, tuning });
+        return { ens: r, single: null as SimResult | null };
+      }
+      const r = await directorApi.simulate({ days: simDays, tuning });
+      return { ens: null as EnsembleResult | null, single: r };
+    },
+    onSuccess: ({ ens, single }) => {
+      setEnsResult(ens);
+      setSimResult(single);
+    },
   });
 
   const forceCrisis = useMutation({
@@ -404,7 +483,7 @@ export function WorldPage() {
               {simulate.isPending ? 'Считаю…' : 'Прогнать'}
             </Button>
           </div>
-          <div className="flex items-end gap-4 mb-4">
+          <div className="flex items-end gap-4 mb-3 flex-wrap">
             <Field label="Дней вперёд">
               <Input
                 type="number"
@@ -418,18 +497,67 @@ export function WorldPage() {
             <label className="flex items-center gap-2 text-sm pb-2.5">
               <input
                 type="checkbox"
+                checked={ensembleMode}
+                onChange={(e) => setEnsembleMode(e.target.checked)}
+              />
+              ансамбль ×20 (статистика)
+            </label>
+            <label className="flex items-center gap-2 text-sm pb-2.5">
+              <input
+                type="checkbox"
                 checked={useFormTuning}
                 onChange={(e) => setUseFormTuning(e.target.checked)}
               />
-              с ручками из формы (не применяя к миру)
+              с ручками из формы
             </label>
           </div>
           <p className="text-xs text-(--color-fg-muted) mb-3">
-            Клонирует текущий мир и прогоняет вперёд (~2 с на 120 дней), живой мир не трогает.
-            Показывает не «то самое» будущее (его ещё не существует), а <b>одно из возможных</b>:
-            каждый клик — новый бросок костей. Жми несколько раз и смотри разброс — частоты честные,
-            конкретные даты каждый раз свои.
+            Живой мир не трогается. <b>Ансамбль</b> прогоняет 20 независимых копий мира и показывает
+            статистику — устойчивый ответ для сравнения ручек (одиночные прогоны на одних параметрах
+            дают разные истории: это кости, а не баг). <b>Один прогон</b> — посмотреть одну живую
+            историю с раскраской режимов.
           </p>
+          {ensResult && (
+            <div className="border-t border-(--color-border) pt-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+                <Stat
+                  label="Кризис, % времени"
+                  value={
+                    <>
+                      {(ensResult.crisisShare.mean * 100).toFixed(1)}%
+                      <span className="text-xs font-normal text-(--color-fg-muted)">
+                        {' '}({(ensResult.crisisShare.min * 100).toFixed(0)}–
+                        {(ensResult.crisisShare.max * 100).toFixed(0)}%)
+                      </span>
+                    </>
+                  }
+                />
+                <Stat label="Шанс ≥1 кризиса" value={`${(ensResult.pAnyCrisis * 100).toFixed(0)}%`} />
+                <Stat
+                  label="Первый кризис (медиана)"
+                  value={
+                    ensResult.firstCrisisMedianDays != null
+                      ? `через ${ensResult.firstCrisisMedianDays} дн`
+                      : '—'
+                  }
+                />
+                <Stat
+                  label="Дефолты (шанс)"
+                  value={
+                    Object.keys(ensResult.defaultProb).length
+                      ? Object.entries(ensResult.defaultProb)
+                          .map(([s, p]) => `${s} ${(p * 100).toFixed(0)}%`)
+                          .join(', ')
+                      : '—'
+                  }
+                />
+              </div>
+              <FanChart ens={ensResult} />
+              <div className="text-xs text-(--color-fg-muted) mt-2">
+                {ensResult.runs} независимых прогонов по {ensResult.days} дней от текущего мира
+              </div>
+            </div>
+          )}
           {simResult && (
             <div className="border-t border-(--color-border) pt-4">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
@@ -450,7 +578,7 @@ export function WorldPage() {
               </div>
               <SimChart sim={simResult} />
               <div className="text-xs text-(--color-fg-muted) mt-2">
-                Индекс Алории по дням ветки · итого:{' '}
+                Один прогон (одна из возможных историй) · итого:{' '}
                 {Object.entries(simResult.regimeDays)
                   .map(([r, d]) => `${regimeRu[r] ?? r} ${d}д`)
                   .join(' · ')}
