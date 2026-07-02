@@ -10,6 +10,14 @@ export default defineConfig({
     proxy: {
       '/api': 'http://127.0.0.1:5050',
       '/uploads': 'http://127.0.0.1:5050',
+      '/director': 'http://127.0.0.1:5077',
+    },
+  },
+  preview: {
+    proxy: {
+      '/api': 'http://127.0.0.1:5050',
+      '/uploads': 'http://127.0.0.1:5050',
+      '/director': 'http://127.0.0.1:5077',
     },
   },
 })

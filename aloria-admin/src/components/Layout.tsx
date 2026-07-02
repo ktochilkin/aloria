@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from 'react-router';
-import { BookOpen, Layers, ListChecks, Trophy, Users, Activity, Send, Sparkles, Eye } from 'lucide-react';
+import { BookOpen, Layers, ListChecks, Trophy, Users, Activity, Send, Sparkles, Eye, Globe2 } from 'lucide-react';
 import { clsx } from 'clsx';
 
 const navItems = [
@@ -12,6 +12,7 @@ const navItems = [
   { to: '/users', icon: Users, label: 'Пользователи' },
   { to: '/broadcast', icon: Send, label: 'Рассылка' },
   { to: '/audit', icon: Activity, label: 'Аудит' },
+  { to: '/world', icon: Globe2, label: 'Мир' },
 ];
 
 export function Layout() {
