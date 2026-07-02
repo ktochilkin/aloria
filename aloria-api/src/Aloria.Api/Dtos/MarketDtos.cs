@@ -40,10 +40,29 @@ public record MacroStateDto(
     string Source,
     DateTime UpdatedAt);
 
-/// <summary>Вход для ручной правки макросостояния (админ).</summary>
+/// <summary>Вход для правки макросостояния (админ вручную или Aloria Director).</summary>
 public record MacroStateInput(
     string? Regime,
     double? KeyRate,
     double? Inflation,
     int? CycleDay,
-    int? CycleLength);
+    int? CycleLength,
+    string? Source);
+
+/// <summary>Новость от Aloria Director (ингест).</summary>
+public record DirectorNewsInput(
+    string Headline,
+    string Content,
+    string? Sentiment,
+    string? EventType,
+    string? Scope,
+    string? Symbols,
+    string? SectorSlug,
+    int? Urgency,
+    string? Source);
+
+/// <summary>Событие календаря цикла от Aloria Director.</summary>
+public record CalendarItemInput(int Day, int TickOfDay, string Type, string? Symbol);
+
+/// <summary>Событие календаря цикла для клиента.</summary>
+public record CalendarItemDto(int Day, int TickOfDay, string Type, string? Symbol);

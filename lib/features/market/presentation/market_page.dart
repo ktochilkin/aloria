@@ -296,7 +296,7 @@ class _MarketOverviewTab extends StatelessWidget {
   }
 }
 
-class _MarketNewsTab extends StatelessWidget {
+class _MarketNewsTab extends ConsumerWidget {
   const _MarketNewsTab({required this.asyncNews});
 
   final AsyncValue<List<MarketNews>> asyncNews;
@@ -306,7 +306,10 @@ class _MarketNewsTab extends StatelessWidget {
   static final List<({String title, bool Function(MarketNews) test})>
   _sections = [
     (title: 'Макроэкономика', test: (n) => n.eventType == 'macro'),
-    (title: 'Дивиденды', test: (n) => n.eventType == 'dividend'),
+    (
+      title: 'Дивиденды и купоны',
+      test: (n) => n.eventType == 'dividend' || n.eventType == 'coupon',
+    ),
     (title: 'Отчётность компаний', test: (n) => n.eventType == 'earnings'),
     (
       title: 'Корпоративные новости',
@@ -318,27 +321,145 @@ class _MarketNewsTab extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return asyncNews.when(
       data: (all) {
         if (all.isEmpty) {
           return const Center(child: Text('Новости отсутствуют'));
         }
+
+        final sorted = [...all]
+          ..sort((a, b) => b.publishedAt.compareTo(a.publishedAt));
+        final hero = sorted.first;
+        final rest = sorted.skip(1).toList();
         final sections = _sections
-            .map((s) => (title: s.title, items: all.where(s.test).toList()))
+            .map((s) => (title: s.title, items: rest.where(s.test).toList()))
             .where((s) => s.items.isNotEmpty)
             .toList();
 
-        return ListView.separated(
-          padding: EdgeInsets.fromLTRB(0, 12, 0, context.bottomNavBarPadding),
-          itemCount: sections.length,
-          separatorBuilder: (_, _) => const SizedBox(height: 20),
-          itemBuilder: (context, i) =>
-              _NewsSection(title: sections[i].title, items: sections[i].items),
+        return RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(marketAllNewsProvider);
+            await ref.read(marketAllNewsProvider.future);
+          },
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.fromLTRB(0, 12, 0, context.bottomNavBarPadding),
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+                child: _HeroNewsCard(news: hero),
+              ),
+              for (final s in sections) ...[
+                _NewsSection(title: s.title, items: s.items),
+                const SizedBox(height: 20),
+              ],
+            ],
+          ),
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(child: Text('Не удалось загрузить новости: $e')),
+    );
+  }
+}
+
+/// Герой-карточка: последняя новость мира крупно, с тональной подложкой.
+class _HeroNewsCard extends StatelessWidget {
+  const _HeroNewsCard({required this.news});
+
+  final MarketNews news;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+    final tone = newsSentimentColor(news.sentiment);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(24),
+        onTap: () => showNewsDetailModal(context, news),
+        child: Ink(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: scheme.outline),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [tone.withValues(alpha: 0.14), scheme.surface],
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: tone.withValues(alpha: 0.16),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        'Последняя',
+                        style: text.labelSmall?.copyWith(
+                          color: tone,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(child: NewsMetaRow(news: news)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  news.title,
+                  style: text.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  news.content,
+                  style: text.bodyMedium?.copyWith(height: 1.4),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Text(
+                      formatNewsDate(news.publishedAt),
+                      style: text.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      'Читать',
+                      style: text.labelLarge?.copyWith(
+                        color: tone,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Icon(Icons.chevron_right, size: 18, color: tone),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -398,46 +519,58 @@ class _NewsCardCompact extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
 
+    final tone = newsSentimentColor(news.sentiment);
+
     return SizedBox(
       width: 290,
       child: Card(
         margin: EdgeInsets.zero,
+        clipBehavior: Clip.antiAlias,
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
           onTap: () => showNewsDetailModal(context, news),
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                NewsMetaRow(news: news),
-                const SizedBox(height: 8),
-                Text(
-                  news.title,
-                  style: text.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 6),
-                Expanded(
-                  child: Text(
-                    news.content,
-                    style: text.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(height: 4, color: tone.withValues(alpha: 0.75)),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      NewsMetaRow(news: news),
+                      const SizedBox(height: 8),
+                      Text(
+                        news.title,
+                        style: text.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 6),
+                      Expanded(
+                        child: Text(
+                          news.content,
+                          style: text.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        formatNewsDate(news.publishedAt),
+                        style: text.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  formatNewsDate(news.publishedAt),
-                  style: text.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

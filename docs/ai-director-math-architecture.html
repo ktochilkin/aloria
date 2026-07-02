@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aloria Director — математика и архитектура данных</title>
+<style>
+  .viz-root {
+    --surface-1: #fcfcfb; --page: #f9f9f7;
+    --text-primary: #0b0b0b; --text-secondary: #52514e; --muted: #898781;
+    --grid: #e1e0d9; --baseline: #c3c2b7; --border: rgba(11,11,11,0.10);
+    --s1: #2a78d6; --s2: #1baf7a; --s3: #eda100; --s5: #4a3aa7;
+    --critical: #d03b3b; --good: #0ca30c;
+    --f-bg: rgba(42,120,214,0.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    .viz-root {
+      --surface-1: #1a1a19; --page: #0d0d0d;
+      --text-primary: #ffffff; --text-secondary: #c3c2b7; --muted: #898781;
+      --grid: #2c2c2a; --baseline: #383835; --border: rgba(255,255,255,0.10);
+      --s1: #3987e5; --s2: #199e70; --s3: #c98500; --s5: #9085e9;
+      --critical: #e66767; --good: #0ca30c;
+      --f-bg: rgba(57,135,229,0.09);
+    }
+  }
+  * { box-sizing: border-box; }
+  body.viz-root { margin: 0; background: var(--page); color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif; line-height: 1.55; }
+  main { max-width: 940px; margin: 0 auto; padding: 40px 20px 90px; }
+  h1 { font-size: 32px; margin: 8px 0 4px; letter-spacing: -0.5px; }
+  h2 { font-size: 22px; margin: 48px 0 6px; }
+  h3 { font-size: 16.5px; margin: 22px 0 6px; }
+  .sub { color: var(--text-secondary); margin: 0 0 8px; }
+  .eyebrow { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 1.4px; font-weight: 700; }
+  .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; margin-top: 14px; }
+  code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+  .formula { background: var(--f-bg); border: 1px solid var(--border); border-radius: 12px;
+    padding: 12px 16px; margin: 12px 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 14px; overflow-x: auto; }
+  .ru { color: var(--text-secondary); font-size: 13.5px; margin: 6px 0 0;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .ru b { color: var(--text-primary); }
+  .ex { border-left: 3px solid var(--s2); padding: 6px 0 6px 14px; margin: 12px 0; font-size: 13.5px; }
+  .ex .t { font-weight: 700; font-size: 12px; color: var(--s2); text-transform: uppercase; letter-spacing: 0.8px; }
+  .why { border-left: 3px solid var(--s3); padding: 6px 0 6px 14px; margin: 12px 0; font-size: 13.5px; color: var(--text-secondary); }
+  .why .t { font-weight: 700; font-size: 12px; color: var(--s3); text-transform: uppercase; letter-spacing: 0.8px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; margin: 8px 0; }
+  th, td { text-align: left; padding: 5px 10px; border-bottom: 1px solid var(--grid); }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 760px) { .cols { grid-template-columns: 1fr; } }
+  .plot { margin: 10px 0 2px; }
+  .plot-cap { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  ul { margin: 6px 0; padding-left: 22px; } li { margin: 3px 0; }
+  .flow { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; margin-top: 12px; }
+  .fbox { flex: 1 1 140px; border: 1.5px solid var(--border); background: var(--surface-1); border-radius: 12px; padding: 10px 12px; font-size: 12.5px; }
+  .fbox b { display: block; font-size: 13px; }
+  .fbox .m { color: var(--text-secondary); font-size: 11.5px; }
+  .arrow { align-self: center; color: var(--muted); font-size: 17px; }
+  .own2 { border-color: rgba(27,175,122,0.5); }
+  .own3 { border-color: rgba(74,58,167,0.45); }
+  .wtag { font-size: 10.5px; font-weight: 800; letter-spacing: 0.5px; border-radius: 6px; padding: 1px 6px; }
+  .w { background: rgba(227,73,72,0.14); color: var(--critical); }
+  .r { background: rgba(27,175,122,0.14); color: var(--s2); }
+  pre { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 13px 15px; overflow-x: auto; font-size: 12px; line-height: 1.55; }
+  .toc { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .toc a { font-size: 12.5px; color: var(--s1); text-decoration: none; border: 1px solid var(--border);
+    background: var(--surface-1); padding: 4px 10px; border-radius: 20px; }
+  .footnote { color: var(--muted); font-size: 12px; margin-top: 6px; }
+</style>
+</head>
+<body class="viz-root">
+<main>
+
+<div class="eyebrow">Aloria Director · глубокое погружение</div>
+<h1>Математика мира и архитектура данных</h1>
+<p class="sub">Каждая формула — с переводом на русский и числовым примером. Все константы — из кода
+(<span class="mono">Aloria.Director.Core</span>), всё проверено тестами.</p>
+
+<div class="toc">
+  <a href="#time">Время</a><a href="#log">Лог-цены</a><a href="#ou">«Резинка» OU</a>
+  <a href="#regimes">Режимы</a><a href="#events">События и хвосты</a><a href="#surprise">Сюрприз</a>
+  <a href="#fair">Справедливая стоимость</a><a href="#gravity">Гравитация цели</a>
+  <a href="#bonds">Облигации</a><a href="#distress">Дистресс и дефолт</a><a href="#deriv">Деривативы</a>
+  <a href="#arch">Архитектура данных</a><a href="#tick">Один тик</a><a href="#journey">Путь события</a>
+</div>
+
+<h2 id="time">0 · Модель времени</h2>
+<div class="card">
+  <div class="formula">1 цикл = 10 мировых дней = «год» · 1 день = 96 тиков (тик = 15 минут)</div>
+  <p class="ru">Всё, что в реальности меряется «годовыми» величинами (ставка, купон, прибыль),
+  здесь живёт в масштабе «за цикл». Когда видишь «7.5% за цикл» — читай «7.5% годовых», просто год у нас проходит за 10 дней.</p>
+</div>
+
+<h2 id="log">1 · Почему цены хранятся в логарифмах</h2>
+<div class="card">
+  <div class="formula">храним lnP (логарифм цены), а не P · &nbsp;ΔlnP = +0.01 ⇔ цена выросла ≈ на 1%</div>
+  <p class="ru">Логарифм превращает <b>умножение в сложение</b>. Рост на 2% — это цена × 1.02.
+  Два события подряд — × 1.02 × 0.97. В логарифмах это просто 0.0198 − 0.0305: эффекты складываются,
+  как деньги в кошельке. Для мелких величин ΔlnP ≈ процентное изменение.</p>
+  <div class="why"><div class="t">Зачем</div>
+  Симметрия и защита от абсурда: «+3% и −3%» весят одинаково, цена никогда не станет отрицательной
+  (exp от любого числа &gt; 0), а «упасть вдвое» и «вырасти вдвое» — равные по модулю шаги (±0.69).
+  Все воздействия в движке — это прибавки к lnF, в конце тик просто делает <span class="mono">P = exp(lnF)</span>.</div>
+</div>
+
+<h2 id="ou">2 · «Резинка к среднему» — процесс Орнштейна–Уленбека</h2>
+<div class="card">
+  <div class="formula">x<sub>завтра</sub> = x + θ·(среднее<sub>режима</sub> − x) + случайный шум
+    <div class="ru">θ = 0.25 · шум = N(0, 0.30) для роста, N(0, 0.25) для инфляции</div></div>
+  <p class="ru">Каждый день значение подтягивается на <b>четверть разрыва</b> к «нормальному» уровню
+  текущего режима, и сверху добавляется случайный пинок. Как шарик на резинке: чем дальше оттянули,
+  тем сильнее тянет обратно — но пинки не дают ему замереть.</p>
+  <div class="ex"><div class="t">Пример</div>
+  Наступил «перегрев» (норма инфляции 7.5%), а инфляция сейчас 4.2%.<br>
+  Завтра: 4.2 + 0.25·(7.5 − 4.2) = <b>5.03% ± 0.25</b>. Послезавтра ≈ 5.6, потом 6.1… плавно подъезжает к 7.5,
+  а не телепортируется. Смена режима ощущается как разворот тренда, за которым можно следить.</div>
+  <div class="plot" id="p-ou"></div>
+  <div class="plot-cap">Инфляция после смены режима: экспоненциальный подъезд к новой норме + шум (одна реализация).</div>
+  <p class="ru">Так двигаются: рост экономики, инфляция, аппетит к риску, кредитные спреды облигаций (θ=0.35), дистресс эмитентов (θ=0.30).</p>
+</div>
+
+<h2 id="regimes">3 · Машина режимов: полумарковская петля</h2>
+<div class="card">
+  <p class="ru">Режим живёт случайное число дней, потом кидается монетка перехода. «Полу-марковская» —
+  потому что длительность не «без памяти», а из Gamma-распределения: у фазы есть <b>типичная длина</b> с разбросом,
+  она не может кончиться через день после начала с той же вероятностью, что через десять.</p>
+  <div class="cols">
+    <div>
+      <table>
+        <tr><th>Режим</th><th class="num">Типично, дней</th><th class="num">Клип</th></tr>
+        <tr><td>Расширение</td><td class="num">14</td><td class="num">6–30</td></tr>
+        <tr><td>Перегрев</td><td class="num">6</td><td class="num">3–12</td></tr>
+        <tr><td>Рецессия</td><td class="num">8</td><td class="num">4–16</td></tr>
+        <tr><td>Восстановление</td><td class="num">7</td><td class="num">3–14</td></tr>
+      </table>
+    </div>
+    <div>
+      <table>
+        <tr><th>Переход</th><th class="num">P</th><th>Смысл</th></tr>
+        <tr><td>расширение → перегрев</td><td class="num">0.82</td><td>обычный путь</td></tr>
+        <tr><td>расширение → рецессия</td><td class="num">0.18</td><td>внезапный срыв</td></tr>
+        <tr><td>перегрев → расширение</td><td class="num">0.15</td><td>«мягкая посадка»</td></tr>
+        <tr><td>рецессия → расширение</td><td class="num">0.12</td><td>V-отскок</td></tr>
+        <tr><td>восстановление → рецессия</td><td class="num">0.10</td><td>«двойное дно»</td></tr>
+      </table>
+    </div>
+  </div>
+  <p class="ru">Каждый режим задаёт нормы для «резинок»: рост (3.5 / 4.5 / −2.5 / 1.5), инфляция (4 / 7.5 / 3 / 2.5),
+  аппетит к риску — и <b>множитель волатильности</b>: 1.0 / 1.25 / 1.7 / 1.2, а кризис умножает ещё на 2.
+  Этот множитель течёт и в шум цен, и в спреды маркетмейкера — в кризис стакан реально становится «нервным» и широким.</p>
+</div>
+
+<h2 id="events">4 · События: Пуассон-приходы и тяжёлые хвосты</h2>
+<div class="card">
+  <h3 style="margin-top:0">Сколько событий происходит</h3>
+  <div class="formula">число событий за тик ~ Пуассон(λ) · λ<sub>компания</sub>=3.5/день, λ<sub>сектор</sub>=0.8, λ<sub>макро</sub>=0.3
+    <div class="ru">рецессия ×1.5, перегрев ×1.2, кризис ×1.8</div></div>
+  <p class="ru">Пуассон — стандартная модель «редких независимых приходов» (звонки в колл-центр, метеориты).
+  По-русски: каждый тик мир кидает кости — с вероятностью ~3.6% случается корпоративное событие.
+  За день в среднем набегает 3–5, но бывают и пустые дни, и «всё сразу».</p>
+
+  <h3>Насколько событие серьёзное — вот где живут кризисы</h3>
+  <div class="formula">серьёзность s ∈ [0,1]:&nbsp; 91% случаев → Beta(2,5) (среднее 0.29) · 9% → хвост Парето: 0.7 + 0.3·min(1, (x−1)/4), x~Pareto(α=1.5)</div>
+  <p class="ru">Обычные новости — из «горба» Beta: мелочь около 0.2–0.4. Но в 9% случаев сэмплер лезет в
+  <b>хвост Парето</b> — степенной закон, у которого нет «типичного масштаба»: крупные события реже, но не
+  исчезающе редко, как было бы у нормального распределения. Именно поэтому мир способен на обвал, которого «никто не ждал».</p>
+  <div class="plot" id="p-tail"></div>
+  <div class="plot-cap">Плотность серьёзности (лог-шкала по Y): горб обычных новостей + приподнятый хвост редких катастроф.</div>
+  <div class="ex"><div class="t">Числа</div>
+  P(s ≥ 0.7) = 9% · P(s ≥ 0.85) ≈ 1.7% на событие. Макро-событий 0.3/день → тяжёлый негативный макрошок
+  (s ≥ 0.85 → кризис) случается ~раз в 200 дней. Плюс второй канал: в «перегреве» пузырь лопается
+  с P=4%/день. Итого кризис — примерно раз в 10–15 «лет». Как в жизни.</div>
+
+  <h3>Во что событие превращается</h3>
+  <div class="formula">импакт = знак · s² · масштаб&nbsp;&nbsp;·&nbsp;&nbsp;масштаб: компания 12% · сектор 6% · макро 4%·(0.5+0.5·β<sub>g</sub>)</div>
+  <p class="ru"><b>Квадрат серьёзности</b> — осознанный выбор: s=0.3 даёт компании всего ±1.1% (фоновый шум новостей),
+  а s=0.9 — уже ±9.7%. Мелочь почти невидима, крупное бьёт непропорционально сильно — рынок именно так и ощущается.</p>
+  <p class="ru">Форма воздействия (кидается отдельно): <b>скачок</b> (50%) — вся дельта сразу;
+  <b>тление</b> (30%) — дельта размазана на 4–16 тиков (инсайдеры «просачивают» новость);
+  <b>временный шок</b> (20%) — скачок, который за 8–32 тика полностью рассасывается (паника-откат).</p>
+</div>
+
+<h2 id="surprise">5 · Сюрприз против ожиданий — главная формула мира</h2>
+<div class="card">
+  <div class="formula">z = (факт − консенсус) / σ<sub>консенсуса</sub> &nbsp;&nbsp;→&nbsp;&nbsp; импакт = 5% · tanh(z/2)</div>
+  <p class="ru">z — «на сколько сигм разошлись факт и ожидание» (обычная нормировка, как z-score в статистике).
+  А tanh — это <b>плавный ограничитель</b>: вблизи нуля почти линейный (маленький сюрприз → пропорциональная реакция),
+  но никогда не выходит за ±1. Отчёт не может двинуть цену больше чем на ±5%, каким бы диким ни был сюрприз.</p>
+  <div class="plot" id="p-tanh"></div>
+  <div class="plot-cap">Реакция цены на сюрприз: линейна в центре, насыщается на краях. Пунктир — «наивная» линейная реакция без ограничителя.</div>
+
+  <h3>Как устроен консенсус (и почему «хорошо» ≠ «вверх»)</h3>
+  <p class="ru">За день до отчёта: консенсус = тренд·(1+поправка режима)·(1+N(0,6%)) — аналитики целятся в правду, но с ошибкой.
+  Публикуется новость-ожидание, и цена <b>заранее закладывает 40%</b> ожидаемого эффекта (pre-move).
+  В день отчёта факт = тренд·(1+поправка)·(1+N(0,10%)) — и цена двигается уже только на сюрприз.</p>
+  <div class="ex"><div class="t">Пример «продай на факте» в числах</div>
+  Тренд прибыли ШустроЕда 7.0. Аналитики размечтались: консенсус 7.4 (σ = 8%·7.4 ≈ 0.59).<br>
+  <b>День −1:</b> ожидание «выше тренда» → pre-move ≈ +0.7%: цена подросла заранее.<br>
+  <b>День отчёта, вариант А:</b> факт 7.4 — ровно как ждали. z=0 → импакт 0%. Отчёт «отличный», а цена не шевельнулась: <b>всё уже в цене</b>.<br>
+  <b>Вариант Б:</b> факт 7.2 — лучше тренда (7.0)! Но z = (7.2−7.4)/0.59 = −0.34 → импакт −0.8%.
+  Компания заработала больше обычного, а цена <b>упала</b> — потому что ждали ещё больше.<br>
+  <b>Вариант В:</b> факт 8.2 → z=+1.35 → +2.9%. Настоящий сюрприз — настоящее движение.</div>
+  <p class="ru">Та же схема у решения ЦБ: консенсус по правилу Тейлора
+  <span class="mono">Δr = clamp(0.5·(π−4) − 0.25·(g−2))</span> шагами по 0.25 п.п., факт = консенсус + сюрприз
+  (±0.25 п.п. с вероятностью 15%+15%). После отчёта тренд прибыли обновляется:
+  <span class="mono">тренд ← 0.7·старый + 0.3·факт</span> — компания «запоминает» свои результаты.</p>
+</div>
+
+<h2 id="fair">6 · Справедливая стоимость: полное дневное уравнение</h2>
+<div class="card">
+  <p class="ru">У каждой компании есть скрытое число lnF — «правда» о ней. Раз в день (на открытии) оно получает четыре слагаемых:</p>
+  <div class="formula">ΔlnF<sub>день</sub> = <span style="color:var(--s1)">макро-дрейф</span> + <span style="color:var(--s2)">накопление прибыли</span> + <span style="color:var(--s3)">секторный шум</span> + <span style="color:var(--s5)">свой шум</span>
+    <div class="ru">+ скачки событий в течение дня · − дивиденд в день отсечки · + разовый удар при смене ставки</div></div>
+
+  <h3><span style="color:var(--s1)">① Макро-дрейф</span> — беты сектора × отклонение экономики от нормы</h3>
+  <div class="formula">дрейф = 0.003 · [ β<sub>g</sub>·(рост − 2) + β<sub>π</sub>·(инфляция − 4) ]</div>
+  <p class="ru">Каждый сектор по-своему чувствителен к росту (β<sub>g</sub>) и инфляции (β<sub>π</sub>).
+  0.003 = коэффициент усиления 3 ÷ 10 дней цикла.</p>
+  <table>
+    <tr><th>Сектор</th><th class="num">β роста</th><th class="num">β ставки</th><th class="num">β инфляции</th><th class="num">своя σ/день</th></tr>
+    <tr><td>Финансы</td><td class="num">0.8</td><td class="num" style="color:var(--good)">+0.50</td><td class="num">−0.2</td><td class="num">1.2%</td></tr>
+    <tr><td>Потребительский</td><td class="num">0.6</td><td class="num">−0.30</td><td class="num">−0.4</td><td class="num">1.0%</td></tr>
+    <tr><td>Ритейл</td><td class="num">0.9</td><td class="num">−0.50</td><td class="num">−0.5</td><td class="num">1.3%</td></tr>
+    <tr><td>Общепит (защитный)</td><td class="num">0.3</td><td class="num">−0.20</td><td class="num">−0.3</td><td class="num">0.8%</td></tr>
+    <tr><td>Логистика</td><td class="num">1.1</td><td class="num">−0.60</td><td class="num">−0.4</td><td class="num">1.4%</td></tr>
+    <tr><td>Технологии</td><td class="num">1.4</td><td class="num">−1.00</td><td class="num">−0.2</td><td class="num">2.0%</td></tr>
+    <tr><td>Туризм</td><td class="num">1.6</td><td class="num">−0.80</td><td class="num">−0.5</td><td class="num">2.2%</td></tr>
+    <tr><td>Энергетика</td><td class="num">0.7</td><td class="num">−0.20</td><td class="num" style="color:var(--good)">+0.6</td><td class="num">1.6%</td></tr>
+  </table>
+  <div class="ex"><div class="t">Пример: рецессия (рост −2.5, инфляция 3)</div>
+  Логистика: 0.003·[1.1·(−4.5) + (−0.4)·(−1)] = <b>−1.4%/день</b> ≈ −13% за 10-дневную рецессию.<br>
+  Общепит: 0.003·[0.3·(−4.5) + (−0.3)·(−1)] = <b>−0.3%/день</b> ≈ −3%.<br>
+  Один и тот же спад — циклический сектор падает вчетверо сильнее защитного. Отсюда и вся «диверсификация» в уроках.</div>
+
+  <h3>Ставка — только в момент решения (не каждый день)</h3>
+  <div class="formula">ΔlnF = 0.03 · β<sub>r,eff</sub> · Δставки&nbsp;&nbsp;·&nbsp;&nbsp;β<sub>r,eff</sub> = β<sub>r</sub> − 0.6·закредитованность</div>
+  <p class="ru">Уровень ставки капитализируется в цену <b>один раз</b>, при изменении — как в реальности
+  (иначе высокая ставка «давила» бы на цену бесконечно, каждый день заново). Закредитованность компании усиливает удар:
+  долг при дорогих деньгах больнее.</p>
+  <div class="ex"><div class="t">Пример</div>
+  ЦБ неожиданно (сюрпризом, мимо консенсуса) поднял на +0.5 п.п.<br>
+  ЦифраЛаб (техи, β −1.0, долг 0.15): β_eff = −1.09 → 0.03·(−1.09)·0.5 = <b>−1.6%</b>.<br>
+  Банк Алория (β +0.5, долг 0.55): β_eff = +0.17 → <b>+0.3%</b>. Банкам ставка в плюс — рефлекс «ставка↑ = всё падает» не выучится.</div>
+
+  <h3><span style="color:var(--s2)">② Накопление прибыли</span> — почему дивиденды не убивают цену</h3>
+  <div class="formula">каждый день: ΔlnF = ln(1 + (EPS/10) / P) &nbsp;·&nbsp; в отсечку: ΔlnF = −ln(1 + дивиденд / P)</div>
+  <p class="ru">Компания зарабатывает → её стоимость ежедневно прирастает на «дневную прибыль ÷ цену».
+  На дивидендной отсечке вычитается только <b>выплаченная</b> часть. Итог за цикл: цена +E/P, −дивиденд,
+  в остатке — нераспределённая прибыль. Экономически честный контур.</p>
+  <div class="ex"><div class="t">Пример: ТопливоПром</div>
+  EPS 48 за цикл, цена 390 → +48/390 ≈ <b>+12.3% за цикл</b> накоплением (по +1.2%/день).
+  Дивиденд 45%·48 ≈ 21.6 → в отсечку <b>−5.5%</b>. Чистыми +6.8% за цикл — при прочих равных. Это E/P ≈ 12%, то есть P/E ≈ 8: дёшево и дивидендно, как настоящая нефтянка.</div>
+
+  <h3><span style="color:var(--s3)">③–④ Два шума</span> — откуда корреляции</h3>
+  <p class="ru">Секторный шум — <b>один бросок на весь сектор</b> в день (все банки дёргаются вместе),
+  свой шум — индивидуальный бросок компании. В кризис добавляется третий, общерыночный бросок N(0, 2%) —
+  все корреляции взлетают, диверсификация «ломается». Ровно то, что происходит в настоящий кризис.</p>
+</div>
+
+<h2 id="gravity">7 · Гравитация: как правда становится ценой</h2>
+<div class="card">
+  <div class="formula">каждый тик: lnT += (0.35/96)·(lnF − lnT) + 0.7·σ·√(1/96)·N(0,1)</div>
+  <p class="ru">Целевая цена T не знает правду мгновенно — она <b>закрывает ~30% разрыва в день</b>
+  (полразрыва за ≈2 дня: период полураспада = ln2/0.35). Плюс тиковый шум: σ — дневная волатильность,
+  делённая на √96, потому что дисперсия растёт линейно со временем, значит разброс — как корень
+  (классика случайных блужданий: чтобы за 96 шагов набралась дневная σ, каждый шаг должен быть σ/√96).</p>
+  <div class="plot" id="p-grav"></div>
+  <div class="plot-cap">Отчёт уронил справедливую стоимость на −5% (ступенька): цель доезжает до неё за 4–6 дней с шумом. Это и видит ученик — тренд, а не телепорт.</div>
+  <div class="why"><div class="t">Зачем</div>
+  Три учебных эффекта разом: движения выглядят как тренды (можно успеть отреагировать);
+  цена «переваривает» новость постепенно (реалистичная пост-новостная динамика);
+  и толпа учеников может временно увести цену от цели — но гравитация вернёт (мир задаёт направление, люди — шероховатость).</div>
+</div>
+
+<h2 id="bonds">8 · Облигации: дисконтирование по-русски</h2>
+<div class="card">
+  <div class="formula">P = Σ купон·e<sup>−y·τ</sup> + 100·e<sup>−y·T</sup>&nbsp;&nbsp;·&nbsp;&nbsp;y = ставка + кредитный спред (за цикл, в долях)</div>
+  <p class="ru">Рубль завтра дешевле рубля сегодня — потому что сегодня его можно положить под ставку.
+  «Дисконтирование» — это пересчёт каждого будущего платежа в сегодняшние деньги: платёж через время τ
+  умножается на e<sup>−y·τ</sup> (непрерывная версия привычного 1/(1+y)<sup>τ</sup>). Цена облигации —
+  просто сумма всех её будущих платежей, каждый со своей скидкой за ожидание.</p>
+  <div class="ex"><div class="t">Пример: GOVB1 руками</div>
+  Ставка 7.5% → y = 0.075. Купон 7% годовых, платится раз в 2 дня → 1.4% номинала за платёж. До погашения 20 дней (2 цикла):<br>
+  10 купонов: 1.4·(e<sup>−0.015</sup> + e<sup>−0.03</sup> + … + e<sup>−0.15</sup>) ≈ 1.4·9.22 ≈ 12.9<br>
+  номинал: 100·e<sup>−0.15</sup> ≈ 86.1 → <b>P ≈ 99.0%</b>. Почти номинал — купон ≈ ставке, так и должно быть.</div>
+  <div class="plot" id="p-disc"></div>
+  <div class="plot-cap">Цена облигации от требуемой доходности y: короткая (2 цикла) и длинная (5 циклов). Наклон = дюрация.</div>
+  <div class="ex"><div class="t">Дюрация в числах</div>
+  Ставка +1 п.п.: короткая GOVB1 −2%, длинная GOVB2 −4%. Чем дальше платежи, тем дольше на них действует скидка —
+  длинные бумаги чувствительнее к ставке. Готовый материал для урока «почему облигации падают, когда ставка растёт».</div>
+  <table>
+    <tr><th>Качество</th><th class="num">Базовый спред</th><th>Надбавки</th></tr>
+    <tr><td>Гос (GOVB1/2)</td><td class="num">0.0 п.п.</td><td rowspan="4">рецессия +2 п.п. · кризис +2.5 п.п. · дистресс эмитента ×10 п.п.<br>спред идёт к цели «резинкой» (θ=0.35) — кредитные кризисы разгораются и гаснут плавно</td></tr>
+    <tr><td>A (ALBB1)</td><td class="num">1.5 п.п.</td></tr>
+    <tr><td>BBB (MOVB1, FULB1)</td><td class="num">3.0 п.п.</td></tr>
+    <tr><td>BB (TRVB1)</td><td class="num">6.0 п.п.</td></tr>
+  </table>
+  <p class="ru">НКД начисляется линейно внутри купонного периода и обнуляется выплатой. Погашенный выпуск
+  <b>роллируется</b> в новую серию под тем же тикером (дефолтник не размещает) — долговой рынок не пересыхает.</p>
+</div>
+
+<h2 id="distress">9 · Дистресс и дефолт — редкий, но настоящий</h2>
+<div class="card">
+  <div class="formula">база = долг·(0.55 в рецессию | 0.15 иначе) + 0.35·кризис → дистресс идёт к базе «резинкой» (θ=0.3)
+    <div class="ru">+0.25·s за негативное событие · +0.10 за провальный отчёт (z &lt; −1.5)</div></div>
+  <div class="formula">в день купона: P(дефолт) = max(0, (дистресс − 0.75) · 1.2)</div>
+  <p class="ru">Дистресс — «градусник до дефолта» от 0 до 1. Пока он ниже 0.75 — дефолт невозможен в принципе.
+  Выше — на каждом купоне кидается монетка.</p>
+  <div class="ex"><div class="t">Пример: почему именно TRVB1 (и именно в кризис)</div>
+  «Свободный Путь»: долг 0.65. Мирное время: база = 0.65·0.15 ≈ 0.10 — безопасно.<br>
+  Рецессия + кризис: база = 0.65·0.55 + 0.35 = <b>0.71</b>, плюс пара плохих новостей → 0.8+.<br>
+  P(дефолт на купоне) = (0.8−0.75)·1.2 = 6%; купоны каждые 2 дня → за 10-дневный кризис шанс ~25%.<br>
+  Случился: купон пропущен, цена → recovery 30–45% номинала, акция −25%, новость urgency 3.
+  Гособлигация рядом даже не дрогнула — кредитный риск стал видимым.</div>
+</div>
+
+<h2 id="deriv">10 · Задел под деривативы (математика готова, инструментов пока нет)</h2>
+<div class="card">
+  <div class="formula">Форвард: F = S·e<sup>(r−q)·τ</sup></div>
+  <p class="ru">«Цена договориться сейчас о покупке потом». Почему именно так: продавец может купить акцию
+  сегодня в кредит под ставку r (затраты) и получать дивиденды q (доход) до поставки. F — цена,
+  при которой ему всё равно. Любая другая — бесплатные деньги из арбитража.</p>
+  <div class="formula">Опционы: Блэк–Шоулз–Мертон · Call = S·e<sup>−qτ</sup>·Φ(d₁) − K·e<sup>−rτ</sup>·Φ(d₂) + дельта/гамма/вега</div>
+  <p class="ru">Цена опциона = цена страховки: сколько стоит право (не обязанность) купить по K.
+  Интуиция формулы: Φ(d₂) ≈ вероятность, что опцион закончит «в деньгах», Φ(d₁) — то же с поправкой на размер выигрыша.
+  Тесты держат честность: пут-колл паритет сходится до 4 знака, при τ→0 цена → внутренняя стоимость.</p>
+  <p class="ru">Когда решим добавить фьючерсы/опционы как инструменты: целевая цена дериватива = формула от целевой цены базового актива;
+  в terex-таблице <span class="mono">instruments</span> уже есть поля <span class="mono">TheorPrice, Volatility, MaturityDate, InitialMargin*</span>,
+  а «экспирация» уже существует как тип события календаря.</p>
+</div>
+
+<h2 id="arch">11 · Архитектура данных: кто что пишет и где лежит</h2>
+<div class="card">
+  <h3 style="margin-top:0">Карта хранилищ</h3>
+  <div class="flow">
+    <div class="fbox own2"><b>Код: Universe.cs</b><span class="m">статические СПЕКИ вселенной — единственный источник правды: секторы+беты, 16 компаний (цена/лот/шаг/EPS/payout/долг/σ), 6 облигаций (купон/качество/срок), 2 фонда</span></div>
+    <div class="arrow">→</div>
+    <div class="fbox"><b>Память Director: WorldState</b><span class="m">ЖИВОЕ состояние: lnF, цель, тренд EPS, дистресс, спреды, календарь, ожидания. Каждый тик → снимок в jsonb</span></div>
+    <div class="arrow">→</div>
+    <div class="fbox"><b>Postgres terex + SQLite aloria-api</b><span class="m">то, что читают другие сервисы (ниже)</span></div>
+  </div>
+  <table style="margin-top:14px">
+    <tr><th>Таблица</th><th>Что лежит</th><th>Пишет</th><th>Читает</th></tr>
+    <tr><td class="mono">terex: instruments</td><td>паспорт инструмента: тикер, шаг цены, лот, коридор лимитов (широкий ×0.25…×4), FaceValue, статус</td>
+      <td><span class="wtag w">Director seed</span> однократно, идемпотентный raw SQL</td>
+      <td><span class="wtag r">MM-генератор · orderprocessor · marketdata</span></td></tr>
+    <tr><td class="mono">terex: director.price_targets</td><td><b>символ → целевая цена + дневная σ + active</b> — главный канал управления рынком</td>
+      <td><span class="wtag w">Director</span> каждый тик (24 upsert'а)</td>
+      <td><span class="wtag r">MM-генератор</span> каждые 10 с</td></tr>
+    <tr><td class="mono">terex: director.world_state</td><td>снимок мира одной jsonb-строкой (день, макро, эмитенты, календарь, ожидания)</td>
+      <td><span class="wtag w">Director</span> каждый тик</td>
+      <td><span class="wtag r">Director</span> при старте — рестарт продолжает мир</td></tr>
+    <tr><td class="mono">terex: director.events_log</td><td>журнал событий: спек + применённый импакт + заголовок («почему двигалась цена»)</td>
+      <td><span class="wtag w">Director</span></td>
+      <td><span class="wtag r">дебаг / будущие уроки</span></td></tr>
+    <tr><td class="mono">terex: orders / trades</td><td>заявки и сделки (бэкап стакана)</td>
+      <td><span class="wtag w">orderprocessor</span></td>
+      <td><span class="wtag r">orderprocessor при рестарте · marketdata</span></td></tr>
+    <tr><td class="mono">aloria-api: NewsItems</td><td>новости мира (headline/body/sentiment/тип/охват/symbols/сектор, source=director)</td>
+      <td><span class="wtag w">Director</span> HTTP POST</td>
+      <td><span class="wtag r">приложение</span> GET /api/v1/market/news</td></tr>
+    <tr><td class="mono">aloria-api: MacroStates</td><td>режим, ставка, инфляция, день цикла</td>
+      <td><span class="wtag w">Director</span> HTTP PUT (при изменении)</td>
+      <td><span class="wtag r">приложение</span> (макро-карточка)</td></tr>
+    <tr><td class="mono">aloria-api: CycleCalendar</td><td>события цикла: день/тик/тип/тикер</td>
+      <td><span class="wtag w">Director</span> HTTP POST (идемпотентно)</td>
+      <td><span class="wtag r">приложение</span> GET /api/v1/macro/calendar</td></tr>
+  </table>
+  <p class="ru"><b>Итого «кто устанавливает цену в БД»:</b> цену цели — только Director (upsert в
+  <span class="mono">director.price_targets</span>); цену <i>сделок</i> не устанавливает никто — она рождается
+  в матчинге orderprocessor из заявок MM-генератора и учеников. Director управляет магнитом, а не ценником.</p>
+  <div class="why"><div class="t">Почему так</div>
+  <b>Сырой SQL вместо EF:</b> EF-модель Terex.Common расходится с реальной DDL-схемой (суррогатный PK Id
+  GENERATED ALWAYS) — вставка через EF падает. <b>Отдельная схема director:</b> ноль конфликтов с таблицами
+  движка, легко снести/пересоздать. <b>jsonb-снимок вместо нормализованных таблиц:</b> состояние читает
+  один сервис, атомарно, схема эволюционирует без миграций. <b>Свои таблицы вместо правки лимитов instruments:</b>
+  лимиты кэшируются orderprocessor'ом на старте — их правка требовала бы рестартов движка.</div>
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0">Паспорт компании: одна и та же ЦифраЛаб в трёх местах</h3>
+  <div class="cols">
+    <div>
+      <p class="ru" style="margin-top:0"><b>1 · Статический спек</b> — <span class="mono">Universe.cs</span> (код, не БД).
+      Меняется только коммитом — это «конституция» вселенной:</p>
+<pre>
+new IssuerSpec(
+  Symbol:      "DIGI",
+  Name:        "ЦифраЛаб",
+  Theme:       "онлайн-сервисы и IT",  // лор для LLM
+  SectorSlug:  "tech",                 // → беты сектора
+  StartPrice:  620m,  PriceStep: 1.0m,  LotSize: 1,
+  SharesMln:   65,     // вес в индексе ALIN
+  BaseEpsPerCycle: 34, // прибыль на акцию за «год»
+  PayoutRatio: 0.05,   // почти не платит дивиденды
+  Leverage:    0.15,   // низкий долг
+  SigmaDaily:  0.021)  // своя волатильность 2.1%/день
+</pre>
+    </div>
+    <div>
+      <p class="ru" style="margin-top:0"><b>2 · Живое состояние</b> — память Director
+      (+ jsonb-снимок в <span class="mono">director.world_state</span> каждый тик):</p>
+<pre>
+IssuerState {
+  LogFair:  6.43,   // ln(правды) — двигается миром
+  Target:   612.0,  // текущая цель рынка
+  EpsTrend: 35.2,   // тренд прибыли (обновляют отчёты)
+  Distress: 0.08,   // градусник до дефолта
+  PendingDividend, Defaulted,
+  Smoulder: [...]   // недотлевшие шоки
+}
+</pre>
+      <p class="ru"><b>3 · Для внешних сервисов:</b>
+      строка в <span class="mono">instruments</span> (сид: шаг 1.0, лот 1, коридор 155…2480, статус 17) +
+      строка в <span class="mono">director.price_targets</span> (DIGI → 612.0, σ 2.1%, active) +
+      справочник <span class="mono">Companies/Sectors</span> в aloria-api для карточек приложения.</p>
+    </div>
+  </div>
+  <p class="footnote">Принцип: спеки — в коде (версионируются git'ом), живое — в памяти со снимком, наружу — только то, что читают другие. Добавить компанию = одна строка в Universe.cs + перезапуск seed.</p>
+</div>
+
+<h2 id="tick">12 · Анатомия одного тика (каждые 15 минут)</h2>
+<div class="card">
+<pre>
+1. Часы:      новый день? → OU-шаг макро, смена режима?, «пузырь» в перегреве?,
+              дрейф+прибыль в lnF всех компаний, дистресс, спреды и переоценка облигаций
+2. Ожидания:  у кого отчёт/ЦБ завтра в этот тик? → консенсус в книгу ожиданий,
+              новость-ожидание, pre-move 40%
+3. Календарь: события ЭТОГО тика → отчёты (сюрприз→скачок lnF), дивиденды
+              (решение/отсечка/выплата), купоны (+проверка дефолта), погашения (ролл), ЦБ
+4. RNG:       Пуассон-приходы → спек (охват/серьёзность/знак/форма) → LLM/шаблон
+              пишет историю и выбирает жертву из пула → импакт в lnF
+5. Тление:    домотать растянутые во времени шоки (drift/transient)
+6. Цели:      lnT += гравитация к lnF + тиковый шум; облигации ±шум; фонды = корзина/делитель
+7. Запись:    UPSERT director.price_targets (24) · INSERT events_log · UPSERT world_state
+8. Публикация: новости POST → aloria-api · макро PUT (если менялось) · календарь POST (новый цикл)
+</pre>
+  <p class="ru">Дальше — вне Director: MM-генератор в terex раз в 10 секунд перечитывает цели и на каждом
+  инструменте раз в 0.8–2.5 с двигает свою середину к цели (25% разрыва, максимум 40 шагов цены, ±3 шага шума),
+  котирует лестницу 3×2 лимиток со спредом max(2 шага, 0.8·σ·цена) и с вероятностью 8%+f(разрыв) шлёт
+  рыночную заявку-тейкер в сторону цели. Матчинг сводит — рождаются сделки и свечи.</p>
+</div>
+
+<h2 id="journey">13 · Путь одного события: от броска костей до свечки</h2>
+<div class="card">
+  <div class="flow">
+    <div class="fbox"><b>1 · RNG</b><span class="m">Пуассон: «событие!» → сектор туризм, s=0.62, знак −, скачок</span></div>
+    <div class="arrow">→</div>
+    <div class="fbox own2"><b>2 · LLM</b><span class="m">из пула [TRVL] выбирает TRVL, пишет: «Свободный Путь отменил чартеры…»</span></div>
+    <div class="arrow">→</div>
+    <div class="fbox own3"><b>3 · Формулы</b><span class="m">импакт = −0.62²·12% = −4.6% → lnF(TRVL) −4.6%, дистресс +0.16</span></div>
+    <div class="arrow">→</div>
+    <div class="fbox"><b>4 · Цель</b><span class="m">T съезжает: −1.4% сегодня, −1% завтра… (гравитация)</span></div>
+  </div>
+  <div class="flow">
+    <div class="fbox"><b>5 · БД</b><span class="m">price_targets: TRVL 95.3→94.0 · events_log: спек+импакт · news → aloria-api</span></div>
+    <div class="arrow">→</div>
+    <div class="fbox"><b>6 · MM</b><span class="m">через ≤10 с видит цель ниже → котирует ниже, тейкеры продают</span></div>
+    <div class="arrow">→</div>
+    <div class="fbox"><b>7 · Матчинг</b><span class="m">сделки по нисходящей → красные свечи в приложении</span></div>
+    <div class="arrow">→</div>
+    <div class="fbox own2"><b>8 · Ученик</b><span class="m">видит новость в ленте и падение на графике — причина и следствие связались</span></div>
+  </div>
+  <p class="ru" style="margin-top:12px">И контрпример для честности: если бы событие было «ожидаемым» (отчёт),
+  между шагами 2 и 3 стоял бы консенсус — и цена двинулась бы не на «хорошо/плохо», а на отклонение от ожиданий.</p>
+</div>
+
+<p class="footnote" style="margin-top:36px">Все константы — из
+<span class="mono">aloria-director/src/Aloria.Director.Core</span> (WorldEngine, RegimeMachine, EventSampler,
+BondMath, DerivativesMath); поведение закреплено 23 юнит-тестами. Обзорная презентация —
+<span class="mono">docs/ai-director-presentation.html</span>, дизайн — <span class="mono">docs/ai-director-design.md</span>.</p>
+
+<script>
+const css = v => getComputedStyle(document.body).getPropertyValue(v).trim();
+
+// Мини-график функции: series = [{f, color, dash?, label}], домен [x0,x1]
+function fplot(elId, cfg) {
+  const el = document.getElementById(elId);
+  const W = Math.min(el.parentElement.clientWidth - 8 || 860, 860), H = cfg.height || 190;
+  const m = { l: 46, r: 70, t: 12, b: 24 };
+  const N = 240;
+  const xs = Array.from({length: N + 1}, (_, i) => cfg.x0 + (cfg.x1 - cfg.x0) * i / N);
+  const data = cfg.series.map(s => xs.map(s.f));
+  const all = data.flat();
+  const ymin = cfg.ymin ?? Math.min(...all), ymax = cfg.ymax ?? Math.max(...all);
+  const X = v => m.l + (v - cfg.x0) / (cfg.x1 - cfg.x0) * (W - m.l - m.r);
+  const Y = v => m.t + (1 - (v - ymin) / (ymax - ymin)) * (H - m.t - m.b);
+
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('width', '100%');
+  const add = (t, a) => { const n = document.createElementNS(ns, t);
+    for (const [k, v] of Object.entries(a)) n.setAttribute(k, v); svg.appendChild(n); return n; };
+
+  for (let i = 0; i <= 3; i++) {
+    const v = ymin + (ymax - ymin) * i / 3;
+    add('line', { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), stroke: css('--grid'), 'stroke-width': 1 });
+    add('text', { x: m.l - 6, y: Y(v) + 4, 'text-anchor': 'end', 'font-size': 10.5, fill: css('--muted') })
+      .textContent = cfg.yfmt ? cfg.yfmt(v) : v.toFixed(1);
+  }
+  (cfg.xticks || []).forEach(t => {
+    add('text', { x: X(t), y: H - 6, 'text-anchor': 'middle', 'font-size': 10.5, fill: css('--muted') })
+      .textContent = cfg.xfmt ? cfg.xfmt(t) : t;
+  });
+  if (cfg.zeroY !== false && ymin < 0 && ymax > 0)
+    add('line', { x1: m.l, x2: W - m.r, y1: Y(0), y2: Y(0), stroke: css('--baseline'), 'stroke-width': 1 });
+
+  cfg.series.forEach((s, si) => {
+    const pts = xs.map((x, i) => `${X(x)},${Y(data[si][i])}`).join(' ');
+    add('polyline', { points: pts, fill: 'none', stroke: css(s.color), 'stroke-width': 2,
+      'stroke-linejoin': 'round', ...(s.dash ? { 'stroke-dasharray': '5 4', 'stroke-width': 1.5 } : {}) });
+    add('text', { x: W - m.r + 6, y: Y(data[si][data[si].length - 1]) + 4, 'font-size': 11,
+      'font-weight': 650, fill: css('--text-secondary') }).textContent = s.label;
+  });
+  el.appendChild(svg);
+}
+
+// ── OU: подъезд инфляции 4.2 → 7.5, θ=0.25, шум детерминированный (зашитая реализация)
+{
+  const noise = [0.1,-0.2,0.15,0.3,-0.1,0.05,-0.25,0.2,0.1,-0.15,0.2,-0.05,0.1,-0.2,0.15,0.05,-0.1,0.2,-0.15,0.1];
+  const path = [4.2]; const clean = [4.2];
+  for (let d = 0; d < 19; d++) {
+    path.push(path[d] + 0.25 * (7.5 - path[d]) + 0.25 * noise[d]);
+    clean.push(clean[d] + 0.25 * (7.5 - clean[d]));
+  }
+  fplot('p-ou', {
+    x0: 0, x1: 19, ymin: 3.5, ymax: 8.5, xticks: [0, 5, 10, 15],
+    xfmt: v => 'д.' + v, yfmt: v => v.toFixed(1) + '%',
+    series: [
+      { f: x => 7.5, color: '--baseline', dash: true, label: 'норма 7.5' },
+      { f: x => clean[Math.round(x)], color: '--s3', dash: true, label: 'без шума' },
+      { f: x => path[Math.round(x)], color: '--s1', label: 'инфляция' },
+    ],
+  });
+}
+
+// ── Хвост: плотность Beta(2,5)·0.91 + хвост, лог-шкала
+{
+  const beta = s => 30 * s * Math.pow(1 - s, 4); // Beta(2,5) pdf
+  const dens = s => {
+    const body = 0.91 * beta(Math.min(s, 0.999));
+    // хвост: s = 0.7+0.3·(x−1)/4, x~Pareto(1.5) → плотность через замену переменных
+    let tail = 0;
+    if (s >= 0.7 && s < 1) {
+      const x = 1 + (s - 0.7) / 0.3 * 4;
+      tail = 0.09 * (1.5 * Math.pow(x, -2.5)) * (4 / 0.3);
+    }
+    return Math.log10(Math.max(1e-3, body + tail));
+  };
+  const gauss = s => Math.log10(Math.max(1e-3, 2.9 * Math.exp(-0.5 * Math.pow((s - 0.29) / 0.14, 2))));
+  fplot('p-tail', {
+    x0: 0.01, x1: 0.99, ymin: -3, ymax: 0.6, xticks: [0.2, 0.5, 0.7, 0.85],
+    xfmt: v => 's=' + v, yfmt: v => '10^' + v.toFixed(0),
+    zeroY: false,
+    series: [
+      { f: gauss, color: '--baseline', dash: true, label: 'без хвоста' },
+      { f: dens, color: '--critical', label: 'сэмплер' },
+    ],
+  });
+}
+
+// ── tanh-реакция
+fplot('p-tanh', {
+  x0: -4, x1: 4, ymin: -6, ymax: 6, xticks: [-3, -1.5, 0, 1.5, 3],
+  xfmt: v => v + 'σ', yfmt: v => v.toFixed(0) + '%',
+  series: [
+    { f: z => 2.5 * z, color: '--baseline', dash: true, label: 'линейно' },
+    { f: z => 5 * Math.tanh(z / 2), color: '--s1', label: '5·tanh(z/2)' },
+  ],
+});
+
+// ── Гравитация: ступенька lnF −5%, цель доезжает (с шумом, детерминированная реализация)
+{
+  const days = 10, tpd = 24; // рисуем в «дневных» долях
+  const pts = []; let t = 0; // lnT − lnF_старый, в %
+  let seedN = 42;
+  const rnd = () => { seedN = (seedN * 1103515245 + 12345) % 2147483648; return seedN / 2147483648 - 0.5; };
+  for (let i = 0; i <= days * tpd; i++) {
+    const fair = i >= 2 * tpd ? -5 : 0;
+    t += 0.35 / tpd * (fair - t) + 0.55 * rnd();
+    pts.push({ x: i / tpd, fair, t });
+  }
+  fplot('p-grav', {
+    x0: 0, x1: days, ymin: -6.5, ymax: 1.5, xticks: [2, 4, 6, 8],
+    xfmt: v => 'д.' + v, yfmt: v => v.toFixed(0) + '%',
+    series: [
+      { f: x => pts[Math.min(pts.length - 1, Math.round(x * tpd))].fair, color: '--s3', dash: true, label: 'правда lnF' },
+      { f: x => pts[Math.min(pts.length - 1, Math.round(x * tpd))].t, color: '--s1', label: 'цель lnT' },
+    ],
+  });
+}
+
+// ── Дисконтирование: P(y) для 2 и 5 циклов
+{
+  const price = (y, cycles) => {
+    const days = cycles * 10; let p = 100 * Math.exp(-y * days / 10);
+    for (let t = 2; t <= days; t += 2) p += 1.4 * Math.exp(-y * t / 10);
+    return p;
+  };
+  fplot('p-disc', {
+    x0: 0.02, x1: 0.2, ymin: 60, ymax: 115, xticks: [0.05, 0.075, 0.1, 0.15, 0.2],
+    xfmt: v => (v * 100).toFixed(1) + '%', yfmt: v => v.toFixed(0) + '%',
+    series: [
+      { f: y => price(y, 2), color: '--s1', label: '2 цикла' },
+      { f: y => price(y, 5), color: '--s5', label: '5 циклов' },
+    ],
+  });
+}
+</script>
+</main>
+</body>
+</html>

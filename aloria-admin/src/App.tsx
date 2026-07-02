@@ -11,6 +11,7 @@ import { AchievementsPage } from './routes/AchievementsPage';
 import { UsersPage } from './routes/UsersPage';
 import { BroadcastPage } from './routes/BroadcastPage';
 import { AuditPage } from './routes/AuditPage';
+import { WorldPage } from './routes/WorldPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -35,6 +36,7 @@ export default function App() {
             <Route path="/users" element={<UsersPage />} />
             <Route path="/broadcast" element={<BroadcastPage />} />
             <Route path="/audit" element={<AuditPage />} />
+            <Route path="/world" element={<WorldPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

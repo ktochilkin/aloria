@@ -1,0 +1,12 @@
+/Users/kirilltocilkin/Documents/aloria/experimental/Aloriaкопия6/aloria-director/src/Aloria.Director.Core/bin/Debug/net10.0/Aloria.Director.Core.deps.json
+/Users/kirilltocilkin/Documents/aloria/experimental/Aloriaкопия6/aloria-director/src/Aloria.Director.Core/bin/Debug/net10.0/Aloria.Director.Core.dll
+/Users/kirilltocilkin/Documents/aloria/experimental/Aloriaкопия6/aloria-director/src/Aloria.Director.Core/bin/Debug/net10.0/Aloria.Director.Core.pdb
+/Users/kirilltocilkin/Documents/aloria/experimental/Aloriaкопия6/aloria-director/src/Aloria.Director.Core/obj/Debug/net10.0/Aloria.Director.Core.GeneratedMSBuildEditorConfig.editorconfig
+/Users/kirilltocilkin/Documents/aloria/experimental/Aloriaкопия6/aloria-director/src/Aloria.Director.Core/obj/Debug/net10.0/Aloria.Director.Core.AssemblyInfoInputs.cache
+/Users/kirilltocilkin/Documents/aloria/experimental/Aloriaкопия6/aloria-director/src/Aloria.Director.Core/obj/Debug/net10.0/Aloria.Director.Core.AssemblyInfo.cs
+/Users/kirilltocilkin/Documents/aloria/experimental/Aloriaкопия6/aloria-director/src/Aloria.Director.Core/obj/Debug/net10.0/Aloria.Director.Core.csproj.CoreCompileInputs.cache
+/Users/kirilltocilkin/Documents/aloria/experimental/Aloriaкопия6/aloria-director/src/Aloria.Director.Core/obj/Debug/net10.0/Aloria.Director.Core.sourcelink.json
+/Users/kirilltocilkin/Documents/aloria/experimental/Aloriaкопия6/aloria-director/src/Aloria.Director.Core/obj/Debug/net10.0/Aloria.Director.Core.dll
+/Users/kirilltocilkin/Documents/aloria/experimental/Aloriaкопия6/aloria-director/src/Aloria.Director.Core/obj/Debug/net10.0/refint/Aloria.Director.Core.dll
+/Users/kirilltocilkin/Documents/aloria/experimental/Aloriaкопия6/aloria-director/src/Aloria.Director.Core/obj/Debug/net10.0/Aloria.Director.Core.pdb
+/Users/kirilltocilkin/Documents/aloria/experimental/Aloriaкопия6/aloria-director/src/Aloria.Director.Core/obj/Debug/net10.0/ref/Aloria.Director.Core.dll

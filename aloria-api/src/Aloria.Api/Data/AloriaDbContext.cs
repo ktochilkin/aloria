@@ -37,6 +37,7 @@ public class AloriaDbContext(DbContextOptions<AloriaDbContext> options) : DbCont
     public DbSet<Company> Companies => Set<Company>();
     public DbSet<NewsItem> NewsItems => Set<NewsItem>();
     public DbSet<MacroState> MacroStates => Set<MacroState>();
+    public DbSet<CycleCalendarItem> CycleCalendar => Set<CycleCalendarItem>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -237,6 +238,13 @@ public class AloriaDbContext(DbContextOptions<AloriaDbContext> options) : DbCont
         {
             e.Property(x => x.Regime).HasMaxLength(16).IsRequired();
             e.Property(x => x.Source).HasMaxLength(16).IsRequired();
+        });
+
+        b.Entity<CycleCalendarItem>(e =>
+        {
+            e.HasIndex(x => new { x.Day, x.TickOfDay, x.Type, x.Symbol }).IsUnique();
+            e.Property(x => x.Type).HasMaxLength(32).IsRequired();
+            e.Property(x => x.Symbol).HasMaxLength(20);
         });
     }
 }

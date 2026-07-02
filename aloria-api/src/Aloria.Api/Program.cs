@@ -366,6 +366,17 @@ using (var scope = app.Services.CreateScope())
             ""Source"" TEXT NOT NULL,
             ""UpdatedAt"" TEXT NOT NULL
         );
+
+        CREATE TABLE IF NOT EXISTS ""CycleCalendar"" (
+            ""Id"" TEXT NOT NULL CONSTRAINT ""PK_CycleCalendar"" PRIMARY KEY,
+            ""Day"" INTEGER NOT NULL,
+            ""TickOfDay"" INTEGER NOT NULL,
+            ""Type"" TEXT NOT NULL,
+            ""Symbol"" TEXT NULL,
+            ""CreatedAt"" TEXT NOT NULL
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS ""IX_CycleCalendar_Key""
+            ON ""CycleCalendar"" (""Day"", ""TickOfDay"", ""Type"", ""Symbol"");
     ");
 
     // Импорт markdown-уроков: при первом запуске (пустая БД) либо явно по флагу
