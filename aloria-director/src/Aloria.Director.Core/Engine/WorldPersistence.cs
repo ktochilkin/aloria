@@ -33,6 +33,9 @@ public sealed record WorldPersistDto
     /// </summary>
     public RngState? Rng { get; init; }
 
+    /// <summary>«Зерно будущего» — метка, из какого числа начат текущий поток.</summary>
+    public int? FutureSeed { get; init; }
+
     public sealed record MacroDto(
         Regime Regime, int RegimeAgeDays, int RegimePlannedDays,
         double KeyRate, double Inflation, double Growth, double RiskAppetite, bool Crisis,
@@ -58,10 +61,12 @@ public sealed record WorldPersistDto
 public static class WorldPersistence
 {
     public static WorldPersistDto ToDto(
-        WorldState s, int lastPlannedCycleStart, WorldTuning? tuning = null, RngState? rng = null) => new()
+        WorldState s, int lastPlannedCycleStart,
+        WorldTuning? tuning = null, RngState? rng = null, int? futureSeed = null) => new()
     {
         Tuning = tuning,
         Rng = rng,
+        FutureSeed = futureSeed,
         Day = s.Day,
         TickOfDay = s.TickOfDay,
         TicksPerDay = s.TicksPerDay,

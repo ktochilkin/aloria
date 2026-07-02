@@ -40,6 +40,9 @@ public sealed class DirectorWorker : BackgroundService
 
     public WorldState? CurrentState => _engine?.State;
 
+    /// <summary>«Зерно будущего» — из какого числа начат текущий поток костей.</summary>
+    public int? CurrentFutureSeed => _engine?.FutureSeedLabel;
+
     /// <summary>Текущие ручки тюнинга мира.</summary>
     public WorldTuning? GetTuning() => _engine?.Tuning;
 
@@ -59,6 +62,29 @@ public sealed class DirectorWorker : BackgroundService
         {
             _engineLock.Release();
         }
+    }
+
+    /// <summary>
+    /// «Перебросить будущее»: новый поток костей от текущего момента из
+    /// заданного зерна (или случайного). Возвращает применённое зерно —
+    /// его можно записать. Прошлое неизменно; прежний просчёт аннулируется.
+    /// </summary>
+    public async Task<int?> ReseedAsync(int? seed, CancellationToken ct = default)
+    {
+        if (_engine is null) return null;
+        var applied = seed ?? Random.Shared.Next();
+        await _engineLock.WaitAsync(ct);
+        try
+        {
+            _engine.Reseed(applied);
+            if (_db is not null)
+                await _db.SaveWorldStateAsync(_engine.Persist(), ct);
+        }
+        finally
+        {
+            _engineLock.Release();
+        }
+        return applied;
     }
 
     /// <summary>Ручной форс кризиса: прямо сейчас, без ожидания хвоста распределения.</summary>

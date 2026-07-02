@@ -27,7 +27,7 @@ public sealed class DirectorOptions
         public int DefaultDays { get; set; } = 30;
 
         /// <summary>Потолок: дальше не покажет, сколько ни проси (спойлер-гигиена).</summary>
-        public int MaxDays { get; set; } = 30;
+        public int MaxDays { get; set; } = 120;
     }
 
     public sealed class LlmOptions

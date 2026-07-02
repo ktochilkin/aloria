@@ -15,7 +15,13 @@ public sealed class Rng
     private ulong _state;
     private ulong _inc;
 
-    public Rng(int seed)
+    public Rng(int seed) => Reset(seed);
+
+    /// <summary>
+    /// Перезапуск потока костей с нового зерна НА МЕСТЕ (все держатели ссылки
+    /// продолжают с новым потоком) — «перебросить будущее» от текущего момента.
+    /// </summary>
+    public void Reset(int seed)
     {
         // Инициализация через SplitMix64 — размазывает даже соседние seed'ы.
         var s = unchecked((ulong)seed * 0x9E3779B97F4A7C15UL + 0xBF58476D1CE4E5B9UL);

@@ -94,6 +94,7 @@ app.MapGet("/director/state", (DirectorWorker worker) =>
     return Results.Ok(new
     {
         snapshot = worker.CurrentSnapshot,
+        futureSeed = worker.CurrentFutureSeed,
         macro = state.Macro,
         issuers = state.Issuers.Values.Select(i => new
         {
@@ -145,6 +146,16 @@ app.MapPost("/director/foresight", async (ForesightInput input, DirectorWorker w
     return result is null ? Results.NotFound() : Results.Ok(result);
 });
 
+// «Перебросить будущее»: новый поток костей от текущего момента.
+// {"seed": 12345} — задать своё число (можно записать), {} — случайное.
+app.MapPost("/director/reseed", async (ReseedInput input, DirectorWorker worker) =>
+{
+    var applied = await worker.ReseedAsync(input.Seed);
+    return applied is null
+        ? Results.NotFound()
+        : Results.Ok(new { futureSeed = applied });
+});
+
 app.MapPost("/director/crisis", async (DirectorWorker worker) =>
     await worker.ForceCrisisAsync()
         ? Results.Ok(new { crisis = true })
@@ -188,3 +199,5 @@ internal sealed record RegimeInput(string Regime);
 internal sealed record SimulateInput(int? Days, int? Seed, WorldTuning? Tuning, int? Runs);
 
 internal sealed record ForesightInput(int? Days);
+
+internal sealed record ReseedInput(int? Seed);

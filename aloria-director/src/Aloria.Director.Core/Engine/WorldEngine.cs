@@ -50,6 +50,13 @@ public sealed class WorldEngine
     /// <summary>Живые ручки тюнинга (крутятся админкой на лету).</summary>
     public WorldTuning Tuning { get; set; }
 
+    /// <summary>
+    /// «Зерно будущего» — число, из которого начат ТЕКУЩИЙ поток костей
+    /// (стартовый seed мира или последний Reseed). Показывается админу;
+    /// null после рестарта старого снимка без метки.
+    /// </summary>
+    public int? FutureSeedLabel { get; private set; }
+
     public WorldEngine(WorldConfig config, WorldPersistDto? restore = null)
     {
         // Если в снимке есть состояние RNG — продолжаем ровно ТОТ ЖЕ поток
@@ -58,6 +65,7 @@ public sealed class WorldEngine
         _rng = restore?.Rng is { } rngState
             ? new Rng(rngState)
             : new Rng(restore is null ? config.Seed : config.Seed ^ (restore.Day * 7919));
+        FutureSeedLabel = restore is null ? config.Seed : restore.FutureSeed;
         _sampler = new EventSampler(_rng);
         Tuning = (restore?.Tuning ?? config.Tuning).Clamped();
         State = new WorldState { TicksPerDay = config.TicksPerDay };
@@ -111,7 +119,17 @@ public sealed class WorldEngine
 
     /// <summary>Снимок мира для сохранения (JSON → director.world_state), включая поток костей.</summary>
     public WorldPersistDto Persist() =>
-        WorldPersistence.ToDto(State, _lastPlannedCycleStart, Tuning, _rng.Export());
+        WorldPersistence.ToDto(State, _lastPlannedCycleStart, Tuning, _rng.Export(), FutureSeedLabel);
+
+    /// <summary>
+    /// «Перебросить будущее»: новый поток костей от текущего момента.
+    /// Прошлое неизменно, всё дальнейшее — заново из этого зерна.
+    /// </summary>
+    public void Reseed(int seed)
+    {
+        _rng.Reset(seed);
+        FutureSeedLabel = seed;
+    }
 
     private double Yield(BondState b) => State.Macro.KeyRate / 100.0 + b.Spread;
 

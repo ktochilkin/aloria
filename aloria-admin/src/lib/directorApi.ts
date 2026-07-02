@@ -28,6 +28,7 @@ export type WorldSnapshot = {
 
 export type DirectorState = {
   snapshot: WorldSnapshot;
+  futureSeed: number | null;
   issuers: {
     symbol: string;
     name: string;
@@ -129,6 +130,8 @@ export const directorApi = {
   simulateEnsemble: (body: { days: number; runs: number; tuning?: WorldTuning | null }) =>
     api.post<EnsembleResult>('/director/simulate', body),
   foresight: (days?: number) => api.post<ForesightResult>('/director/foresight', { days }),
+  reseed: (seed?: number | null) =>
+    api.post<{ futureSeed: number }>('/director/reseed', { seed }),
   forceCrisis: () => api.post<{ crisis: boolean }>('/director/crisis'),
   forceRegime: (regime: string) => api.post<{ forced: string }>('/director/regime', { regime }),
 };

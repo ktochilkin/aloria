@@ -318,10 +318,21 @@ export function WorldPage() {
   const [ensResult, setEnsResult] = useState<EnsembleResult | null>(null);
   const [showDocs, setShowDocs] = useState(false);
   const [foresightResult, setForesightResult] = useState<ForesightResult | null>(null);
+  const [foresightDays, setForesightDays] = useState(30);
+  const [seedInput, setSeedInput] = useState('');
 
   const foresight = useMutation({
-    mutationFn: () => directorApi.foresight(),
+    mutationFn: () => directorApi.foresight(foresightDays),
     onSuccess: setForesightResult,
+  });
+
+  const reseed = useMutation({
+    mutationFn: (seed: number | null) => directorApi.reseed(seed),
+    onSuccess: ({ futureSeed }) => {
+      setSeedInput(String(futureSeed));
+      setForesightResult(null); // прежний просчёт аннулирован
+      qc.invalidateQueries({ queryKey: ['director-state'] });
+    },
   });
 
   const saveTuning = useMutation({
@@ -634,7 +645,19 @@ export function WorldPage() {
             Просчёт: точное будущее
             <Badge tone="primary">спойлер</Badge>
           </h2>
-          <div className="flex gap-2">
+          <div className="flex items-end gap-2 flex-wrap">
+            <Field label="Дней">
+              <Input
+                type="number"
+                min={5}
+                max={120}
+                value={foresightDays}
+                onChange={(e) =>
+                  setForesightDays(Math.min(120, Math.max(5, Number(e.target.value) || 30)))
+                }
+                className="w-24"
+              />
+            </Field>
             {foresightResult && (
               <Button onClick={() => setForesightResult(null)}>
                 <EyeOff className="size-4" />
@@ -643,15 +666,46 @@ export function WorldPage() {
             )}
             <Button variant="primary" disabled={foresight.isPending} onClick={() => foresight.mutate()}>
               <Play className="size-4" />
-              {foresight.isPending ? 'Считаю…' : 'Показать будущее (30 дн)'}
+              {foresight.isPending ? 'Считаю…' : 'Показать будущее'}
             </Button>
           </div>
         </div>
         <p className="text-xs text-(--color-fg-muted) mt-2">
           В отличие от симуляции, это продолжение <b>того же потока костей</b> — живой мир пройдёт
-          ровно этот путь. Действует, пока никто не жмёт кнопки и не меняет ручки (любое
-          вмешательство ветвит будущее). Горизонт ограничен 30 днями — дальше не покажет.
+          ровно этот путь. Действует, пока никто не жмёт кнопки, не меняет ручки и не перебрасывает
+          зерно (любое вмешательство ветвит будущее). Максимум 120 дней.
           Решил не подглядывать, чтобы было интересно — просто не нажимай.
+        </p>
+
+        {/* Зерно будущего */}
+        <div className="flex items-end gap-2 flex-wrap mt-4 pt-3 border-t border-(--color-border)">
+          <Field
+            label="Зерно будущего"
+            hint={`текущее: ${state.data!.futureSeed ?? 'неизвестно (мир до этой фичи)'}`}
+          >
+            <Input
+              type="number"
+              placeholder="своё число…"
+              value={seedInput}
+              onChange={(e) => setSeedInput(e.target.value)}
+              className="w-44"
+            />
+          </Field>
+          <Button
+            disabled={reseed.isPending || seedInput.trim() === ''}
+            onClick={() => reseed.mutate(Number(seedInput))}
+          >
+            Задать это зерно
+          </Button>
+          <Button disabled={reseed.isPending} onClick={() => reseed.mutate(null)}>
+            <RotateCcw className="size-4" />
+            Перебросить случайно
+          </Button>
+        </div>
+        <p className="text-xs text-(--color-fg-muted) mt-2">
+          Всё будущее мира = текущее состояние + это число. Не понравился просчёт — перебрось зерно
+          и посмотри снова: прошлое не изменится, будущее сгенерируется заново. Число можно записать,
+          но учти: оно воспроизводит то же будущее только из той же точки мира.
         </p>
         {foresightResult && (
           <div className="border-t border-(--color-border) pt-4 mt-3">

@@ -176,6 +176,32 @@ public class WorldEngineTests
     }
 
     [Fact]
+    public async Task Reseed_SameSeedSameState_SameFuture_DifferentSeedDiverges()
+    {
+        async Task<WorldEngine> WorldAtDay5(int reseedWith)
+        {
+            var e = new WorldEngine(new WorldConfig { Seed = 50, TicksPerDay = 24 });
+            var n = new TemplateNarrator(new Rng(1));
+            for (var t = 0; t < 5 * 24; t++) await e.TickAsync(n);
+            e.Reseed(reseedWith);
+            Assert.Equal(reseedWith, e.FutureSeedLabel);
+            for (var t = 0; t < 5 * 24; t++) await e.TickAsync(n);
+            return e;
+        }
+
+        var a = await WorldAtDay5(reseedWith: 12345);
+        var b = await WorldAtDay5(reseedWith: 12345);
+        var c = await WorldAtDay5(reseedWith: 54321);
+
+        // Одно зерно из одной точки — одно будущее; другое зерно — другое.
+        foreach (var sym in a.State.Issuers.Keys)
+            Assert.Equal(a.State.Issuers[sym].Target, b.State.Issuers[sym].Target, 9);
+        var diverged = a.State.Issuers.Keys.Count(sym =>
+            Math.Abs(a.State.Issuers[sym].Target - c.State.Issuers[sym].Target) > 1e-9);
+        Assert.True(diverged > a.State.Issuers.Count / 2, "другое зерно должно дать другое будущее");
+    }
+
+    [Fact]
     public void Sampler_CompanyEvents_VictimPickedByRngNotLlm()
     {
         var world = new WorldState { TicksPerDay = 24 };
