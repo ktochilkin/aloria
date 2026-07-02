@@ -72,7 +72,8 @@ class StopOrderTile extends ConsumerWidget {
             'orderId': order.id,
             'symbol': order.symbol,
           },
-          note: 'Если условие уже выполнилось, стоп-заявка успела '
+          note:
+              'Если условие уже выполнилось, стоп-заявка успела '
               'превратиться в обычную — ищи её на вкладке «Заявки».',
         );
       }
@@ -163,10 +164,7 @@ class StopOrderTile extends ConsumerWidget {
                   side: const BorderSide(color: AppColors.error, width: 1.2),
                   foregroundColor: AppColors.error,
                 ),
-                child: const Text(
-                  'Отменить',
-                  style: TextStyle(fontSize: 12),
-                ),
+                child: const Text('Отменить', style: TextStyle(fontSize: 12)),
               ),
             ],
           ],

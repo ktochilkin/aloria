@@ -131,10 +131,9 @@ class OrderFailure {
     // разбираем на части и пробуем каждую.
     final parts = code == null
         ? const <String>[]
-        : RegExp(r'[a-zA-Z]+|\d+')
-            .allMatches(code.toLowerCase())
-            .map((m) => m.group(0)!)
-            .toList();
+        : RegExp(
+            r'[a-zA-Z]+|\d+',
+          ).allMatches(code.toLowerCase()).map((m) => m.group(0)!).toList();
 
     // OrderCreatesUncoveredRisk (400) — общий вердикт риск-движка: им
     // отклоняется и покупка без денег, и продажа бумаг, которых нет.
@@ -179,8 +178,7 @@ class OrderFailure {
       '301' || 'exchangelimitexceeded' => OrderFailureKind.badPrice,
       '409' || 'internalerrorwithprices' => OrderFailureKind.badPrice,
       '503' ||
-      'priceinstopordernotmultipleofminincrement' =>
-        OrderFailureKind.badPrice,
+      'priceinstopordernotmultipleofminincrement' => OrderFailureKind.badPrice,
       // «Не найдена цена заявки» — у рыночной заявки нет цены исполнения
       // (в стакане пусто или по инструменту ещё не было цены).
       '411' || 'noorderpricefound' => OrderFailureKind.noPrice,
@@ -189,23 +187,20 @@ class OrderFailure {
       // Сессия.
       '306' || 'exchangetradingisstopped' => OrderFailureKind.tradingClosed,
       // Шорт.
-      '405' || 'instrumentcantbeshortselled' => OrderFailureKind.shortNotAllowed,
+      '405' ||
+      'instrumentcantbeshortselled' => OrderFailureKind.shortNotAllowed,
       // Запреты.
       '406' ||
-      'instrumentinboardforbiddenforclient' =>
-        OrderFailureKind.forbidden,
+      'instrumentinboardforbiddenforclient' => OrderFailureKind.forbidden,
       '407' || 'clientblocked' => OrderFailureKind.forbidden,
-      '410' ||
-      'invalidcomplexproductcategory' =>
-        OrderFailureKind.forbidden,
+      '410' || 'invalidcomplexproductcategory' => OrderFailureKind.forbidden,
       '412' || 'forbiddenordertype' => OrderFailureKind.forbidden,
       '413' || 'lowriskmarginalforbidden' => OrderFailureKind.forbidden,
       '502' || 'unsupportedstopordertype' => OrderFailureKind.forbidden,
       // Заявка не найдена (или уже исполнена/снята).
       '253' || 'exchangeordernotfound' => OrderFailureKind.orderNotFound,
       '300' ||
-      'exchangeoperationnotsupported' =>
-        OrderFailureKind.orderNotFound,
+      'exchangeoperationnotsupported' => OrderFailureKind.orderNotFound,
       '403' || 'ordertomodifynotfound' => OrderFailureKind.orderNotFound,
       '404' || 'ordertocancelnotfound' => OrderFailureKind.orderNotFound,
       // Системное.

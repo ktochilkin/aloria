@@ -42,13 +42,12 @@ TextStyle cbMono({
   required double size,
   FontWeight weight = FontWeight.w600,
   Color color = cbInk,
-}) =>
-    GoogleFonts.nunito(
-      fontSize: size,
-      fontWeight: weight,
-      color: color,
-      fontFeatures: const [FontFeature.tabularFigures()],
-    );
+}) => GoogleFonts.nunito(
+  fontSize: size,
+  fontWeight: weight,
+  color: color,
+  fontFeatures: const [FontFeature.tabularFigures()],
+);
 
 /// Scoped-тема торгового экрана поверх базовой темы приложения.
 ThemeData coinbaseTheme(BuildContext context) {
@@ -85,14 +84,29 @@ ThemeData coinbaseTheme(BuildContext context) {
     ),
     dividerTheme: const DividerThemeData(color: cbHairline, thickness: 1),
     textTheme: t.copyWith(
-      headlineMedium: t.headlineMedium
-          ?.copyWith(fontWeight: FontWeight.w400, letterSpacing: -1, color: cbInk),
-      headlineSmall: t.headlineSmall
-          ?.copyWith(fontWeight: FontWeight.w400, letterSpacing: -0.5, color: cbInk),
-      titleMedium: t.titleMedium
-          ?.copyWith(fontWeight: FontWeight.w600, letterSpacing: 0, color: cbInk),
-      bodyLarge: t.bodyLarge?.copyWith(fontWeight: FontWeight.w400, color: cbInk),
-      bodyMedium: t.bodyMedium?.copyWith(fontWeight: FontWeight.w400, color: cbBody),
+      headlineMedium: t.headlineMedium?.copyWith(
+        fontWeight: FontWeight.w400,
+        letterSpacing: -1,
+        color: cbInk,
+      ),
+      headlineSmall: t.headlineSmall?.copyWith(
+        fontWeight: FontWeight.w400,
+        letterSpacing: -0.5,
+        color: cbInk,
+      ),
+      titleMedium: t.titleMedium?.copyWith(
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0,
+        color: cbInk,
+      ),
+      bodyLarge: t.bodyLarge?.copyWith(
+        fontWeight: FontWeight.w400,
+        color: cbInk,
+      ),
+      bodyMedium: t.bodyMedium?.copyWith(
+        fontWeight: FontWeight.w400,
+        color: cbBody,
+      ),
       labelMedium: t.labelMedium?.copyWith(color: cbMuted),
     ),
     filledButtonTheme: FilledButtonThemeData(
@@ -105,9 +119,7 @@ ThemeData coinbaseTheme(BuildContext context) {
       ),
     ),
     segmentedButtonTheme: const SegmentedButtonThemeData(
-      style: ButtonStyle(
-        shape: WidgetStatePropertyAll(StadiumBorder()),
-      ),
+      style: ButtonStyle(shape: WidgetStatePropertyAll(StadiumBorder())),
     ),
     inputDecorationTheme: base.inputDecorationTheme.copyWith(
       filled: true,

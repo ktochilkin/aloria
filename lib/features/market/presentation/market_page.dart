@@ -7,11 +7,14 @@ import 'package:aloria/features/market/data/market_repository.dart';
 import 'package:aloria/features/market/domain/macro_state.dart';
 import 'package:aloria/features/market/domain/market_news.dart';
 import 'package:aloria/features/market/presentation/numeric_text.dart';
+import 'package:aloria/features/market/presentation/widgets/aloria_index_card.dart';
+import 'package:aloria/features/market/presentation/widgets/how_market_works_page.dart';
 import 'package:aloria/features/market/presentation/widgets/instrument_avatar.dart';
 import 'package:aloria/features/market/presentation/widgets/macro_card.dart';
 import 'package:aloria/features/market/presentation/widgets/macro_detail_page.dart';
 import 'package:aloria/features/market/presentation/widgets/news_detail_modal.dart';
 import 'package:aloria/features/market/presentation/widgets/news_meta.dart';
+import 'package:aloria/features/market/presentation/widgets/upcoming_events.dart';
 import 'package:animations/animations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -150,6 +153,7 @@ class _MarketOverviewTab extends StatelessWidget {
         final priced = items
             .where((s) => s.changePercent != null)
             .toList(growable: false);
+        final macro = asyncMacro.valueOrNull;
 
         return CustomScrollView(
           slivers: [
@@ -158,6 +162,23 @@ class _MarketOverviewTab extends StatelessWidget {
               sliver: SliverToBoxAdapter(
                 child: _MacroSection(asyncMacro: asyncMacro),
               ),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+              sliver: SliverToBoxAdapter(
+                child: AloriaIndexCard(securities: items),
+              ),
+            ),
+            if (macro != null)
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                sliver: SliverToBoxAdapter(
+                  child: UpcomingEvents(macro: macro, securities: items),
+                ),
+              ),
+            const SliverPadding(
+              padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
+              sliver: SliverToBoxAdapter(child: _HowItWorksCard()),
             ),
             if (priced.length >= 3)
               SliverPadding(
@@ -471,6 +492,53 @@ class _MacroSection extends StatelessWidget {
 
 /// Фильтр по классу инструмента. Пока чисто визуальный (без логики) — список
 /// инструментов не фильтруется, привяжем при появлении облигаций/фондов.
+class _HowItWorksCard extends StatelessWidget {
+  const _HowItWorksCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      margin: EdgeInsets.zero,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(24),
+        onTap: () => openHowMarketWorks(context),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Icon(Icons.help_outline_rounded, color: scheme.primary),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Как устроен рынок Aloria',
+                      style: text.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Коротко о том, что двигает цены',
+                      style: text.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _InstrumentClassFilter extends StatefulWidget {
   const _InstrumentClassFilter();
 

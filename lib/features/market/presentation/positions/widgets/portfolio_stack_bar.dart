@@ -35,8 +35,8 @@ class PortfolioStackBar extends StatelessWidget {
     }
     final restShare = useRest
         ? sorted
-            .skip(visibleCount)
-            .fold<double>(0, (s, p) => s + p.currentVolume.abs() / total)
+              .skip(visibleCount)
+              .fold<double>(0, (s, p) => s + p.currentVolume.abs() / total)
         : 0.0;
     final hasRest = restShare > 0.001;
 

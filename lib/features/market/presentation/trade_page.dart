@@ -111,17 +111,17 @@ class _TradePageState extends ConsumerState<TradePage> {
   /// Снимок параметров заявки из формы — прикладывается к обращению в
   /// поддержку, чтобы проблему можно было разобрать без переписки.
   Map<String, dynamic> _orderContextSnapshot(OrderSide side) => {
-        'symbol': widget.symbol,
-        'side': side.name,
-        'kind': _kind.name,
-        'qty': _qtyController.text,
-        if (_kind == OrderFormKind.limit) 'price': _priceController.text,
-        if (_kind == OrderFormKind.stop) ...{
-          'condition': _stopCondition.apiValue,
-          'triggerPrice': _triggerController.text,
-          'limitPrice': _stopLimitController.text,
-        },
-      };
+    'symbol': widget.symbol,
+    'side': side.name,
+    'kind': _kind.name,
+    'qty': _qtyController.text,
+    if (_kind == OrderFormKind.limit) 'price': _priceController.text,
+    if (_kind == OrderFormKind.stop) ...{
+      'condition': _stopCondition.apiValue,
+      'triggerPrice': _triggerController.text,
+      'limitPrice': _stopLimitController.text,
+    },
+  };
 
   Future<void> _submit(OrderSide side) async {
     final repo = await ref.read(marketDataRepositoryProvider.future);
@@ -249,65 +249,68 @@ class _TradePageState extends ConsumerState<TradePage> {
     return Theme(
       data: coinbaseTheme(context),
       child: Scaffold(
-      // Клавиатуру уже учитывает внешний Scaffold нижней навигации (shell).
-      // Без этого оба Scaffold'а поднимают контент над клавиатурой —
-      // получается двойной отступ и большой пустой зазор над клавиатурой.
-      resizeToAvoidBottomInset: false,
-      appBar: AppBar(
-        title: Text(titleText, maxLines: 1, overflow: TextOverflow.ellipsis),
-        actions: [
-          if (latestPrice != null && _showAppBarPrice)
-            Padding(
-              padding: const EdgeInsets.only(right: 16),
-              child: Center(
-                child: Text(
-                  '${latestPrice.toStringAsFixed(2)} ₽',
-                  style: cbMono(size: 16),
+        // Клавиатуру уже учитывает внешний Scaffold нижней навигации (shell).
+        // Без этого оба Scaffold'а поднимают контент над клавиатурой —
+        // получается двойной отступ и большой пустой зазор над клавиатурой.
+        resizeToAvoidBottomInset: false,
+        appBar: AppBar(
+          title: Text(titleText, maxLines: 1, overflow: TextOverflow.ellipsis),
+          actions: [
+            if (latestPrice != null && _showAppBarPrice)
+              Padding(
+                padding: const EdgeInsets.only(right: 16),
+                child: Center(
+                  child: Text(
+                    '${latestPrice.toStringAsFixed(2)} ₽',
+                    style: cbMono(size: 16),
+                  ),
                 ),
               ),
+          ],
+        ),
+        body: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: () => FocusScope.of(context).unfocus(),
+          child: feed.when(
+            data: (state) => TradeBody(
+              symbol: widget.symbol,
+              exchange: widget.exchange,
+              state: state,
+              orderBook: orderBook,
+              news: news,
+              feedTab: feedTab,
+              onFeedTabChanged: (tab) =>
+                  ref.read(feedTabProvider(widget.symbol).notifier).state = tab,
+              kind: _kind,
+              onKindChanged: (value) => setState(() => _kind = value),
+              qtyController: _qtyController,
+              priceController: _priceController,
+              triggerController: _triggerController,
+              stopLimitController: _stopLimitController,
+              stopCondition: _stopCondition,
+              onStopConditionChanged: (value) =>
+                  setState(() => _stopCondition = value),
+              onSubmit: _submit,
+              submitting: _submitting,
+              onSelectPrice: _selectPriceFromOrderBook,
+              scrollController: _scrollController,
             ),
-        ],
-      ),
-      body: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTap: () => FocusScope.of(context).unfocus(),
-        child: feed.when(
-          data: (state) => TradeBody(
-            symbol: widget.symbol,
-            exchange: widget.exchange,
-            state: state,
-            orderBook: orderBook,
-            news: news,
-            feedTab: feedTab,
-            onFeedTabChanged: (tab) =>
-                ref.read(feedTabProvider(widget.symbol).notifier).state = tab,
-            kind: _kind,
-            onKindChanged: (value) => setState(() => _kind = value),
-            qtyController: _qtyController,
-            priceController: _priceController,
-            triggerController: _triggerController,
-            stopLimitController: _stopLimitController,
-            stopCondition: _stopCondition,
-            onStopConditionChanged: (value) =>
-                setState(() => _stopCondition = value),
-            onSubmit: _submit,
-            submitting: _submitting,
-            onSelectPrice: _selectPriceFromOrderBook,
-            scrollController: _scrollController,
-          ),
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => StatePlaceholder(
-            framed: false,
-            icon: Icons.cloud_off_outlined,
-            title: 'Не получилось загрузить котировки',
-            message: 'Проверь соединение и попробуй ещё раз.',
-            actionLabel: 'Обновить',
-            onAction: () => ref.invalidate(priceFeedProvider(
-              (symbol: widget.symbol, exchange: widget.exchange),
-            )),
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => StatePlaceholder(
+              framed: false,
+              icon: Icons.cloud_off_outlined,
+              title: 'Не получилось загрузить котировки',
+              message: 'Проверь соединение и попробуй ещё раз.',
+              actionLabel: 'Обновить',
+              onAction: () => ref.invalidate(
+                priceFeedProvider((
+                  symbol: widget.symbol,
+                  exchange: widget.exchange,
+                )),
+              ),
+            ),
           ),
         ),
-      ),
       ),
     );
   }

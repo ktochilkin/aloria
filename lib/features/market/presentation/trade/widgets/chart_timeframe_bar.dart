@@ -29,9 +29,9 @@ class ChartTimeframeBar extends ConsumerWidget {
               child: _Segment(
                 label: tf.label,
                 selected: tf.code == selected,
-                onTap: () => ref
-                    .read(chartTimeframeProvider(symbol).notifier)
-                    .state = tf.code,
+                onTap: () =>
+                    ref.read(chartTimeframeProvider(symbol).notifier).state =
+                        tf.code,
               ),
             ),
         ],

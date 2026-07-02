@@ -32,8 +32,9 @@ class _TopUpQuizSummary {
   }
 }
 
-final _topUpQuizzesProvider =
-    FutureProvider<List<_TopUpQuizSummary>>((ref) async {
+final _topUpQuizzesProvider = FutureProvider<List<_TopUpQuizSummary>>((
+  ref,
+) async {
   final client = ref.watch(learningApiClientProvider);
   final raw = await client.fetchTopUpQuizzes();
   return raw.map(_TopUpQuizSummary.fromJson).toList(growable: false);
@@ -71,14 +72,18 @@ class TopUpPage extends ConsumerWidget {
               decoration: BoxDecoration(
                 color: scheme.primary.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: scheme.primary.withValues(alpha: 0.2)),
+                border: Border.all(
+                  color: scheme.primary.withValues(alpha: 0.2),
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'Подтвердите знания',
-                    style: text.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                    style: text.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Text(
@@ -119,7 +124,8 @@ class TopUpPage extends ConsumerWidget {
                       child: StatePlaceholder(
                         icon: Icons.school_outlined,
                         title: 'Новых тестов пока нет',
-                        message: 'Они появляются по мере прохождения уроков — '
+                        message:
+                            'Они появляются по мере прохождения уроков — '
                             'загляни сюда позже.',
                       ),
                     )
@@ -182,7 +188,9 @@ class _TopUpQuizCard extends StatelessWidget {
                     if (quiz.rewardBuyingPower > 0)
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.success.withValues(alpha: 0.14),
                           borderRadius: BorderRadius.circular(999),
@@ -209,8 +217,11 @@ class _TopUpQuizCard extends StatelessWidget {
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    Icon(Icons.help_outline,
-                        size: 16, color: scheme.onSurfaceVariant),
+                    Icon(
+                      Icons.help_outline,
+                      size: 16,
+                      color: scheme.onSurfaceVariant,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       '${quiz.questionCount} ${_questionWord(quiz.questionCount)}',
@@ -251,11 +262,7 @@ class _TopUpQuizPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
+        title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),

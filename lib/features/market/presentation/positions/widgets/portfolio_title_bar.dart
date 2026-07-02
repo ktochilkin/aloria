@@ -39,12 +39,8 @@ class PortfolioTitleBar extends ConsumerWidget {
             padding: EdgeInsets.zero,
             iconSize: 22,
             visualDensity: VisualDensity.compact,
-            color: learningMode
-                ? AppColors.primary
-                : scheme.onSurfaceVariant,
-            icon: Icon(
-              learningMode ? Icons.school : Icons.school_outlined,
-            ),
+            color: learningMode ? AppColors.primary : scheme.onSurfaceVariant,
+            icon: Icon(learningMode ? Icons.school : Icons.school_outlined),
             onPressed: () => ref
                 .read(settingsControllerProvider.notifier)
                 .setLearningMode(!learningMode),

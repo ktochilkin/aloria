@@ -7,18 +7,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Репозиторий макросостояния экономического мира (aloria-api).
 class MarketMacroRepository {
-  MarketMacroRepository({
-    required String baseUrl,
-    required bool enableLogging,
-  }) : _dio = Dio(
-          BaseOptions(
-            baseUrl: baseUrl,
-            connectTimeout: const Duration(seconds: 6),
-            receiveTimeout: const Duration(seconds: 12),
-            sendTimeout: const Duration(seconds: 6),
-            headers: const {'Accept': 'application/json'},
-          ),
-        ) {
+  MarketMacroRepository({required String baseUrl, required bool enableLogging})
+    : _dio = Dio(
+        BaseOptions(
+          baseUrl: baseUrl,
+          connectTimeout: const Duration(seconds: 6),
+          receiveTimeout: const Duration(seconds: 12),
+          sendTimeout: const Duration(seconds: 6),
+          headers: const {'Accept': 'application/json'},
+        ),
+      ) {
     if (enableLogging) {
       _dio.interceptors.add(
         InterceptorsWrapper(

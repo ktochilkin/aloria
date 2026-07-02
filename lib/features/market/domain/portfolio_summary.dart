@@ -18,7 +18,8 @@ class PortfolioSummary {
     double? asNullableDouble(dynamic v) => v is num ? v.toDouble() : null;
 
     final byCurrency = map['buyingPowerByCurrency'];
-    final hasPower = map.containsKey('buyingPower') ||
+    final hasPower =
+        map.containsKey('buyingPower') ||
         (byCurrency is List && byCurrency.isNotEmpty);
     if (!hasPower) return null;
 

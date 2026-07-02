@@ -117,15 +117,15 @@ class MarketDataRepository {
     String portfolio = TradeOrder.defaultPortfolio,
     double? limitPrice,
   }) => _http.placeStopOrder(
-        symbol: symbol,
-        exchange: exchange,
-        side: side,
-        condition: condition,
-        triggerPrice: triggerPrice,
-        quantity: quantity,
-        portfolio: portfolio,
-        limitPrice: limitPrice,
-      );
+    symbol: symbol,
+    exchange: exchange,
+    side: side,
+    condition: condition,
+    triggerPrice: triggerPrice,
+    quantity: quantity,
+    portfolio: portfolio,
+    limitPrice: limitPrice,
+  );
 
   /// Сделки по портфелю (поток).
   Stream<List<PortfolioTrade>> watchTrades({

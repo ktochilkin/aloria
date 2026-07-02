@@ -111,8 +111,8 @@ class _InstrumentHeaderCardState extends ConsumerState<InstrumentHeaderCard> {
     final cur = p?.currency == 'USD'
         ? '\$'
         : p?.currency == 'EUR'
-            ? '€'
-            : '₽';
+        ? '€'
+        : '₽';
     final change = p?.change;
     final pct = p?.changePercent;
     final up = (change ?? 0) >= 0;
@@ -320,10 +320,7 @@ class _StatTile extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          item.$1,
-          style: const TextStyle(fontSize: 13, color: cbMuted),
-        ),
+        Text(item.$1, style: const TextStyle(fontSize: 13, color: cbMuted)),
         const SizedBox(height: 2),
         Text(item.$2, style: cbMono(size: 15)),
       ],

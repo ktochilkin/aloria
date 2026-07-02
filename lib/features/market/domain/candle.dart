@@ -33,7 +33,9 @@ class Candle {
       open: toDouble(map['open'] ?? map['o'] ?? map['Open']),
       high: toDouble(map['high'] ?? map['h'] ?? map['High']),
       low: toDouble(map['low'] ?? map['l'] ?? map['Low']),
-      close: toDouble(map['close'] ?? map['c'] ?? map['lastPrice'] ?? map['price']),
+      close: toDouble(
+        map['close'] ?? map['c'] ?? map['lastPrice'] ?? map['price'],
+      ),
       volume: toDouble(map['volume'] ?? map['v'] ?? map['Volume'] ?? 0),
     );
   }

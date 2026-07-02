@@ -106,20 +106,18 @@ class OrderFormSection extends StatelessWidget {
         labelStyle: text.bodyMedium?.copyWith(
           color: selected ? scheme.primary : scheme.onSurface,
         ),
-        side: BorderSide(
-          color: scheme.outline.withValues(alpha: 0.6),
-        ),
+        side: BorderSide(color: scheme.outline.withValues(alpha: 0.6)),
         onSelected: (_) => onKindChanged(value),
       );
     }
 
     InputDecoration field(String label, {String? hint}) => InputDecoration(
-          labelText: label,
-          hintText: hint,
-          border: const OutlineInputBorder(
-            borderRadius: BorderRadius.all(Radius.circular(12)),
-          ),
-        );
+      labelText: label,
+      hintText: hint,
+      border: const OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(12)),
+      ),
+    );
 
     // Выравнивание повторяет родительскую колонку TradeBody (start),
     // чтобы вынос секции не менял раскладку.
@@ -136,8 +134,7 @@ class OrderFormSection extends StatelessWidget {
               constraints: const BoxConstraints(),
               icon: const Icon(Icons.help_outline, size: 20),
               tooltip: 'Что такое заявка?',
-              onPressed: () =>
-                  context.push('/learn/first-trade/order_basics'),
+              onPressed: () => context.push('/learn/first-trade/order_basics'),
             ),
           ],
         ),
@@ -155,9 +152,7 @@ class OrderFormSection extends StatelessWidget {
         const SizedBox(height: 12),
         TextField(
           controller: qtyController,
-          keyboardType: const TextInputType.numberWithOptions(
-            decimal: true,
-          ),
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
           textInputAction: kind == OrderFormKind.market
               ? TextInputAction.done
               : TextInputAction.next,
@@ -176,9 +171,7 @@ class OrderFormSection extends StatelessWidget {
           const SizedBox(height: 12),
           TextField(
             controller: priceController,
-            keyboardType: const TextInputType.numberWithOptions(
-              decimal: true,
-            ),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => FocusScope.of(context).unfocus(),
             decoration: field(
@@ -217,9 +210,7 @@ class OrderFormSection extends StatelessWidget {
           const SizedBox(height: 12),
           TextField(
             controller: triggerController,
-            keyboardType: const TextInputType.numberWithOptions(
-              decimal: true,
-            ),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
             textInputAction: TextInputAction.next,
             onSubmitted: (_) => FocusScope.of(context).nextFocus(),
             decoration: field(
@@ -232,9 +223,7 @@ class OrderFormSection extends StatelessWidget {
           const SizedBox(height: 12),
           TextField(
             controller: stopLimitController,
-            keyboardType: const TextInputType.numberWithOptions(
-              decimal: true,
-            ),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => FocusScope.of(context).unfocus(),
             decoration: field(
@@ -248,9 +237,7 @@ class OrderFormSection extends StatelessWidget {
           children: [
             Expanded(
               child: FilledButton.icon(
-                onPressed: submitting
-                    ? null
-                    : () => onSubmit(OrderSide.buy),
+                onPressed: submitting ? null : () => onSubmit(OrderSide.buy),
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.success,
                   foregroundColor: Colors.white,
@@ -264,9 +251,7 @@ class OrderFormSection extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: FilledButton.icon(
-                onPressed: submitting
-                    ? null
-                    : () => onSubmit(OrderSide.sell),
+                onPressed: submitting ? null : () => onSubmit(OrderSide.sell),
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.error,
                   foregroundColor: Colors.white,

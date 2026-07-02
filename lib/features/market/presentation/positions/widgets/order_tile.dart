@@ -49,9 +49,7 @@ class OrderTile extends ConsumerWidget {
           const SizedBox(height: 4),
           Text(
             '${_sideLabel(order.side)} · ${_typeLabel(order.type)} · ${_formatTime(order.updateTime ?? order.transTime)}',
-            style: text.bodySmall?.copyWith(
-              color: scheme.onSurfaceVariant,
-            ),
+            style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
           ),
         ],
       ),
@@ -92,10 +90,7 @@ class OrderTile extends ConsumerWidget {
                   side: const BorderSide(color: AppColors.error, width: 1.2),
                   foregroundColor: AppColors.error,
                 ),
-                child: const Text(
-                  'Отменить',
-                  style: TextStyle(fontSize: 12),
-                ),
+                child: const Text('Отменить', style: TextStyle(fontSize: 12)),
               ),
             ],
           ],
@@ -236,9 +231,9 @@ Future<void> _handleCancelOrder(
         // обычно уже нечего — она исполняется сразу после отправки.
         note: order.type == OrderType.market
             ? 'Это рыночная заявка: она не стоит в очереди, а исполняется '
-                'сразу по доступным ценам. Поэтому отменить её, как правило, '
-                'уже нельзя — она либо исполнилась, либо исполняется прямо '
-                'сейчас.'
+                  'сразу по доступным ценам. Поэтому отменить её, как правило, '
+                  'уже нельзя — она либо исполнилась, либо исполняется прямо '
+                  'сейчас.'
             : null,
       );
     }

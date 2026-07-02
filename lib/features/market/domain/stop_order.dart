@@ -7,18 +7,18 @@ enum StopCondition { more, less, moreOrEqual, lessOrEqual }
 extension StopConditionX on StopCondition {
   /// Значение для API.
   String get apiValue => switch (this) {
-        StopCondition.more => 'more',
-        StopCondition.less => 'less',
-        StopCondition.moreOrEqual => 'moreorequal',
-        StopCondition.lessOrEqual => 'lessorequal',
-      };
+    StopCondition.more => 'more',
+    StopCondition.less => 'less',
+    StopCondition.moreOrEqual => 'moreorequal',
+    StopCondition.lessOrEqual => 'lessorequal',
+  };
 
   static StopCondition from(String? value) => switch (value?.toLowerCase()) {
-        'more' => StopCondition.more,
-        'less' => StopCondition.less,
-        'moreorequal' => StopCondition.moreOrEqual,
-        _ => StopCondition.lessOrEqual,
-      };
+    'more' => StopCondition.more,
+    'less' => StopCondition.less,
+    'moreorequal' => StopCondition.moreOrEqual,
+    _ => StopCondition.lessOrEqual,
+  };
 }
 
 /// Условная (стоп) заявка из потока `StopOrdersGetAndSubscribeV2`.

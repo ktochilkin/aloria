@@ -110,7 +110,8 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
       data: (l) => l.where((s) => s.isActive).length,
       orElse: () => 0,
     );
-    final activeOrdersCount = widget.orders.maybeWhen(
+    final activeOrdersCount =
+        widget.orders.maybeWhen(
           data: (l) => l.where((o) => o.isActive).length,
           orElse: () => 0,
         ) +

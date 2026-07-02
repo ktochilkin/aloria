@@ -36,10 +36,7 @@ class PortfolioHero extends StatelessWidget {
       orElse: () => const <Position>[],
     );
 
-    final summaryValue = summary.maybeWhen(
-      data: (s) => s,
-      orElse: () => null,
-    );
+    final summaryValue = summary.maybeWhen(data: (s) => s, orElse: () => null);
 
     final positionsTotal = positionsList.fold<double>(
       0,
@@ -61,8 +58,8 @@ class PortfolioHero extends StatelessWidget {
     final currencySymbol = summaryValue?.currency == 'USD'
         ? '\$'
         : summaryValue?.currency == 'EUR'
-            ? '€'
-            : '₽';
+        ? '€'
+        : '₽';
 
     final isLoading = summary.isLoading && summaryValue == null;
     final hasError = summary.hasError && summaryValue == null;
@@ -100,89 +97,91 @@ class PortfolioHero extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-          Text(
-            AppLocalizations.of(context)!.portfolioEvaluationCaption,
-            style: text.bodySmall?.copyWith(
-              fontSize: 13,
-              color: scheme.onSurfaceVariant,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 6),
-          if (isLoading)
-            const _HeroLoading()
-          else if (hasError)
-            Text(
-              'Нет данных',
-              style: text.bodyLarge?.copyWith(color: scheme.error),
-            )
-          else
-            Row(
-              children: [
-                Expanded(
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: RichText(
-                      maxLines: 1,
-                      text: TextSpan(
-                        style: GoogleFonts.nunito(
-                          color: scheme.onSurface,
-                          fontSize: 32,
-                          fontWeight: FontWeight.w700,
-                          height: 1.0,
-                          letterSpacing: -0.8,
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                        ),
-                        children: [
-                          TextSpan(text: _formatMoney(liquidationValue)),
-                          TextSpan(
-                            text: ' $currencySymbol',
-                            style: GoogleFonts.nunito(
-                              color: scheme.onSurfaceVariant,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              height: 1.0,
-                              letterSpacing: -0.2,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                Text(
+                  AppLocalizations.of(context)!.portfolioEvaluationCaption,
+                  style: text.bodySmall?.copyWith(
+                    fontSize: 13,
+                    color: scheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(width: 12),
-                _TopUpPill(onTap: onTopUp),
+                const SizedBox(height: 6),
+                if (isLoading)
+                  const _HeroLoading()
+                else if (hasError)
+                  Text(
+                    'Нет данных',
+                    style: text.bodyLarge?.copyWith(color: scheme.error),
+                  )
+                else
+                  Row(
+                    children: [
+                      Expanded(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: RichText(
+                            maxLines: 1,
+                            text: TextSpan(
+                              style: GoogleFonts.nunito(
+                                color: scheme.onSurface,
+                                fontSize: 32,
+                                fontWeight: FontWeight.w700,
+                                height: 1.0,
+                                letterSpacing: -0.8,
+                                fontFeatures: const [
+                                  FontFeature.tabularFigures(),
+                                ],
+                              ),
+                              children: [
+                                TextSpan(text: _formatMoney(liquidationValue)),
+                                TextSpan(
+                                  text: ' $currencySymbol',
+                                  style: GoogleFonts.nunito(
+                                    color: scheme.onSurfaceVariant,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                    height: 1.0,
+                                    letterSpacing: -0.2,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      _TopUpPill(onTap: onTopUp),
+                    ],
+                  ),
+                const SizedBox(height: 14),
+                const _HeroDivider(),
+                const SizedBox(height: 12),
+                _PortfolioSummaryRow(
+                  inPositions: positionsTotal,
+                  buyingPower: buyingPower,
+                  plPercent: hasPl ? plPercent : null,
+                  plPositive: totalPl >= 0,
+                  currencySymbol: currencySymbol,
+                ),
+                if (positionsList.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  const _HeroDivider(),
+                  const SizedBox(height: 14),
+                  PortfolioStackBar(positions: positionsList),
+                ] else if (summaryValue != null && buyingPower > 0) ...[
+                  const SizedBox(height: 14),
+                  const _HeroDivider(),
+                  const SizedBox(height: 14),
+                  Text(
+                    'Нет открытых позиций · перейти к обзору рынка',
+                    style: text.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ],
-            ),
-          const SizedBox(height: 14),
-          const _HeroDivider(),
-          const SizedBox(height: 12),
-          _PortfolioSummaryRow(
-            inPositions: positionsTotal,
-            buyingPower: buyingPower,
-            plPercent: hasPl ? plPercent : null,
-            plPositive: totalPl >= 0,
-            currencySymbol: currencySymbol,
-          ),
-          if (positionsList.isNotEmpty) ...[
-            const SizedBox(height: 14),
-            const _HeroDivider(),
-            const SizedBox(height: 14),
-            PortfolioStackBar(positions: positionsList),
-          ] else if (summaryValue != null && buyingPower > 0) ...[
-            const SizedBox(height: 14),
-            const _HeroDivider(),
-            const SizedBox(height: 14),
-            Text(
-              'Нет открытых позиций · перейти к обзору рынка',
-              style: text.bodySmall?.copyWith(
-                color: scheme.onSurfaceVariant,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ],
             ),
           ),
         ],

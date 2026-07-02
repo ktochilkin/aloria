@@ -25,9 +25,7 @@ class TradesListSection extends ConsumerWidget {
           );
         }
         return AppListSection(
-          children: [
-            for (final t in list.take(50)) TradeTile(trade: t),
-          ],
+          children: [for (final t in list.take(50)) TradeTile(trade: t)],
         );
       },
       loading: () => const PortfolioSectionLoader(),

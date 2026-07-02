@@ -4,13 +4,14 @@ import 'package:aloria/features/market/presentation/numeric_text.dart';
 import 'package:flutter/material.dart';
 
 /// Человекочитаемое имя режима цикла + акцентный цвет.
-({String label, Color color}) macroRegimeMeta(String regime) => switch (regime) {
-  'expansion' => (label: 'Расширение', color: AppColors.success),
-  'peak' => (label: 'Перегрев', color: AppColors.warning),
-  'recession' => (label: 'Рецессия', color: AppColors.error),
-  'recovery' => (label: 'Восстановление', color: AppColors.primary),
-  _ => (label: regime, color: AppColors.secondary),
-};
+({String label, Color color}) macroRegimeMeta(String regime) =>
+    switch (regime) {
+      'expansion' => (label: 'Расширение', color: AppColors.success),
+      'peak' => (label: 'Перегрев', color: AppColors.warning),
+      'recession' => (label: 'Рецессия', color: AppColors.error),
+      'recovery' => (label: 'Восстановление', color: AppColors.primary),
+      _ => (label: regime, color: AppColors.secondary),
+    };
 
 /// Карточка макроэкономики на обзоре рынка: режим цикла, ставка, инфляция,
 /// прогресс экономического цикла. По тапу ([onTap]) открывает пояснение.

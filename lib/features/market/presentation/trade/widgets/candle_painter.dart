@@ -5,11 +5,7 @@ import 'package:flutter/material.dart';
 /// Painter свечного графика: оси, тики цен/времени, свечи с фитилями и
 /// подсветка выбранной свечи.
 class CandlePainter extends CustomPainter {
-  CandlePainter({
-    required this.data,
-    required this.scheme,
-    this.selectedIndex,
-  });
+  CandlePainter({required this.data, required this.scheme, this.selectedIndex});
 
   /// Свечи для отрисовки.
   final List<Candle> data;

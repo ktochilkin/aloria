@@ -9,23 +9,25 @@ final stopOrdersProvider = StreamProvider<List<StopOrder>>((ref) async* {
 });
 
 /// Отмена условной заявки (DELETE с пометкой stop).
-final cancelStopOrderProvider = Provider<
-    Future<void> Function({
-      required String orderId,
-      required String portfolio,
-      required String exchange,
-    })>((ref) {
-  return ({
-    required String orderId,
-    required String portfolio,
-    required String exchange,
-  }) async {
-    final repo = await ref.read(marketDataRepositoryProvider.future);
-    await repo.cancelOrder(
-      orderId: orderId,
-      portfolio: portfolio,
-      exchange: exchange,
-      stop: true,
-    );
-  };
-});
+final cancelStopOrderProvider =
+    Provider<
+      Future<void> Function({
+        required String orderId,
+        required String portfolio,
+        required String exchange,
+      })
+    >((ref) {
+      return ({
+        required String orderId,
+        required String portfolio,
+        required String exchange,
+      }) async {
+        final repo = await ref.read(marketDataRepositoryProvider.future);
+        await repo.cancelOrder(
+          orderId: orderId,
+          portfolio: portfolio,
+          exchange: exchange,
+          stop: true,
+        );
+      };
+    });

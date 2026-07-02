@@ -134,9 +134,7 @@ class TradeBody extends StatelessWidget {
                       else if (candles.isEmpty)
                         const SizedBox(
                           height: 200,
-                          child: Center(
-                            child: Text('Нет данных для графика'),
-                          ),
+                          child: Center(child: Text('Нет данных для графика')),
                         )
                       else
                         CandleChart(data: candles, scheme: scheme),

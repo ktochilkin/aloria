@@ -59,55 +59,51 @@ class FeedTabsSection extends StatelessWidget {
                   : feedTab == FeedTab.tape
                   ? 'Лента последних сделок'
                   : 'Биржевой стакан в реальном времени',
-              style: text.bodySmall?.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
+              style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
             ),
             const SizedBox(height: 10),
             SegmentedButton<FeedTab>(
               expandedInsets: EdgeInsets.zero,
-                segments: const [
-                  ButtonSegment(
-                    value: FeedTab.news,
-                    icon: Icon(Icons.article),
-                    label: Text('Новости'),
-                  ),
-                  ButtonSegment(
-                    value: FeedTab.tape,
-                    icon: Icon(Icons.bolt),
-                    label: Text('Лента'),
-                  ),
-                  ButtonSegment(
-                    value: FeedTab.orderBook,
-                    icon: Icon(Icons.stacked_bar_chart),
-                    label: Text('Стакан'),
-                  ),
-                ],
-                selected: {feedTab},
-                onSelectionChanged: (value) {
-                  if (value.isNotEmpty) onFeedTabChanged(value.first);
-                },
-                showSelectedIcon: false,
-                style: ButtonStyle(
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  visualDensity: VisualDensity.compact,
-                  backgroundColor: WidgetStateProperty.resolveWith(
-                    (states) => states.contains(WidgetState.selected)
-                        ? scheme.primary.withValues(alpha: 0.14)
-                        : scheme.surfaceContainerHighest,
-                  ),
-                  foregroundColor: WidgetStateProperty.resolveWith(
-                    (states) => states.contains(WidgetState.selected)
-                        ? scheme.primary
-                        : scheme.onSurface,
-                  ),
-                  side: WidgetStatePropertyAll(
-                    BorderSide(
-                      color: scheme.outline.withValues(alpha: 0.7),
-                    ),
-                  ),
+              segments: const [
+                ButtonSegment(
+                  value: FeedTab.news,
+                  icon: Icon(Icons.article),
+                  label: Text('Новости'),
+                ),
+                ButtonSegment(
+                  value: FeedTab.tape,
+                  icon: Icon(Icons.bolt),
+                  label: Text('Лента'),
+                ),
+                ButtonSegment(
+                  value: FeedTab.orderBook,
+                  icon: Icon(Icons.stacked_bar_chart),
+                  label: Text('Стакан'),
+                ),
+              ],
+              selected: {feedTab},
+              onSelectionChanged: (value) {
+                if (value.isNotEmpty) onFeedTabChanged(value.first);
+              },
+              showSelectedIcon: false,
+              style: ButtonStyle(
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                visualDensity: VisualDensity.compact,
+                backgroundColor: WidgetStateProperty.resolveWith(
+                  (states) => states.contains(WidgetState.selected)
+                      ? scheme.primary.withValues(alpha: 0.14)
+                      : scheme.surfaceContainerHighest,
+                ),
+                foregroundColor: WidgetStateProperty.resolveWith(
+                  (states) => states.contains(WidgetState.selected)
+                      ? scheme.primary
+                      : scheme.onSurface,
+                ),
+                side: WidgetStatePropertyAll(
+                  BorderSide(color: scheme.outline.withValues(alpha: 0.7)),
                 ),
               ),
+            ),
           ],
         ),
         const SizedBox(height: 8),

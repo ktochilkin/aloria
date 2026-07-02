@@ -12,18 +12,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// данные несут тональность и тип события. Писатель на шаге 1 — мок-сидер бэка,
 /// позже — ИИ-режиссёр.
 class MarketNewsRepository {
-  MarketNewsRepository({
-    required String baseUrl,
-    required bool enableLogging,
-  }) : _dio = Dio(
-          BaseOptions(
-            baseUrl: baseUrl,
-            connectTimeout: const Duration(seconds: 6),
-            receiveTimeout: const Duration(seconds: 12),
-            sendTimeout: const Duration(seconds: 6),
-            headers: const {'Accept': 'application/json'},
-          ),
-        ) {
+  MarketNewsRepository({required String baseUrl, required bool enableLogging})
+    : _dio = Dio(
+        BaseOptions(
+          baseUrl: baseUrl,
+          connectTimeout: const Duration(seconds: 6),
+          receiveTimeout: const Duration(seconds: 12),
+          sendTimeout: const Duration(seconds: 6),
+          headers: const {'Accept': 'application/json'},
+        ),
+      ) {
     if (enableLogging) {
       _dio.interceptors.add(
         InterceptorsWrapper(

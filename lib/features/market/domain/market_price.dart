@@ -96,14 +96,15 @@ class MarketPrice {
   static MarketPrice? tryParse(String instrumentId, Map<String, dynamic> json) {
     // Some feeds wrap payload in a `data` field.
     final payload = json['data'] is Map<String, dynamic>
-      ? (json['data'] as Map<String, dynamic>)
-      : json;
+        ? (json['data'] as Map<String, dynamic>)
+        : json;
 
-    final raw = payload['last_price'] ??
-      payload['lastPrice'] ??
-      payload['price'] ??
-      payload['last'] ??
-      payload['p'];
+    final raw =
+        payload['last_price'] ??
+        payload['lastPrice'] ??
+        payload['price'] ??
+        payload['last'] ??
+        payload['p'];
     final num? parsed = raw is num
         ? raw
         : raw is String
@@ -115,12 +116,14 @@ class MarketPrice {
         ? (() {
             final isSeconds = tsRaw < 1000000000000;
             final millis = isSeconds ? (tsRaw * 1000).toInt() : tsRaw.toInt();
-            return DateTime.fromMillisecondsSinceEpoch(millis, isUtc: true)
-                .toLocal();
+            return DateTime.fromMillisecondsSinceEpoch(
+              millis,
+              isUtc: true,
+            ).toLocal();
           })()
         : tsRaw is String
-            ? DateTime.tryParse(tsRaw)?.toLocal()
-            : null;
+        ? DateTime.tryParse(tsRaw)?.toLocal()
+        : null;
     return MarketPrice(
       instrumentId: instrumentId,
       price: parsed.toDouble(),

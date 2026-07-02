@@ -80,8 +80,8 @@ class _TradeRow extends StatelessWidget {
     final tickColor = up
         ? AppColors.success
         : down
-            ? AppColors.error
-            : scheme.onSurfaceVariant;
+        ? AppColors.error
+        : scheme.onSurfaceVariant;
 
     final local = ts.toLocal();
     final timeStr =
@@ -97,8 +97,8 @@ class _TradeRow extends StatelessWidget {
             up
                 ? Icons.arrow_drop_up
                 : down
-                    ? Icons.arrow_drop_down
-                    : Icons.remove,
+                ? Icons.arrow_drop_down
+                : Icons.remove,
             size: 18,
             color: tickColor,
           ),

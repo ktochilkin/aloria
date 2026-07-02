@@ -59,68 +59,68 @@ class _OrderFailureSheet extends ConsumerWidget {
   final String? note;
 
   String get _title => switch (failure.kind) {
-        OrderFailureKind.insufficientFunds => 'Не хватает свободных денег',
-        OrderFailureKind.badPrice => 'Биржа не приняла цену',
-        OrderFailureKind.noPrice => 'Не нашлось цены для сделки',
-        OrderFailureKind.badQuantity => 'Биржа не приняла количество',
-        OrderFailureKind.tradingClosed => 'Торги сейчас не идут',
-        OrderFailureKind.shortNotAllowed => 'Этих бумаг нет в портфеле',
-        OrderFailureKind.forbidden => 'Это действие сейчас недоступно',
-        OrderFailureKind.orderNotFound => 'Заявка уже не активна',
-        OrderFailureKind.system => 'Что-то пошло не так в мире Алории',
-        OrderFailureKind.unknown => 'Заявка не прошла',
-      };
+    OrderFailureKind.insufficientFunds => 'Не хватает свободных денег',
+    OrderFailureKind.badPrice => 'Биржа не приняла цену',
+    OrderFailureKind.noPrice => 'Не нашлось цены для сделки',
+    OrderFailureKind.badQuantity => 'Биржа не приняла количество',
+    OrderFailureKind.tradingClosed => 'Торги сейчас не идут',
+    OrderFailureKind.shortNotAllowed => 'Этих бумаг нет в портфеле',
+    OrderFailureKind.forbidden => 'Это действие сейчас недоступно',
+    OrderFailureKind.orderNotFound => 'Заявка уже не активна',
+    OrderFailureKind.system => 'Что-то пошло не так в мире Алории',
+    OrderFailureKind.unknown => 'Заявка не прошла',
+  };
 
   String get _explanation => switch (failure.kind) {
-        OrderFailureKind.insufficientFunds =>
-          'На эту покупку не хватает покупательной способности. Это не '
-              'поломка: система защищает от сделки, которую нечем оплатить.',
-        OrderFailureKind.badPrice =>
-          'Биржа принимает цены только внутри допустимого коридора вокруг '
-              'текущей цены и только кратные шагу цены. Поставь цену ближе '
-              'к рыночной — подсказка «сейчас …» в поле цены поможет.',
-        OrderFailureKind.noPrice =>
-          'У инструмента сейчас нет цены, по которой могла бы пройти '
-              'рыночная заявка — в стакане пусто. Попробуй лимитную заявку '
-              'со своей ценой или вернись позже.',
-        OrderFailureKind.badQuantity =>
-          'Количество в заявке некорректное: например, ноль или не целое '
-              'число лотов. Попробуй указать целое количество.',
-        OrderFailureKind.tradingClosed =>
-          'Торговая сессия по инструменту закрыта или приостановлена. '
-              'Заявку можно будет выставить, когда торги возобновятся.',
-        OrderFailureKind.shortNotAllowed =>
-          'Заявка на продажу больше, чем у тебя есть: продать можно только '
-              'бумаги из портфеля. Продажа «в долг» (шорт) в Алории пока '
-              'недоступна. Проверь количество и сколько бумаг доступно.',
-        OrderFailureKind.forbidden =>
-          'Система не разрешила это действие для твоего счёта или этого '
-              'типа заявки.',
-        OrderFailureKind.orderNotFound =>
-          'Заявка, с которой ты работаешь, уже исполнилась или была снята '
-              '— изменить или отменить её больше нельзя. Проверь вкладку '
-              '«Заявки».',
-        OrderFailureKind.system =>
-          'Это не твоя ошибка — заявка была корректной, но что-то сломалось '
-              'на нашей стороне. Попробуй ещё раз через минуту, а если '
-              'повторится — отправь нам детали, мы разберёмся.',
-        OrderFailureKind.unknown =>
-          'Заявку не приняли. Чаще всего причина — нехватка покупательной '
-              'способности, цена вне допустимых границ или закрытая сессия.',
-      };
+    OrderFailureKind.insufficientFunds =>
+      'На эту покупку не хватает покупательной способности. Это не '
+          'поломка: система защищает от сделки, которую нечем оплатить.',
+    OrderFailureKind.badPrice =>
+      'Биржа принимает цены только внутри допустимого коридора вокруг '
+          'текущей цены и только кратные шагу цены. Поставь цену ближе '
+          'к рыночной — подсказка «сейчас …» в поле цены поможет.',
+    OrderFailureKind.noPrice =>
+      'У инструмента сейчас нет цены, по которой могла бы пройти '
+          'рыночная заявка — в стакане пусто. Попробуй лимитную заявку '
+          'со своей ценой или вернись позже.',
+    OrderFailureKind.badQuantity =>
+      'Количество в заявке некорректное: например, ноль или не целое '
+          'число лотов. Попробуй указать целое количество.',
+    OrderFailureKind.tradingClosed =>
+      'Торговая сессия по инструменту закрыта или приостановлена. '
+          'Заявку можно будет выставить, когда торги возобновятся.',
+    OrderFailureKind.shortNotAllowed =>
+      'Заявка на продажу больше, чем у тебя есть: продать можно только '
+          'бумаги из портфеля. Продажа «в долг» (шорт) в Алории пока '
+          'недоступна. Проверь количество и сколько бумаг доступно.',
+    OrderFailureKind.forbidden =>
+      'Система не разрешила это действие для твоего счёта или этого '
+          'типа заявки.',
+    OrderFailureKind.orderNotFound =>
+      'Заявка, с которой ты работаешь, уже исполнилась или была снята '
+          '— изменить или отменить её больше нельзя. Проверь вкладку '
+          '«Заявки».',
+    OrderFailureKind.system =>
+      'Это не твоя ошибка — заявка была корректной, но что-то сломалось '
+          'на нашей стороне. Попробуй ещё раз через минуту, а если '
+          'повторится — отправь нам детали, мы разберёмся.',
+    OrderFailureKind.unknown =>
+      'Заявку не приняли. Чаще всего причина — нехватка покупательной '
+          'способности, цена вне допустимых границ или закрытая сессия.',
+  };
 
   IconData get _icon => switch (failure.kind) {
-        OrderFailureKind.insufficientFunds => Icons.account_balance_wallet_outlined,
-        OrderFailureKind.badPrice => Icons.price_change_outlined,
-        OrderFailureKind.noPrice => Icons.search_off_outlined,
-        OrderFailureKind.badQuantity => Icons.numbers,
-        OrderFailureKind.tradingClosed => Icons.nightlight_outlined,
-        OrderFailureKind.shortNotAllowed => Icons.block_outlined,
-        OrderFailureKind.forbidden => Icons.lock_outline,
-        OrderFailureKind.orderNotFound => Icons.search_off_outlined,
-        OrderFailureKind.system => Icons.cloud_off_outlined,
-        OrderFailureKind.unknown => Icons.info_outline,
-      };
+    OrderFailureKind.insufficientFunds => Icons.account_balance_wallet_outlined,
+    OrderFailureKind.badPrice => Icons.price_change_outlined,
+    OrderFailureKind.noPrice => Icons.search_off_outlined,
+    OrderFailureKind.badQuantity => Icons.numbers,
+    OrderFailureKind.tradingClosed => Icons.nightlight_outlined,
+    OrderFailureKind.shortNotAllowed => Icons.block_outlined,
+    OrderFailureKind.forbidden => Icons.lock_outline,
+    OrderFailureKind.orderNotFound => Icons.search_off_outlined,
+    OrderFailureKind.system => Icons.cloud_off_outlined,
+    OrderFailureKind.unknown => Icons.info_outline,
+  };
 
   bool get _isSystemLike =>
       failure.kind == OrderFailureKind.system ||
@@ -141,8 +141,9 @@ class _OrderFailureSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
-    final accent =
-        failure.kind == OrderFailureKind.system ? AppColors.primary : scheme.error;
+    final accent = failure.kind == OrderFailureKind.system
+        ? AppColors.primary
+        : scheme.error;
     final message = failure.message?.trim();
 
     return SafeArea(
@@ -211,8 +212,9 @@ class _OrderFailureSheet extends ConsumerWidget {
                               color: AppColors.primary.withValues(alpha: 0.06),
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
-                                color:
-                                    AppColors.primary.withValues(alpha: 0.18),
+                                color: AppColors.primary.withValues(
+                                  alpha: 0.18,
+                                ),
                               ),
                             ),
                             child: Text(
@@ -385,10 +387,13 @@ class _FundsHelp extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
     final summary = ref.watch(portfolioSummaryProvider).valueOrNull;
-    final positions = (ref.watch(positionsProvider).valueOrNull ?? const [])
-        .where((p) => p.symbol.toUpperCase() != 'RUB' && p.currentVolume > 0)
-        .toList()
-      ..sort((a, b) => b.currentVolume.compareTo(a.currentVolume));
+    final positions =
+        (ref.watch(positionsProvider).valueOrNull ?? const [])
+            .where(
+              (p) => p.symbol.toUpperCase() != 'RUB' && p.currentVolume > 0,
+            )
+            .toList()
+          ..sort((a, b) => b.currentVolume.compareTo(a.currentVolume));
 
     return Container(
       width: double.infinity,
@@ -408,9 +413,7 @@ class _FundsHelp extends ConsumerWidget {
               children: [
                 Text(
                   'Свободно сейчас',
-                  style: text.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: text.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
                 ),
                 Text(
                   '${summary.buyingPower.toStringAsFixed(2)} ₽',
@@ -422,9 +425,7 @@ class _FundsHelp extends ConsumerWidget {
             const SizedBox(height: 10),
             Text(
               'Деньги можно освободить, продав часть бумаг:',
-              style: text.bodySmall?.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
+              style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
             ),
             const SizedBox(height: 6),
             for (final p in positions.take(4))
@@ -436,10 +437,7 @@ class _FundsHelp extends ConsumerWidget {
                     Text(p.symbol, style: text.bodySmall),
                     Text(
                       '≈ ${p.currentVolume.toStringAsFixed(0)} ₽',
-                      style: monoNum(
-                        size: 12,
-                        color: scheme.onSurfaceVariant,
-                      ),
+                      style: monoNum(size: 12, color: scheme.onSurfaceVariant),
                     ),
                   ],
                 ),

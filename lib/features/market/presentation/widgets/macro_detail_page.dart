@@ -1,6 +1,8 @@
 import 'package:aloria/features/market/domain/macro_state.dart';
 import 'package:aloria/features/market/presentation/numeric_text.dart';
+import 'package:aloria/features/market/presentation/widgets/cycle_arc.dart';
 import 'package:aloria/features/market/presentation/widgets/macro_card.dart';
+import 'package:aloria/features/market/presentation/widgets/sector_sensitivity.dart';
 import 'package:flutter/material.dart';
 
 /// Экран с пояснением текущего макросостояния: режим цикла, ставка, инфляция,
@@ -129,7 +131,13 @@ class _MacroDetailPageState extends State<MacroDetailPage> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 18),
+                // Дуга цикла
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: CycleArc(currentRegime: state.regime),
+                ),
+                const SizedBox(height: 20),
                 // Метрики
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -192,6 +200,24 @@ class _MacroDetailPageState extends State<MacroDetailPage> {
                       'купоны — их можно предвосхищать, а не ждать месяцами.',
                 ),
                 const SizedBox(height: 8),
+                // Секторы в этом режиме
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Секторы в этом режиме',
+                        style: text.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      SectorSensitivity(regime: state.regime),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
                   child: Container(

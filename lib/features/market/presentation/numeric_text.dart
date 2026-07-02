@@ -9,10 +9,9 @@ TextStyle monoNum({
   required double size,
   FontWeight weight = FontWeight.w600,
   Color? color,
-}) =>
-    GoogleFonts.nunito(
-      fontSize: size,
-      fontWeight: weight,
-      color: color,
-      fontFeatures: const [FontFeature.tabularFigures()],
-    );
+}) => GoogleFonts.nunito(
+  fontSize: size,
+  fontWeight: weight,
+  color: color,
+  fontFeatures: const [FontFeature.tabularFigures()],
+);

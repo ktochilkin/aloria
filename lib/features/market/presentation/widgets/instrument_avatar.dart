@@ -29,9 +29,9 @@ class InstrumentAvatar extends StatelessWidget {
             alignment: Alignment.center,
             child: Text(
               label,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: scheme.onPrimary,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.labelMedium?.copyWith(color: scheme.onPrimary),
             ),
           ),
         ),
