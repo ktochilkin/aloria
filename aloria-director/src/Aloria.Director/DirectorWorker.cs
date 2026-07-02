@@ -40,6 +40,134 @@ public sealed class DirectorWorker : BackgroundService
 
     public WorldState? CurrentState => _engine?.State;
 
+    /// <summary>Текущие ручки тюнинга мира.</summary>
+    public WorldTuning? GetTuning() => _engine?.Tuning;
+
+    /// <summary>Обновить тюнинг на лету (клампится к разумным диапазонам, переживает рестарт).</summary>
+    public async Task<WorldTuning?> SetTuningAsync(WorldTuning tuning, CancellationToken ct = default)
+    {
+        if (_engine is null) return null;
+        await _engineLock.WaitAsync(ct);
+        try
+        {
+            _engine.Tuning = tuning.Clamped();
+            if (_db is not null)
+                await _db.SaveWorldStateAsync(_engine.Persist(), ct);
+            return _engine.Tuning;
+        }
+        finally
+        {
+            _engineLock.Release();
+        }
+    }
+
+    /// <summary>Ручной форс кризиса: прямо сейчас, без ожидания хвоста распределения.</summary>
+    public async Task<bool> ForceCrisisAsync(CancellationToken ct = default)
+    {
+        if (_engine is null) return false;
+        await _engineLock.WaitAsync(ct);
+        try
+        {
+            if (!_engine.ForceCrisis()) return false;
+        }
+        finally
+        {
+            _engineLock.Release();
+        }
+
+        if (_apiPublisher is not null)
+        {
+            await _apiPublisher.PublishNewsAsync([new WorldNews
+            {
+                Headline = "Рынки Алории накрыла волна распродаж",
+                Body = "Аппетит к риску испарился, продажи идут широким фронтом, волатильность резко выросла. В такие моменты особенно важно понимать, чем владеешь и зачем.",
+                Sentiment = Sentiment.Negative,
+                Type = EventType.MacroShock,
+                Scope = EventScope.Macro,
+                Day = _engine.State.Day,
+                TickOfDay = _engine.State.TickOfDay,
+                Urgency = 3,
+            }], ct);
+            await _apiPublisher.PublishMacroAsync(_engine.Snapshot(), ct);
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Ветка-симуляция: клонирует ТЕКУЩИЙ мир и быстро прогоняет N дней вперёд
+    /// (шаблонный нарратор, без БД/HTTP). Возвращает сводку — «одно возможное
+    /// будущее» при заданных ручках. ~2 сек на 120 дней.
+    /// </summary>
+    public async Task<object?> SimulateBranchAsync(
+        int days, int? seed, WorldTuning? tuning, CancellationToken ct = default)
+    {
+        if (_engine is null) return null;
+
+        WorldPersistDto snapshot;
+        await _engineLock.WaitAsync(ct);
+        try
+        {
+            snapshot = _engine.Persist();
+        }
+        finally
+        {
+            _engineLock.Release();
+        }
+
+        days = Math.Clamp(days, 1, 365);
+        var branchSeed = seed ?? unchecked(_options.Seed ^ (snapshot.Day * 92821 + snapshot.TickOfDay * 31));
+        var branch = new WorldEngine(
+            new WorldConfig { Seed = branchSeed, TicksPerDay = _options.TicksPerDay },
+            snapshot with { Tuning = (tuning ?? snapshot.Tuning ?? new WorldTuning()).Clamped() });
+        var narrator = new TemplateNarrator(new Rng(branchSeed ^ 0x5EED));
+
+        var startDay = branch.State.Day;
+        int? firstCrisisDay = null;
+        var crisisTicks = 0;
+        var newsTotal = 0;
+        var regimeDays = new Dictionary<string, int>();
+        var defaults = new List<string>();
+        var indexDaily = new List<double>();
+
+        var totalTicks = days * _options.TicksPerDay;
+        for (var t = 0; t < totalTicks; t++)
+        {
+            ct.ThrowIfCancellationRequested();
+            var output = await branch.TickAsync(narrator, ct);
+            newsTotal += output.News.Count;
+            if (output.Snapshot.Crisis)
+            {
+                crisisTicks++;
+                firstCrisisDay ??= output.Snapshot.Day;
+            }
+            defaults.AddRange(output.Events
+                .Where(e => e.Spec.Type == EventType.Default)
+                .Select(e => e.Spec.Symbol ?? "?"));
+            if (branch.State.TickOfDay == 1)
+            {
+                var key = output.Snapshot.Regime.ToString();
+                regimeDays[key] = regimeDays.GetValueOrDefault(key) + 1;
+                indexDaily.Add(Math.Round(branch.State.Funds["ALIN"].Target, 2));
+            }
+        }
+
+        return new
+        {
+            fromDay = startDay,
+            days,
+            seed = branchSeed,
+            tuning = branch.Tuning,
+            newsPerDay = Math.Round((double)newsTotal / days, 1),
+            crisisShareOfTime = Math.Round((double)crisisTicks / totalTicks, 3),
+            firstCrisisDay,
+            firstCrisisAfterDays = firstCrisisDay - startDay,
+            regimeDays,
+            defaults,
+            indexDaily,
+            finalSnapshot = branch.Snapshot(),
+        };
+    }
+
     /// <summary>Ручной рычаг макроцикла — единственный ручной в мире.</summary>
     public async Task<bool> ForceRegimeAsync(Regime regime)
     {

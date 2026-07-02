@@ -128,13 +128,32 @@ app.MapGet("/director/state", (DirectorWorker worker) =>
     });
 });
 
-// Единственный ручной рычаг мира — форс режима макроцикла.
+// Ручные рычаги мира: режим макроцикла и форс кризиса.
 app.MapPost("/director/regime", async (RegimeInput input, DirectorWorker worker) =>
 {
     if (!Enum.TryParse<Regime>(input.Regime, ignoreCase: true, out var regime))
         return Results.BadRequest(new { error = "regime: expansion|peak|recession|recovery" });
     var ok = await worker.ForceRegimeAsync(regime);
     return ok ? Results.Ok(new { forced = regime.ToString() }) : Results.Conflict();
+});
+
+app.MapPost("/director/crisis", async (DirectorWorker worker) =>
+    await worker.ForceCrisisAsync()
+        ? Results.Ok(new { crisis = true })
+        : Results.Conflict(new { error = "кризис уже идёт или мир не инициализирован" }));
+
+// Ручки тюнинга: посмотреть и покрутить на лету.
+app.MapGet("/director/tuning", (DirectorWorker worker) =>
+    worker.GetTuning() is { } t ? Results.Ok(t) : Results.NotFound());
+
+app.MapPut("/director/tuning", async (WorldTuning input, DirectorWorker worker) =>
+    await worker.SetTuningAsync(input) is { } t ? Results.Ok(t) : Results.NotFound());
+
+// Ветка-симуляция от ТЕКУЩЕГО мира: {"days":60,"tuning":{...}} → сводка будущего.
+app.MapPost("/director/simulate", async (SimulateInput input, DirectorWorker worker) =>
+{
+    var result = await worker.SimulateBranchAsync(input.Days ?? 60, input.Seed, input.Tuning);
+    return result is null ? Results.NotFound() : Results.Ok(result);
 });
 
 app.Run();
@@ -154,3 +173,5 @@ string ArgString(string name, string fallback)
 }
 
 internal sealed record RegimeInput(string Regime);
+
+internal sealed record SimulateInput(int? Days, int? Seed, WorldTuning? Tuning);

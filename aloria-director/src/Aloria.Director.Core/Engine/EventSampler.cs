@@ -29,22 +29,23 @@ public sealed class EventSampler
     }
 
     /// <summary>События этого тика (обычно 0..1, в кризис бывает больше).</summary>
-    public List<EventSpec> SampleTick(WorldState w)
+    public List<EventSpec> SampleTick(WorldState w, WorldTuning tuning)
     {
         var (lc, ls, lm) = LambdaPerTick(w.Macro.Regime, w.Macro.Crisis, w.TicksPerDay);
+        var k = tuning.EventRateMultiplier;
         var result = new List<EventSpec>();
 
-        for (var i = 0; i < _rng.NextPoisson(lc); i++) result.Add(SampleCompany(w));
-        for (var i = 0; i < _rng.NextPoisson(ls); i++) result.Add(SampleSector(w));
-        for (var i = 0; i < _rng.NextPoisson(lm); i++) result.Add(SampleMacro(w));
+        for (var i = 0; i < _rng.NextPoisson(lc * k); i++) result.Add(SampleCompany(w, tuning));
+        for (var i = 0; i < _rng.NextPoisson(ls * k); i++) result.Add(SampleSector(w, tuning));
+        for (var i = 0; i < _rng.NextPoisson(lm * k); i++) result.Add(SampleMacro(w, tuning));
 
         return result;
     }
 
-    /// <summary>Серьёзность [0..1]: тело Beta(2,5), хвост Парето с шансом 9%.</summary>
-    public double SampleSeverity()
+    /// <summary>Серьёзность [0..1]: тело Beta(2,5), хвост Парето (шанс — из тюнинга).</summary>
+    public double SampleSeverity(WorldTuning tuning)
     {
-        if (_rng.Chance(0.09))
+        if (_rng.Chance(tuning.TailChance))
         {
             // Хвост: 0.7..1.0, форма Парето (α=1.5)
             var tail = Math.Min(1.0, (_rng.NextPareto(1.5) - 1.0) / 4.0);
@@ -75,7 +76,7 @@ public sealed class EventSampler
         return (EventShape.Transient, _rng.NextInt(8, 33));
     }
 
-    private EventSpec SampleCompany(WorldState w)
+    private EventSpec SampleCompany(WorldState w, WorldTuning tuning)
     {
         // Сектор — равновероятно, пул кандидатов — эмитенты сектора; жертву выберет LLM.
         var sector = _rng.Pick(Universe.Sectors);
@@ -91,7 +92,7 @@ public sealed class EventSampler
         {
             Type = _rng.Chance(0.35) ? EventType.ProductNews : EventType.OperationsShock,
             Scope = EventScope.Company,
-            Severity = SampleSeverity(),
+            Severity = SampleSeverity(tuning),
             Sign = SampleSign(w),
             Shape = shape,
             DurationTicks = dur,
@@ -100,7 +101,7 @@ public sealed class EventSampler
         };
     }
 
-    private EventSpec SampleSector(WorldState w)
+    private EventSpec SampleSector(WorldState w, WorldTuning tuning)
     {
         var sector = _rng.Pick(Universe.Sectors);
         var (shape, dur) = SampleShape();
@@ -108,7 +109,7 @@ public sealed class EventSampler
         {
             Type = EventType.SectorShock,
             Scope = EventScope.Sector,
-            Severity = SampleSeverity(),
+            Severity = SampleSeverity(tuning),
             Sign = SampleSign(w),
             Shape = shape,
             DurationTicks = dur,
@@ -116,14 +117,14 @@ public sealed class EventSampler
         };
     }
 
-    private EventSpec SampleMacro(WorldState w)
+    private EventSpec SampleMacro(WorldState w, WorldTuning tuning)
     {
         var (shape, dur) = SampleShape();
         return new EventSpec
         {
             Type = EventType.MacroShock,
             Scope = EventScope.Macro,
-            Severity = SampleSeverity(),
+            Severity = SampleSeverity(tuning),
             Sign = SampleSign(w),
             Shape = shape,
             DurationTicks = dur,

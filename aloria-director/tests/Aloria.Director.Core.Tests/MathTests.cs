@@ -148,7 +148,8 @@ public class EventSamplerTests
     public void Severity_InUnitRange_WithHeavyTail()
     {
         var sampler = new EventSampler(new Rng(99));
-        var values = Enumerable.Range(0, 20_000).Select(_ => sampler.SampleSeverity()).ToArray();
+        var tuning = new WorldTuning();
+        var values = Enumerable.Range(0, 20_000).Select(_ => sampler.SampleSeverity(tuning)).ToArray();
 
         Assert.All(values, v => Assert.InRange(v, 0, 1));
         var tailShare = values.Count(v => v >= 0.7) / (double)values.Length;
@@ -165,10 +166,11 @@ public class EventSamplerTests
             world.Issuers[i.Symbol] = new IssuerState { Spec = i };
 
         var sampler = new EventSampler(new Rng(5));
+        var tuning = new WorldTuning();
         var total = 0;
         const int days = 200;
         for (var t = 0; t < 96 * days; t++)
-            total += sampler.SampleTick(world).Count;
+            total += sampler.SampleTick(world, tuning).Count;
 
         var perDay = total / (double)days;
         Assert.InRange(perDay, 2.5, 7.5); // ~4.6 в расширении

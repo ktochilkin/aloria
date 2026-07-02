@@ -131,6 +131,49 @@ public class WorldEngineTests
     }
 
     [Fact]
+    public async Task Tuning_CrisisHazard_MakesCrisesFrequent()
+    {
+        var engine = new WorldEngine(new WorldConfig
+        {
+            Seed = 5,
+            TicksPerDay = 24,
+            Tuning = new WorldTuning { CrisisHazardPerDay = 0.5 },
+        });
+        var narrator = new TemplateNarrator(new Rng(1));
+
+        var sawCrisis = false;
+        for (var t = 0; t < 15 * 24 && !sawCrisis; t++)
+        {
+            await engine.TickAsync(narrator);
+            sawCrisis = engine.State.Macro.Crisis;
+        }
+        Assert.True(sawCrisis, "при hazard 0.5/день кризис обязан случиться за 15 дней");
+    }
+
+    [Fact]
+    public async Task Tuning_SurvivesPersistRoundtrip()
+    {
+        var tuning = new WorldTuning { TailChance = 0.2, PeakBubbleBurstPerDay = 0.1 };
+        var engine = new WorldEngine(new WorldConfig { Seed = 8, TicksPerDay = 24, Tuning = tuning });
+        await engine.TickAsync(new TemplateNarrator(new Rng(1)));
+
+        var restored = new WorldEngine(
+            new WorldConfig { Seed = 8, TicksPerDay = 24 }, engine.Persist());
+        Assert.Equal(0.2, restored.Tuning.TailChance, 9);
+        Assert.Equal(0.1, restored.Tuning.PeakBubbleBurstPerDay, 9);
+    }
+
+    [Fact]
+    public void Tuning_Clamped_RejectsNonsense()
+    {
+        var wild = new WorldTuning { EventRateMultiplier = 99, TailChance = 3, CrisisHazardPerDay = -1 };
+        var c = wild.Clamped();
+        Assert.Equal(10, c.EventRateMultiplier);
+        Assert.Equal(0.5, c.TailChance);
+        Assert.Equal(0, c.CrisisHazardPerDay);
+    }
+
+    [Fact]
     public async Task Expectations_PublishedBeforeEarnings()
     {
         var (_, outputs) = await RunAsync(seed: 6, days: Universe.CycleDays);

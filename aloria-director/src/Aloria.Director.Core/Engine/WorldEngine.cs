@@ -11,6 +11,9 @@ public sealed record WorldConfig
 
     /// <summary>Тиков в мировом дне (96 = тик каждые 15 минут реального дня).</summary>
     public int TicksPerDay { get; init; } = 96;
+
+    /// <summary>Стартовые ручки тюнинга (могут быть изменены на лету).</summary>
+    public WorldTuning Tuning { get; init; } = new();
 }
 
 /// <summary>
@@ -44,12 +47,16 @@ public sealed class WorldEngine
 
     public WorldState State { get; }
 
+    /// <summary>Живые ручки тюнинга (крутятся админкой на лету).</summary>
+    public WorldTuning Tuning { get; set; }
+
     public WorldEngine(WorldConfig config, WorldPersistDto? restore = null)
     {
         // При рестарте поток случайностей продолжается с нового зерна (seed⊕день):
         // прошлое мира — из снимка, будущее — новое, но воспроизводимое.
         _rng = new Rng(restore is null ? config.Seed : config.Seed ^ (restore.Day * 7919));
         _sampler = new EventSampler(_rng);
+        Tuning = (restore?.Tuning ?? config.Tuning).Clamped();
         State = new WorldState { TicksPerDay = config.TicksPerDay };
 
         foreach (var s in Universe.Sectors)
@@ -100,7 +107,7 @@ public sealed class WorldEngine
     }
 
     /// <summary>Снимок мира для сохранения (JSON → director.world_state).</summary>
-    public WorldPersistDto Persist() => WorldPersistence.ToDto(State, _lastPlannedCycleStart);
+    public WorldPersistDto Persist() => WorldPersistence.ToDto(State, _lastPlannedCycleStart, Tuning);
 
     private double Yield(BondState b) => State.Macro.KeyRate / 100.0 + b.Spread;
 
@@ -153,9 +160,11 @@ public sealed class WorldEngine
         if (regimeChanged)
             output.News.Add(RegimeChangeNews(m));
 
-        // Перегрев может лопнуть: редкий, но регулярный источник кризисов
-        // (примерно каждый пятый-шестой пик).
-        if (m is { Regime: Regime.Peak, Crisis: false } && _rng.Chance(0.04))
+        // Перегрев может лопнуть (+ прямой hazard из тюнинга, если включён):
+        // редкий, но регулярный источник кризисов.
+        var burst = m is { Regime: Regime.Peak, Crisis: false } && _rng.Chance(Tuning.PeakBubbleBurstPerDay);
+        var hazard = !m.Crisis && Tuning.CrisisHazardPerDay > 0 && _rng.Chance(Tuning.CrisisHazardPerDay);
+        if (burst || hazard)
         {
             EnterCrisis();
             output.News.Add(new WorldNews
@@ -171,7 +180,7 @@ public sealed class WorldEngine
             });
         }
 
-        var volMult = RegimeMachine.VolMultiplier(m.Regime, m.Crisis);
+        var volMult = RegimeMachine.VolMultiplier(m.Regime, m.Crisis) * Tuning.VolatilityMultiplier;
 
         // Общие дневные шумы: рыночный (в кризис корреляции → 1) и секторные.
         var marketNoise = m.Crisis ? _rng.NextGaussian(0, 0.02 * volMult) : 0.0;
@@ -602,6 +611,14 @@ public sealed class WorldEngine
         LogEvent(output, spec, new() { ["*rate*"] = actual }, story.Headline);
     }
 
+    /// <summary>Ручной форс кризиса (админка). false — кризис уже идёт.</summary>
+    public bool ForceCrisis()
+    {
+        if (State.Macro.Crisis) return false;
+        EnterCrisis();
+        return true;
+    }
+
     /// <summary>Кризисный оверлей: волатильность ×2, корреляции → 1, режим — рецессия.</summary>
     private void EnterCrisis()
     {
@@ -631,7 +648,7 @@ public sealed class WorldEngine
 
     private async Task ApplyStochasticAsync(INarrator narrator, TickOutput output, CancellationToken ct)
     {
-        foreach (var spec in _sampler.SampleTick(State))
+        foreach (var spec in _sampler.SampleTick(State, Tuning))
         {
             var story = await narrator.NarrateAsync(Draft(spec), ct);
             var applied = new Dictionary<string, double>();
@@ -683,7 +700,7 @@ public sealed class WorldEngine
                     }
 
                     // Хвостовой негативный макрошок = кризис.
-                    if (spec.Sign < 0 && spec.Severity >= 0.85 && !State.Macro.Crisis)
+                    if (spec.Sign < 0 && spec.Severity >= Tuning.CrisisSeverityThreshold && !State.Macro.Crisis)
                         EnterCrisis();
                     break;
                 }
@@ -720,7 +737,7 @@ public sealed class WorldEngine
     private void UpdateTargetsTick()
     {
         var m = State.Macro;
-        var volMult = RegimeMachine.VolMultiplier(m.Regime, m.Crisis);
+        var volMult = RegimeMachine.VolMultiplier(m.Regime, m.Crisis) * Tuning.VolatilityMultiplier;
         var tpd = State.TicksPerDay;
 
         foreach (var issuer in State.Issuers.Values)
@@ -779,7 +796,8 @@ public sealed class WorldEngine
                 Symbol = issuer.Spec.Symbol,
                 TargetPrice = Quantize((decimal)issuer.Target, issuer.Spec.PriceStep),
                 SigmaDaily = Math.Clamp(
-                    issuer.Spec.SigmaDaily * RegimeMachine.VolMultiplier(State.Macro.Regime, State.Macro.Crisis),
+                    issuer.Spec.SigmaDaily * RegimeMachine.VolMultiplier(State.Macro.Regime, State.Macro.Crisis)
+                    * Tuning.VolatilityMultiplier,
                     0.004, 0.08),
                 Active = !issuer.Defaulted,
             });

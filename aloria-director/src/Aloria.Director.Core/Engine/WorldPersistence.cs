@@ -23,6 +23,9 @@ public sealed record WorldPersistDto
     public required List<CalendarDto> Calendar { get; init; }
     public required Dictionary<string, ExpectationDto> Expectations { get; init; }
 
+    /// <summary>Ручки тюнинга (null в старых снимках → дефолты).</summary>
+    public WorldTuning? Tuning { get; init; }
+
     public sealed record MacroDto(
         Regime Regime, int RegimeAgeDays, int RegimePlannedDays,
         double KeyRate, double Inflation, double Growth, double RiskAppetite, bool Crisis);
@@ -46,8 +49,10 @@ public sealed record WorldPersistDto
 
 public static class WorldPersistence
 {
-    public static WorldPersistDto ToDto(WorldState s, int lastPlannedCycleStart) => new()
+    public static WorldPersistDto ToDto(
+        WorldState s, int lastPlannedCycleStart, WorldTuning? tuning = null) => new()
     {
+        Tuning = tuning,
         Day = s.Day,
         TickOfDay = s.TickOfDay,
         TicksPerDay = s.TicksPerDay,
