@@ -13,7 +13,9 @@ class CycleEvent {
 }
 
 /// Цвет и иконка по типу события (масштабируется под облигации/деривативы).
-({Color color, IconData icon}) cycleEventTypeMeta(String type) => switch (type) {
+({Color color, IconData icon}) cycleEventTypeMeta(
+  String type,
+) => switch (type) {
   'Отчётность' => (color: AppColors.primary, icon: Icons.assessment_rounded),
   'Дивиденды' => (color: AppColors.success, icon: Icons.payments_rounded),
   'Купон' => (color: AppColors.secondary, icon: Icons.receipt_long_rounded),

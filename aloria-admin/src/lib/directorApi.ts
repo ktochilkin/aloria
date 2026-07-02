@@ -66,7 +66,19 @@ export type SimResult = {
   regimeDays: Record<string, number>;
   defaults: string[];
   indexDaily: number[];
+  regimeDaily: string[];
+  crisisDaily: boolean[];
   finalSnapshot: WorldSnapshot;
+};
+
+/// Дефолтная калибровка мира (совпадает с WorldTuning по умолчанию в Core).
+export const defaultTuning: WorldTuning = {
+  eventRateMultiplier: 1.0,
+  tailChance: 0.09,
+  crisisSeverityThreshold: 0.85,
+  peakBubbleBurstPerDay: 0.04,
+  crisisHazardPerDay: 0.0,
+  volatilityMultiplier: 1.0,
 };
 
 export const directorApi = {

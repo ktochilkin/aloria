@@ -37,7 +37,9 @@ class UpcomingEvents extends StatelessWidget {
                 children: [
                   Text(
                     'Ближайшие события',
-                    style: text.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                    style: text.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   const Spacer(),
                   Text(
