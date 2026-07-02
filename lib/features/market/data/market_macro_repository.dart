@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:aloria/core/env/env.dart';
 import 'package:aloria/core/logging/logger.dart';
 import 'package:aloria/core/networking/api_client.dart';
@@ -53,5 +55,8 @@ final marketMacroRepositoryProvider = Provider<MarketMacroRepository>((ref) {
 
 final macroStateProvider = FutureProvider.autoDispose<MacroState>((ref) {
   ref.keepAlive();
+  // Мир живой: день цикла и режим двигает режиссёр — перечитываем раз в минуту.
+  final timer = Timer(const Duration(seconds: 60), ref.invalidateSelf);
+  ref.onDispose(timer.cancel);
   return ref.watch(marketMacroRepositoryProvider).fetchMacroState();
 });

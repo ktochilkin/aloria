@@ -206,12 +206,17 @@ public static class MarketEndpoints
     }
 
     private static MarketNewsDto ToDto(NewsItem n) => new(
-        n.Id, n.Headline, n.Content, n.PublishDate, n.Sentiment, n.EventType, n.Scope,
+        // SQLite теряет DateTimeKind: без SpecifyKind дата уедет клиенту без 'Z',
+        // и приложение примет UTC за локальное время (сдвиг на часовой пояс).
+        n.Id, n.Headline, n.Content,
+        DateTime.SpecifyKind(n.PublishDate, DateTimeKind.Utc),
+        n.Sentiment, n.EventType, n.Scope,
         string.IsNullOrEmpty(n.Symbols)
             ? Array.Empty<string>()
             : n.Symbols.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
         n.SectorSlug, n.Urgency);
 
     private static MacroStateDto ToDto(MacroState m) => new(
-        m.Regime, m.KeyRate, m.Inflation, m.CycleDay, m.CycleLength, m.Source, m.UpdatedAt);
+        m.Regime, m.KeyRate, m.Inflation, m.CycleDay, m.CycleLength, m.Source,
+        DateTime.SpecifyKind(m.UpdatedAt, DateTimeKind.Utc));
 }

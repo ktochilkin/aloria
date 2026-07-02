@@ -128,6 +128,8 @@ public sealed class DirectorWorker : BackgroundService
         var regimeDays = new Dictionary<string, int>();
         var defaults = new List<string>();
         var indexDaily = new List<double>();
+        var regimeDaily = new List<string>();
+        var crisisDaily = new List<bool>();
 
         var totalTicks = days * _options.TicksPerDay;
         for (var t = 0; t < totalTicks; t++)
@@ -148,6 +150,8 @@ public sealed class DirectorWorker : BackgroundService
                 var key = output.Snapshot.Regime.ToString();
                 regimeDays[key] = regimeDays.GetValueOrDefault(key) + 1;
                 indexDaily.Add(Math.Round(branch.State.Funds["ALIN"].Target, 2));
+                regimeDaily.Add(key);
+                crisisDaily.Add(output.Snapshot.Crisis);
             }
         }
 
@@ -164,6 +168,8 @@ public sealed class DirectorWorker : BackgroundService
             regimeDays,
             defaults,
             indexDaily,
+            regimeDaily,
+            crisisDaily,
             finalSnapshot = branch.Snapshot(),
         };
     }
