@@ -26,6 +26,13 @@ public sealed record WorldPersistDto
     /// <summary>Ручки тюнинга (null в старых снимках → дефолты).</summary>
     public WorldTuning? Tuning { get; init; }
 
+    /// <summary>
+    /// Состояние потока костей. С ним рестарт продолжает ровно ТОТ ЖЕ поток
+    /// случайностей, а ветка-просчёт предсказывает живой мир точно.
+    /// null (ветки-симуляции) → новый поток от свежего seed.
+    /// </summary>
+    public RngState? Rng { get; init; }
+
     public sealed record MacroDto(
         Regime Regime, int RegimeAgeDays, int RegimePlannedDays,
         double KeyRate, double Inflation, double Growth, double RiskAppetite, bool Crisis,
@@ -51,9 +58,10 @@ public sealed record WorldPersistDto
 public static class WorldPersistence
 {
     public static WorldPersistDto ToDto(
-        WorldState s, int lastPlannedCycleStart, WorldTuning? tuning = null) => new()
+        WorldState s, int lastPlannedCycleStart, WorldTuning? tuning = null, RngState? rng = null) => new()
     {
         Tuning = tuning,
+        Rng = rng,
         Day = s.Day,
         TickOfDay = s.TickOfDay,
         TicksPerDay = s.TicksPerDay,

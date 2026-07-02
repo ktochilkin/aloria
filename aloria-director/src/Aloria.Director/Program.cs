@@ -137,6 +137,14 @@ app.MapPost("/director/regime", async (RegimeInput input, DirectorWorker worker)
     return ok ? Results.Ok(new { forced = regime.ToString() }) : Results.Conflict();
 });
 
+// «Просчёт»: точное будущее живого мира (тот же поток костей), горизонт
+// ограничен конфигом Director:Foresight (по умолчанию 30 дней, не дальше).
+app.MapPost("/director/foresight", async (ForesightInput input, DirectorWorker worker) =>
+{
+    var result = await worker.ForesightAsync(input.Days);
+    return result is null ? Results.NotFound() : Results.Ok(result);
+});
+
 app.MapPost("/director/crisis", async (DirectorWorker worker) =>
     await worker.ForceCrisisAsync()
         ? Results.Ok(new { crisis = true })
@@ -178,3 +186,5 @@ string ArgString(string name, string fallback)
 internal sealed record RegimeInput(string Regime);
 
 internal sealed record SimulateInput(int? Days, int? Seed, WorldTuning? Tuning, int? Runs);
+
+internal sealed record ForesightInput(int? Days);

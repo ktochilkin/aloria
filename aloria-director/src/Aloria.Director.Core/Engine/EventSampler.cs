@@ -78,7 +78,8 @@ public sealed class EventSampler
 
     private EventSpec SampleCompany(WorldState w, WorldTuning tuning)
     {
-        // Сектор — равновероятно, пул кандидатов — эмитенты сектора; жертву выберет LLM.
+        // Сектор — равновероятно; ЖЕРТВУ выбирает RNG (не LLM!): все числа и
+        // адресаты экономики детерминированы от seed — LLM только рассказывает.
         var sector = _rng.Pick(Universe.Sectors);
         var pool = Universe.Issuers
             .Where(i => i.SectorSlug == sector.Slug && !w.Issuers[i.Symbol].Defaulted)
@@ -86,6 +87,7 @@ public sealed class EventSampler
             .ToArray();
         if (pool.Length == 0)
             pool = [_rng.Pick(Universe.Issuers).Symbol];
+        var victim = _rng.Pick((IReadOnlyList<string>)pool);
 
         var (shape, dur) = SampleShape();
         return new EventSpec
@@ -97,7 +99,8 @@ public sealed class EventSampler
             Shape = shape,
             DurationTicks = dur,
             SectorSlug = sector.Slug,
-            CandidateSymbols = pool,
+            Symbol = victim,
+            CandidateSymbols = [victim],
         };
     }
 

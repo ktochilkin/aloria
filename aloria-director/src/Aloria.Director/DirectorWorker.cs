@@ -93,13 +93,16 @@ public sealed class DirectorWorker : BackgroundService
         return true;
     }
 
-    /// <summary>Итог одного прогона-ветки (для одиночного ответа и ансамбля).</summary>
+    /// <summary>Дефолт в ветке: чей выпуск и через сколько дней от старта.</summary>
+    private sealed record DefaultHit(string Symbol, int AfterDays);
+
+    /// <summary>Итог одного прогона-ветки (для одиночного ответа, ансамбля и просчёта).</summary>
     private sealed record BranchStats(
         int Seed,
         int FromDay,
         double CrisisShare,
         int? FirstCrisisAfterDays,
-        List<string> Defaults,
+        List<DefaultHit> Defaults,
         double NewsPerDay,
         Dictionary<string, int> RegimeDays,
         List<double> IndexDaily,
@@ -120,7 +123,7 @@ public sealed class DirectorWorker : BackgroundService
         var crisisTicks = 0;
         var newsTotal = 0;
         var regimeDays = new Dictionary<string, int>();
-        var defaults = new List<string>();
+        var defaults = new List<DefaultHit>();
         var indexDaily = new List<double>();
         var regimeDaily = new List<string>();
         var crisisDaily = new List<bool>();
@@ -138,7 +141,7 @@ public sealed class DirectorWorker : BackgroundService
             }
             defaults.AddRange(output.Events
                 .Where(e => e.Spec.Type == EventType.Default)
-                .Select(e => e.Spec.Symbol ?? "?"));
+                .Select(e => new DefaultHit(e.Spec.Symbol ?? "?", output.Snapshot.Day - startDay)));
             if (branch.State.TickOfDay == 1)
             {
                 var key = output.Snapshot.Regime.ToString();
@@ -181,8 +184,10 @@ public sealed class DirectorWorker : BackgroundService
         }
 
         days = Math.Clamp(days, 1, 365);
-        // Без явного seed каждый прогон — новый бросок костей.
-        var s = await RunBranchAsync(snapshot, days, seed ?? Random.Shared.Next(), tuning, ct);
+        // Ветка-«возможное будущее»: свой поток костей (Rng из снимка отрезаем),
+        // без явного seed каждый прогон — новый бросок.
+        var s = await RunBranchAsync(
+            snapshot with { Rng = null }, days, seed ?? Random.Shared.Next(), tuning, ct);
 
         return new
         {
@@ -193,13 +198,71 @@ public sealed class DirectorWorker : BackgroundService
             crisisShareOfTime = s.CrisisShare,
             firstCrisisAfterDays = s.FirstCrisisAfterDays,
             regimeDays = s.RegimeDays,
-            defaults = s.Defaults,
+            defaults = s.Defaults.Select(d => d.Symbol).ToList(),
             indexDaily = s.IndexDaily,
             regimeDaily = s.RegimeDaily,
             crisisDaily = s.CrisisDaily,
             finalSnapshot = s.Final,
         };
     }
+
+    /// <summary>
+    /// «Просчёт» — ТОЧНОЕ будущее живого мира: ветка продолжает тот же поток
+    /// костей (состояние RNG из снимка). Предсказание верно, пока никто не
+    /// вмешивается (кнопки/тюнинг аннулируют его) и пока мир не зависит от
+    /// внешних факторов (активность учеников и т.п. — когда появится обратная
+    /// связь, просчёт уйдёт по своей природе). Горизонт ограничен конфигом.
+    /// </summary>
+    public async Task<object?> ForesightAsync(int? days, CancellationToken ct = default)
+    {
+        if (_engine is null) return null;
+
+        WorldPersistDto snapshot;
+        await _engineLock.WaitAsync(ct);
+        try
+        {
+            snapshot = _engine.Persist(); // содержит состояние RNG — тот же поток
+        }
+        finally
+        {
+            _engineLock.Release();
+        }
+
+        var horizon = Math.Clamp(
+            days ?? _options.Foresight.DefaultDays, 1, _options.Foresight.MaxDays);
+        var s = await RunBranchAsync(snapshot, horizon, seed: 0 /* игнорируется: RNG из снимка */, null, ct);
+
+        // Ключевые события будущего — списком, чтобы читалось без графика.
+        var notable = new List<NotableEvent>();
+        string? prevRegime = null;
+        for (var i = 0; i < s.RegimeDaily.Count; i++)
+        {
+            if (prevRegime is not null && s.RegimeDaily[i] != prevRegime)
+                notable.Add(new NotableEvent(i, $"режим → {s.RegimeDaily[i]}"));
+            prevRegime = s.RegimeDaily[i];
+            if (s.CrisisDaily[i] && (i == 0 || !s.CrisisDaily[i - 1]))
+                notable.Add(new NotableEvent(i, "КРИЗИС"));
+        }
+        notable.AddRange(s.Defaults.Select(d => new NotableEvent(d.AfterDays, $"ДЕФОЛТ {d.Symbol}")));
+
+        return new
+        {
+            exact = true,
+            fromDay = s.FromDay,
+            horizonDays = horizon,
+            maxDays = _options.Foresight.MaxDays,
+            crisisShareOfTime = s.CrisisShare,
+            firstCrisisAfterDays = s.FirstCrisisAfterDays,
+            defaults = s.Defaults,
+            indexDaily = s.IndexDaily,
+            regimeDaily = s.RegimeDaily,
+            crisisDaily = s.CrisisDaily,
+            notable = notable.OrderBy(n => n.AfterDays).ToList(),
+            caveat = "Точно, пока никто не жмёт кнопки и не меняет ручки: любое вмешательство ветвит будущее.",
+        };
+    }
+
+    private sealed record NotableEvent(int AfterDays, string What);
 
     /// <summary>
     /// Ансамбль: N независимых веток от одного и того же текущего мира.
@@ -235,7 +298,8 @@ public sealed class DirectorWorker : BackgroundService
                 CancellationToken = ct,
             },
             async (_, token) =>
-                stats.Add(await RunBranchAsync(snapshot, days, Random.Shared.Next(), tuning, token)));
+                stats.Add(await RunBranchAsync(
+                    snapshot with { Rng = null }, days, Random.Shared.Next(), tuning, token)));
 
         var all = stats.ToList();
         var dayCount = all.Min(s => s.IndexDaily.Count);
@@ -267,7 +331,7 @@ public sealed class DirectorWorker : BackgroundService
             .OrderBy(v => v)
             .ToList();
         var defaultProb = all
-            .SelectMany(s => s.Defaults.Distinct())
+            .SelectMany(s => s.Defaults.Select(d => d.Symbol).Distinct())
             .GroupBy(sym => sym)
             .ToDictionary(g => g.Key, g => Math.Round(g.Count() / (double)runs, 2));
 

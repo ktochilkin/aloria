@@ -104,6 +104,22 @@ export type EnsembleResult = {
   crisisProbDaily: number[];
 };
 
+/// «Просчёт» — точное будущее живого мира (тот же поток костей).
+export type ForesightResult = {
+  exact: true;
+  fromDay: number;
+  horizonDays: number;
+  maxDays: number;
+  crisisShareOfTime: number;
+  firstCrisisAfterDays: number | null;
+  defaults: { symbol: string; afterDays: number }[];
+  indexDaily: number[];
+  regimeDaily: string[];
+  crisisDaily: boolean[];
+  notable: { afterDays: number; what: string }[];
+  caveat: string;
+};
+
 export const directorApi = {
   state: () => api.get<DirectorState>('/director/state'),
   tuning: () => api.get<WorldTuning>('/director/tuning'),
@@ -112,6 +128,7 @@ export const directorApi = {
     api.post<SimResult>('/director/simulate', body),
   simulateEnsemble: (body: { days: number; runs: number; tuning?: WorldTuning | null }) =>
     api.post<EnsembleResult>('/director/simulate', body),
+  foresight: (days?: number) => api.post<ForesightResult>('/director/foresight', { days }),
   forceCrisis: () => api.post<{ crisis: boolean }>('/director/crisis'),
   forceRegime: (regime: string) => api.post<{ forced: string }>('/director/regime', { regime }),
 };

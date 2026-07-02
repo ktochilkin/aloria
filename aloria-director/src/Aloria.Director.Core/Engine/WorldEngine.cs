@@ -52,9 +52,12 @@ public sealed class WorldEngine
 
     public WorldEngine(WorldConfig config, WorldPersistDto? restore = null)
     {
-        // При рестарте поток случайностей продолжается с нового зерна (seed⊕день):
-        // прошлое мира — из снимка, будущее — новое, но воспроизводимое.
-        _rng = new Rng(restore is null ? config.Seed : config.Seed ^ (restore.Day * 7919));
+        // Если в снимке есть состояние RNG — продолжаем ровно ТОТ ЖЕ поток
+        // костей (бесшовный рестарт, точный просчёт). Иначе — новый поток
+        // (свежий мир или ветка-симуляция со своим seed).
+        _rng = restore?.Rng is { } rngState
+            ? new Rng(rngState)
+            : new Rng(restore is null ? config.Seed : config.Seed ^ (restore.Day * 7919));
         _sampler = new EventSampler(_rng);
         Tuning = (restore?.Tuning ?? config.Tuning).Clamped();
         State = new WorldState { TicksPerDay = config.TicksPerDay };
@@ -106,8 +109,9 @@ public sealed class WorldEngine
         }
     }
 
-    /// <summary>Снимок мира для сохранения (JSON → director.world_state).</summary>
-    public WorldPersistDto Persist() => WorldPersistence.ToDto(State, _lastPlannedCycleStart, Tuning);
+    /// <summary>Снимок мира для сохранения (JSON → director.world_state), включая поток костей.</summary>
+    public WorldPersistDto Persist() =>
+        WorldPersistence.ToDto(State, _lastPlannedCycleStart, Tuning, _rng.Export());
 
     private double Yield(BondState b) => State.Macro.KeyRate / 100.0 + b.Spread;
 

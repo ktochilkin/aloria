@@ -131,6 +131,76 @@ public class WorldEngineTests
     }
 
     [Fact]
+    public void Rng_ExportImport_ContinuesSameStream()
+    {
+        var a = new Rng(42);
+        for (var i = 0; i < 1000; i++) a.NextDouble();
+
+        var b = new Rng(a.Export());
+        for (var i = 0; i < 500; i++)
+        {
+            Assert.Equal(a.NextDouble(), b.NextDouble(), 15);
+            Assert.Equal(a.NextInt(0, 100), b.NextInt(0, 100));
+        }
+    }
+
+    [Fact]
+    public async Task Foresight_SnapshotWithRng_PredictsLiveWorldExactly()
+    {
+        // Живой мир: 5 дней → снимок (с потоком костей) → ещё 7 дней.
+        var live = new WorldEngine(new WorldConfig { Seed = 123, TicksPerDay = 24 });
+        var liveNarrator = new TemplateNarrator(new Rng(9));
+        for (var t = 0; t < 5 * 24; t++) await live.TickAsync(liveNarrator);
+
+        var snapshot = live.Persist();
+        Assert.NotNull(snapshot.Rng);
+
+        // «Просчёт»: ветка от снимка (тот же поток костей), другой нарратор.
+        var branch = new WorldEngine(new WorldConfig { Seed = 777, TicksPerDay = 24 }, snapshot);
+        var branchNarrator = new TemplateNarrator(new Rng(555));
+
+        for (var t = 0; t < 7 * 24; t++)
+        {
+            await live.TickAsync(liveNarrator);
+            await branch.TickAsync(branchNarrator);
+        }
+
+        // Экономика предсказана точь-в-точь: цели, ставка, режим, кризис.
+        foreach (var sym in live.State.Issuers.Keys)
+            Assert.Equal(live.State.Issuers[sym].Target, branch.State.Issuers[sym].Target, 9);
+        foreach (var sym in live.State.Bonds.Keys)
+            Assert.Equal(live.State.Bonds[sym].TargetClean, branch.State.Bonds[sym].TargetClean, 9);
+        Assert.Equal(live.State.Macro.KeyRate, branch.State.Macro.KeyRate, 9);
+        Assert.Equal(live.State.Macro.Regime, branch.State.Macro.Regime);
+        Assert.Equal(live.State.Macro.Crisis, branch.State.Macro.Crisis);
+    }
+
+    [Fact]
+    public void Sampler_CompanyEvents_VictimPickedByRngNotLlm()
+    {
+        var world = new WorldState { TicksPerDay = 24 };
+        foreach (var s in Universe.Sectors)
+            world.Sectors[s.Slug] = new SectorState { Spec = s };
+        foreach (var i in Universe.Issuers)
+            world.Issuers[i.Symbol] = new IssuerState { Spec = i };
+
+        var sampler = new EventSampler(new Rng(3));
+        var tuning = new WorldTuning();
+        var companyEvents = 0;
+        for (var t = 0; t < 24 * 50 && companyEvents < 20; t++)
+        {
+            foreach (var spec in sampler.SampleTick(world, tuning))
+            {
+                if (spec.Scope != EventScope.Company) continue;
+                companyEvents++;
+                Assert.False(string.IsNullOrEmpty(spec.Symbol),
+                    "жертва корпоративного события должна быть выбрана RNG заранее");
+            }
+        }
+        Assert.True(companyEvents >= 20);
+    }
+
+    [Fact]
     public async Task Pacing_DroughtProtection_CrisisAlwaysComesEventually()
     {
         // Сиды, на которых раньше 120 дней проходили ВООБЩЕ без кризисов.

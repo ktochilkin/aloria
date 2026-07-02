@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertTriangle, FlaskConical, HelpCircle, Play, RotateCcw, Save } from 'lucide-react';
+import { AlertTriangle, Eye, EyeOff, FlaskConical, HelpCircle, Play, RotateCcw, Save } from 'lucide-react';
 import { Badge, Button, Card, Field, Input, PageHeader, Spinner } from '../components/ui';
 import {
   defaultTuning,
   directorApi,
   regimeRu,
   type EnsembleResult,
+  type ForesightResult,
   type SimResult,
   type WorldTuning,
 } from '../lib/directorApi';
@@ -316,6 +317,12 @@ export function WorldPage() {
   const [simResult, setSimResult] = useState<SimResult | null>(null);
   const [ensResult, setEnsResult] = useState<EnsembleResult | null>(null);
   const [showDocs, setShowDocs] = useState(false);
+  const [foresightResult, setForesightResult] = useState<ForesightResult | null>(null);
+
+  const foresight = useMutation({
+    mutationFn: () => directorApi.foresight(),
+    onSuccess: setForesightResult,
+  });
 
   const saveTuning = useMutation({
     mutationFn: (t: WorldTuning) => directorApi.saveTuning(t),
@@ -618,6 +625,77 @@ export function WorldPage() {
           )}
         </Card>
       </div>
+
+      {/* Просчёт: точное будущее (спойлер!) */}
+      <Card className="p-6 mt-4" style={{ borderColor: 'rgba(74,58,167,0.4)' }}>
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <h2 className="text-base font-bold flex items-center gap-2">
+            <Eye className="size-4" />
+            Просчёт: точное будущее
+            <Badge tone="primary">спойлер</Badge>
+          </h2>
+          <div className="flex gap-2">
+            {foresightResult && (
+              <Button onClick={() => setForesightResult(null)}>
+                <EyeOff className="size-4" />
+                Скрыть
+              </Button>
+            )}
+            <Button variant="primary" disabled={foresight.isPending} onClick={() => foresight.mutate()}>
+              <Play className="size-4" />
+              {foresight.isPending ? 'Считаю…' : 'Показать будущее (30 дн)'}
+            </Button>
+          </div>
+        </div>
+        <p className="text-xs text-(--color-fg-muted) mt-2">
+          В отличие от симуляции, это продолжение <b>того же потока костей</b> — живой мир пройдёт
+          ровно этот путь. Действует, пока никто не жмёт кнопки и не меняет ручки (любое
+          вмешательство ветвит будущее). Горизонт ограничен 30 днями — дальше не покажет.
+          Решил не подглядывать, чтобы было интересно — просто не нажимай.
+        </p>
+        {foresightResult && (
+          <div className="border-t border-(--color-border) pt-4 mt-3">
+            <div className="flex flex-wrap gap-2 mb-3">
+              {foresightResult.notable.length === 0 ? (
+                <span className="text-sm text-(--color-fg-muted)">
+                  Ближайшие {foresightResult.horizonDays} дней — без смен режима, кризисов и дефолтов.
+                </span>
+              ) : (
+                foresightResult.notable.map((n, i) => (
+                  <span
+                    key={i}
+                    className="inline-flex items-center gap-1.5 px-2.5 h-7 rounded-lg border border-(--color-border) bg-(--color-bg) text-xs"
+                  >
+                    <b>+{n.afterDays} дн</b>
+                    <span
+                      className={
+                        n.what.startsWith('КРИЗИС') || n.what.startsWith('ДЕФОЛТ')
+                          ? 'text-(--color-error) font-semibold'
+                          : ''
+                      }
+                    >
+                      {n.what
+                        .replace('Expansion', 'расширение')
+                        .replace('Peak', 'перегрев')
+                        .replace('Recession', 'рецессия')
+                        .replace('Recovery', 'восстановление')}
+                    </span>
+                  </span>
+                ))
+              )}
+            </div>
+            <SimChart
+              sim={{
+                fromDay: foresightResult.fromDay,
+                indexDaily: foresightResult.indexDaily,
+                regimeDaily: foresightResult.regimeDaily,
+                crisisDaily: foresightResult.crisisDaily,
+              } as SimResult}
+            />
+            <div className="text-xs text-(--color-fg-muted) mt-2">{foresightResult.caveat}</div>
+          </div>
+        )}
+      </Card>
 
       {/* Как это работает */}
       <Card className="p-6 mt-4">

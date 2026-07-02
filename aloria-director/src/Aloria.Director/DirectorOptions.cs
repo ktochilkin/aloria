@@ -18,6 +18,17 @@ public sealed class DirectorOptions
     public LlmOptions Llm { get; set; } = new();
     public TerexDbOptions TerexDb { get; set; } = new();
     public AloriaApiOptions AloriaApi { get; set; } = new();
+    public ForesightOptions Foresight { get; set; } = new();
+
+    /// <summary>Просчёт — точное будущее живого мира (тот же поток костей).</summary>
+    public sealed class ForesightOptions
+    {
+        /// <summary>Горизонт по умолчанию, дней.</summary>
+        public int DefaultDays { get; set; } = 30;
+
+        /// <summary>Потолок: дальше не покажет, сколько ни проси (спойлер-гигиена).</summary>
+        public int MaxDays { get; set; } = 30;
+    }
 
     public sealed class LlmOptions
     {
