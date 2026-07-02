@@ -137,7 +137,7 @@ export const directorApi = {
 };
 
 export const regimeRu: Record<string, string> = {
-  Expansion: 'Расширение',
+  Expansion: 'Рост',
   Peak: 'Перегрев',
   Recession: 'Рецессия',
   Recovery: 'Восстановление',

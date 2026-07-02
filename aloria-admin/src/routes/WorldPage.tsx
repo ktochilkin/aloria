@@ -729,7 +729,7 @@ export function WorldPage() {
                       }
                     >
                       {n.what
-                        .replace('Expansion', 'расширение')
+                        .replace('Expansion', 'рост')
                         .replace('Peak', 'перегрев')
                         .replace('Recession', 'рецессия')
                         .replace('Recovery', 'восстановление')}

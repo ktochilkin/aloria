@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 
 /// Фазы экономического цикла по порядку (петля).
 const cyclePhases = <({String regime, String label})>[
-  (regime: 'expansion', label: 'Расширение'),
+  (regime: 'expansion', label: 'Рост'),
   (regime: 'peak', label: 'Перегрев'),
   (regime: 'recession', label: 'Рецессия'),
   (regime: 'recovery', label: 'Восстановление'),

@@ -50,6 +50,20 @@ List<CycleEvent> buildMockCycleEvents(
   ]..sort((a, b) => a.day.compareTo(b.day));
 }
 
+/// Сколько дней вперёд до дня цикла [day] от текущего дня (0 = сегодня).
+int cycleDistance(MacroState macro, int day) {
+  final len = macro.cycleLength <= 0 ? 10 : macro.cycleLength;
+  return (day - macro.cycleDay + len) % len;
+}
+
+/// Человеческая метка близости: «сегодня», «завтра», «через N дней».
+String humanDayLabel(int dist) => switch (dist) {
+  0 => 'сегодня',
+  1 => 'завтра',
+  2 => 'послезавтра',
+  _ => 'через $dist дн',
+};
+
 /// Ближайшие события начиная с текущего дня (вперёд по циклу).
 List<CycleEvent> upcomingCycleEvents(
   MacroState macro,

@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 /// Человекочитаемое имя режима цикла + акцентный цвет.
 ({String label, Color color}) macroRegimeMeta(String regime) =>
     switch (regime) {
-      'expansion' => (label: 'Расширение', color: AppColors.success),
+      'expansion' => (label: 'Рост', color: AppColors.success),
       'peak' => (label: 'Перегрев', color: AppColors.warning),
       'recession' => (label: 'Рецессия', color: AppColors.error),
       'recovery' => (label: 'Восстановление', color: AppColors.primary),

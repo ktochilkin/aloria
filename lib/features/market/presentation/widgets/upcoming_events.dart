@@ -4,8 +4,8 @@ import 'package:aloria/features/market/domain/macro_state.dart';
 import 'package:aloria/features/market/presentation/widgets/cycle_calendar_page.dart';
 import 'package:flutter/material.dart';
 
-/// Компактный блок «Ближайшие события» на обзоре. По тапу проваливается в
-/// полноэкранный календарь цикла.
+/// Компактный блок «Ближайшие события» на обзоре: человеческие метки времени
+/// («сегодня / завтра / через N дн»). По тапу — полный календарь цикла.
 class UpcomingEvents extends StatelessWidget {
   const UpcomingEvents({
     super.key,
@@ -29,12 +29,18 @@ class UpcomingEvents extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         onTap: () => openCycleCalendar(context, macro, securities),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
+                  Icon(
+                    Icons.event_note_rounded,
+                    size: 18,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 8),
                   Text(
                     'Ближайшие события',
                     style: text.titleSmall?.copyWith(
@@ -53,7 +59,7 @@ class UpcomingEvents extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 6),
-              for (final e in events) _EventRow(event: e),
+              for (final e in events) _EventRow(event: e, macro: macro),
             ],
           ),
         ),
@@ -63,51 +69,67 @@ class UpcomingEvents extends StatelessWidget {
 }
 
 class _EventRow extends StatelessWidget {
-  const _EventRow({required this.event});
+  const _EventRow({required this.event, required this.macro});
 
   final CycleEvent event;
+  final MacroState macro;
 
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
     final meta = cycleEventTypeMeta(event.type);
+    final dist = cycleDistance(macro, event.day);
+    final isToday = dist == 0;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 7),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            width: 32,
+            height: 32,
             decoration: BoxDecoration(
-              color: scheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(8),
+              color: meta.color.withValues(alpha: 0.14),
+              shape: BoxShape.circle,
             ),
-            child: Text(
-              'день ${event.day}',
-              style: text.labelSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: scheme.onSurfaceVariant,
-              ),
-            ),
+            child: Icon(meta.icon, size: 17, color: meta.color),
           ),
           const SizedBox(width: 12),
-          Icon(meta.icon, size: 18, color: meta.color),
-          const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              event.title,
-              style: text.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  event.title,
+                  style: text.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  event.type,
+                  style: text.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(width: 8),
-          Text(
-            event.type,
-            style: text.bodySmall?.copyWith(
-              color: meta.color,
-              fontWeight: FontWeight.w600,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+            decoration: BoxDecoration(
+              color: isToday
+                  ? scheme.primary.withValues(alpha: 0.12)
+                  : scheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              humanDayLabel(dist),
+              style: text.labelSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: isToday ? scheme.primary : scheme.onSurfaceVariant,
+              ),
             ),
           ),
         ],
