@@ -101,6 +101,9 @@ public sealed class EventSampler
             SectorSlug = sector.Slug,
             Symbol = victim,
             CandidateSymbols = [victim],
+            // Треть корпоративных историй — казусы: забавная причина,
+            // реалистичные последствия. Стиль, не числа.
+            Quirky = _rng.Chance(0.30),
         };
     }
 

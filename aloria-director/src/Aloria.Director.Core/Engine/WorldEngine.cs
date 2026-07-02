@@ -424,7 +424,8 @@ public sealed class WorldEngine
             Type = EventType.Earnings,
             Scope = EventScope.Company,
             Severity = Math.Min(1, Math.Abs(z) / 3),
-            Sign = Math.Sign(z),
+            // «В рамках ожиданий» (|z| < 0.7σ) — нейтральная новость, серый бейдж.
+            Sign = Math.Abs(z) < 0.7 ? 0 : Math.Sign(z),
             Shape = EventShape.Jump,
             Symbol = evt.Symbol,
             SurpriseZ = z,
@@ -456,7 +457,7 @@ public sealed class WorldEngine
             Type = EventType.DividendDecision,
             Scope = EventScope.Company,
             Severity = cut ? 0.5 : 0.2,
-            Sign = cut ? -1 : Math.Sign(z),
+            Sign = cut ? -1 : Math.Abs(z) < 0.7 ? 0 : Math.Sign(z),
             Shape = EventShape.Jump,
             Symbol = evt.Symbol,
             Actual = Math.Round(actualDiv, 2),

@@ -36,6 +36,12 @@ public sealed record EventSpec
 
     /// <summary>Ожидание консенсуса (для текста новости).</summary>
     public double? Expected { get; init; }
+
+    /// <summary>
+    /// Казус: причина события — забавная/бытовая (решает RNG, ~30% корпоративных).
+    /// Влияет ТОЛЬКО на стиль новости; числа уже решены серьёзностью.
+    /// </summary>
+    public bool Quirky { get; init; }
 }
 
 /// <summary>Черновик новости для нарратора (LLM или шаблоны).</summary>
