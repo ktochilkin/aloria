@@ -59,6 +59,8 @@ if (args.Contains("seed"))
 
 // --------------------------------------------------------------------- run
 builder.WebHost.ConfigureKestrel(k => k.ListenAnyIP(options.Port));
+builder.Services.ConfigureHttpJsonOptions(o =>
+    o.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
 builder.Services.AddSingleton(options);
 builder.Services.AddSingleton(options.Llm);
 builder.Services.AddSingleton(options.AloriaApi);

@@ -54,7 +54,7 @@ public sealed class AloriaApiPublisher
     }
 
     public Task PublishMacroAsync(WorldSnapshot snapshot, CancellationToken ct = default)
-        => PutAsync("api/admin/macro/state", new
+        => PutAsync("api/admin/market/macro/state", new
         {
             regime = snapshot.Regime switch
             {

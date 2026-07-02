@@ -94,8 +94,9 @@ public static class MarketEndpoints
                 .OrderBy(x => x.Day).ThenBy(x => x.TickOfDay)
                 .Take(take)
                 .ToListAsync(ct);
-            return Results.Ok(rows.Select(x =>
-                new CalendarItemDto(x.Day, x.TickOfDay, x.Type, x.Symbol)));
+            return Results.Ok(rows.Select(x => new CalendarItemDto(
+                x.Day, x.TickOfDay, x.Type,
+                string.IsNullOrEmpty(x.Symbol) ? null : x.Symbol)));
         }).WithTags("Market");
     }
 
@@ -169,17 +170,23 @@ public static class MarketEndpoints
         });
 
         // Ингест календаря цикла от Aloria Director (идемпотентно по ключу события).
+        // Symbol хранится пустой строкой вместо NULL: сравнение с NULL в SQL и
+        // уникальный индекс с NULL не дают идемпотентности.
         admin.MapPost("/calendar", async (
             CalendarItemInput[] input,
             AloriaDbContext db,
             CancellationToken ct) =>
         {
             var added = 0;
+            var seen = new HashSet<string>();
             foreach (var e in input)
             {
+                var symbol = e.Symbol ?? string.Empty;
+                if (!seen.Add($"{e.Day}|{e.TickOfDay}|{e.Type}|{symbol}")) continue;
+
                 var exists = await db.CycleCalendar.AnyAsync(x =>
                     x.Day == e.Day && x.TickOfDay == e.TickOfDay
-                    && x.Type == e.Type && x.Symbol == e.Symbol, ct);
+                    && x.Type == e.Type && x.Symbol == symbol, ct);
                 if (exists) continue;
 
                 db.CycleCalendar.Add(new CycleCalendarItem
@@ -188,7 +195,7 @@ public static class MarketEndpoints
                     Day = e.Day,
                     TickOfDay = e.TickOfDay,
                     Type = e.Type,
-                    Symbol = e.Symbol,
+                    Symbol = symbol,
                     CreatedAt = DateTime.UtcNow,
                 });
                 added++;
