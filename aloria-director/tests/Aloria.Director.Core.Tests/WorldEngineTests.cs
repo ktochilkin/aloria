@@ -131,6 +131,73 @@ public class WorldEngineTests
     }
 
     [Fact]
+    public async Task Pacing_DroughtProtection_CrisisAlwaysComesEventually()
+    {
+        // Сиды, на которых раньше 120 дней проходили ВООБЩЕ без кризисов.
+        foreach (var seed in new[] { 13, 111, 2026 })
+        {
+            var engine = new WorldEngine(new WorldConfig { Seed = seed, TicksPerDay = 24 });
+            var narrator = new TemplateNarrator(new Rng(seed ^ 0x5EED));
+
+            int? firstCrisisDay = null;
+            for (var t = 0; t < 90 * 24 && firstCrisisDay is null; t++)
+            {
+                await engine.TickAsync(narrator);
+                if (engine.State.Macro.Crisis) firstCrisisDay = engine.State.Day;
+            }
+
+            Assert.True(firstCrisisDay is not null && firstCrisisDay <= 80,
+                $"seed {seed}: защита от засухи не сработала (первый кризис: {firstCrisisDay?.ToString() ?? "нет"})");
+        }
+    }
+
+    [Fact]
+    public async Task Pacing_Cooldown_NoBackToBackCrises()
+    {
+        var engine = new WorldEngine(new WorldConfig
+        {
+            Seed = 300,
+            TicksPerDay = 24,
+            // Агрессивные ручки: без кулдауна кризисы шли бы подряд.
+            Tuning = new WorldTuning { PeakBubbleBurstPerDay = 0.3, TailChance = 0.2 },
+        });
+        var narrator = new TemplateNarrator(new Rng(1));
+
+        var crisisByDay = new List<bool>();
+        for (var t = 0; t < 250 * 24; t++)
+        {
+            await engine.TickAsync(narrator);
+            if (engine.State.TickOfDay == 0)
+                crisisByDay.Add(engine.State.Macro.Crisis);
+        }
+
+        // Промежутки между эпизодами кризиса не короче кулдауна.
+        var cooldown = engine.Tuning.CrisisCooldownDays;
+        var sinceEnd = 9999; // до первого эпизода ограничения нет
+        var episodes = 0;
+        var inCrisis = false;
+        foreach (var day in crisisByDay)
+        {
+            if (day)
+            {
+                if (!inCrisis)
+                {
+                    episodes++;
+                    Assert.True(sinceEnd >= cooldown,
+                        $"кризис начался через {sinceEnd} дн после предыдущего (кулдаун {cooldown})");
+                }
+                inCrisis = true;
+            }
+            else
+            {
+                sinceEnd = inCrisis ? 1 : Math.Min(sinceEnd + 1, 9999);
+                inCrisis = false;
+            }
+        }
+        Assert.True(episodes >= 2, "для проверки кулдауна нужно ≥2 эпизодов");
+    }
+
+    [Fact]
     public async Task Tuning_CrisisHazard_MakesCrisesFrequent()
     {
         var engine = new WorldEngine(new WorldConfig

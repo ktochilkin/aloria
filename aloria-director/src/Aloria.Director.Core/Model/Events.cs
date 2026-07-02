@@ -84,6 +84,9 @@ public sealed record WorldSnapshot
     public required double KeyRate { get; init; }
     public required double Inflation { get; init; }
     public required double Growth { get; init; }
+
+    /// <summary>Дней с конца последнего кризиса (питает пейсинг).</summary>
+    public int DaysSinceCrisis { get; init; }
 }
 
 /// <summary>Запись журнала события (для дебага/презентации/уроков «почему двигалось»).</summary>

@@ -10,6 +10,9 @@ export type WorldTuning = {
   peakBubbleBurstPerDay: number;
   crisisHazardPerDay: number;
   volatilityMultiplier: number;
+  crisisCooldownDays: number;
+  crisisDroughtRampStartDays: number;
+  crisisDroughtRampPerDay: number;
 };
 
 export type WorldSnapshot = {
@@ -20,6 +23,7 @@ export type WorldSnapshot = {
   keyRate: number;
   inflation: number;
   growth: number;
+  daysSinceCrisis: number;
 };
 
 export type DirectorState = {
@@ -79,6 +83,9 @@ export const defaultTuning: WorldTuning = {
   peakBubbleBurstPerDay: 0.04,
   crisisHazardPerDay: 0.0,
   volatilityMultiplier: 1.0,
+  crisisCooldownDays: 12,
+  crisisDroughtRampStartDays: 25,
+  crisisDroughtRampPerDay: 0.015,
 };
 
 /// Итог ансамбля из N независимых веток: статистика вместо одной траектории.

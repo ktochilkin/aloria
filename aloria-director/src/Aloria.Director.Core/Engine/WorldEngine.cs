@@ -160,10 +160,20 @@ public sealed class WorldEngine
         if (regimeChanged)
             output.News.Add(RegimeChangeNews(m));
 
-        // Перегрев может лопнуть (+ прямой hazard из тюнинга, если включён):
-        // редкий, но регулярный источник кризисов.
-        var burst = m is { Regime: Regime.Peak, Crisis: false } && _rng.Chance(Tuning.PeakBubbleBurstPerDay);
-        var hazard = !m.Crisis && Tuning.CrisisHazardPerDay > 0 && _rng.Chance(Tuning.CrisisHazardPerDay);
+        // Пейсинг кризисов: счётчик «засухи» + кулдаун-гейт на все каналы.
+        m.DaysSinceCrisis = m.Crisis ? 0 : m.DaysSinceCrisis + 1;
+        var cooldownPassed = m.DaysSinceCrisis >= Tuning.CrisisCooldownDays;
+
+        // Каналы кризиса: «пузырь» в перегреве + hazard (базовый + защита от
+        // невезения: растёт с каждым днём засухи после порога — вечный штиль
+        // невозможен, как и серия кризисов подряд).
+        var pacedHazard = Tuning.CrisisHazardPerDay
+            + Math.Max(0, m.DaysSinceCrisis - Tuning.CrisisDroughtRampStartDays)
+            * Tuning.CrisisDroughtRampPerDay;
+        var burst = cooldownPassed
+            && m is { Regime: Regime.Peak, Crisis: false }
+            && _rng.Chance(Tuning.PeakBubbleBurstPerDay);
+        var hazard = cooldownPassed && !m.Crisis && pacedHazard > 0 && _rng.Chance(pacedHazard);
         if (burst || hazard)
         {
             EnterCrisis();
@@ -699,8 +709,11 @@ public sealed class WorldEngine
                         applied[issuer.Spec.Symbol] = magnitude;
                     }
 
-                    // Хвостовой негативный макрошок = кризис.
-                    if (spec.Sign < 0 && spec.Severity >= Tuning.CrisisSeverityThreshold && !State.Macro.Crisis)
+                    // Хвостовой негативный макрошок = кризис (уважая кулдаун).
+                    if (spec.Sign < 0
+                        && spec.Severity >= Tuning.CrisisSeverityThreshold
+                        && !State.Macro.Crisis
+                        && State.Macro.DaysSinceCrisis >= Tuning.CrisisCooldownDays)
                         EnterCrisis();
                     break;
                 }
@@ -847,6 +860,7 @@ public sealed class WorldEngine
         KeyRate = Math.Round(State.Macro.KeyRate, 2),
         Inflation = Math.Round(State.Macro.Inflation, 2),
         Growth = Math.Round(State.Macro.Growth, 2),
+        DaysSinceCrisis = State.Macro.DaysSinceCrisis,
     };
 
     private void AddNews(

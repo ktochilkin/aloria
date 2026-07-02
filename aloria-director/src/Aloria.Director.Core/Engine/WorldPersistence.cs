@@ -28,7 +28,8 @@ public sealed record WorldPersistDto
 
     public sealed record MacroDto(
         Regime Regime, int RegimeAgeDays, int RegimePlannedDays,
-        double KeyRate, double Inflation, double Growth, double RiskAppetite, bool Crisis);
+        double KeyRate, double Inflation, double Growth, double RiskAppetite, bool Crisis,
+        int DaysSinceCrisis = 15);
 
     public sealed record IssuerDto(
         double LogFair, double Target, double EpsTrend, double Distress,
@@ -59,7 +60,8 @@ public static class WorldPersistence
         LastPlannedCycleStart = lastPlannedCycleStart,
         Macro = new WorldPersistDto.MacroDto(
             s.Macro.Regime, s.Macro.RegimeAgeDays, s.Macro.RegimePlannedDays,
-            s.Macro.KeyRate, s.Macro.Inflation, s.Macro.Growth, s.Macro.RiskAppetite, s.Macro.Crisis),
+            s.Macro.KeyRate, s.Macro.Inflation, s.Macro.Growth, s.Macro.RiskAppetite, s.Macro.Crisis,
+            s.Macro.DaysSinceCrisis),
         Issuers = s.Issuers.ToDictionary(kv => kv.Key, kv => new WorldPersistDto.IssuerDto(
             kv.Value.LogFair, kv.Value.Target, kv.Value.EpsTrend, kv.Value.Distress,
             kv.Value.PendingDividend, kv.Value.Defaulted,
@@ -93,6 +95,7 @@ public static class WorldPersistence
         s.Macro.Growth = dto.Macro.Growth;
         s.Macro.RiskAppetite = dto.Macro.RiskAppetite;
         s.Macro.Crisis = dto.Macro.Crisis;
+        s.Macro.DaysSinceCrisis = dto.Macro.DaysSinceCrisis;
 
         foreach (var (sym, d) in dto.Issuers)
         {
