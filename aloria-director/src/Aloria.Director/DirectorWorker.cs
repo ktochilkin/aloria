@@ -115,7 +115,10 @@ public sealed class DirectorWorker : BackgroundService
         }
 
         days = Math.Clamp(days, 1, 365);
-        var branchSeed = seed ?? unchecked(_options.Seed ^ (snapshot.Day * 92821 + snapshot.TickOfDay * 31));
+        // Без явного seed каждый прогон — новый бросок костей: жми «Прогнать»
+        // несколько раз и смотри разброс возможных будущих. Фиксированный seed
+        // передавай, когда нужен воспроизводимый прогон.
+        var branchSeed = seed ?? Random.Shared.Next();
         var branch = new WorldEngine(
             new WorldConfig { Seed = branchSeed, TicksPerDay = _options.TicksPerDay },
             snapshot with { Tuning = (tuning ?? snapshot.Tuning ?? new WorldTuning()).Clamped() });
