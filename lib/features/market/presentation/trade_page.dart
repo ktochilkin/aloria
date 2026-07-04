@@ -1,3 +1,4 @@
+import 'package:aloria/core/theme/tokens.dart';
 import 'package:aloria/core/widgets/state_placeholder.dart';
 import 'package:aloria/core/widgets/top_notification.dart';
 import 'package:aloria/features/market/application/market_news_provider.dart';
@@ -262,7 +263,7 @@ class _TradePageState extends ConsumerState<TradePage> {
                 child: Center(
                   child: Text(
                     '${latestPrice.toStringAsFixed(2)} ₽',
-                    style: cbMono(size: 16),
+                    style: cbMono(size: 16, color: context.palette.onSurface),
                   ),
                 ),
               ),

@@ -183,7 +183,7 @@ class _InstrumentHeaderCardState extends ConsumerState<InstrumentHeaderCard> {
                       const SizedBox(height: 2),
                       Text(
                         p?.description ?? 'Загрузка…',
-                        style: text.bodyMedium?.copyWith(color: cbBody),
+                        style: text.bodyMedium,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -198,7 +198,11 @@ class _InstrumentHeaderCardState extends ConsumerState<InstrumentHeaderCard> {
               children: [
                 Text(
                   p != null ? '${_fmtPrice(p.price)} $cur' : '—',
-                  style: cbMono(size: 34, weight: FontWeight.w700),
+                  style: cbMono(
+                    size: 34,
+                    weight: FontWeight.w700,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 if (change != null && pct != null)
@@ -234,14 +238,13 @@ class _InstrumentHeaderCardState extends ConsumerState<InstrumentHeaderCard> {
                       Text(
                         _expanded ? 'Свернуть' : 'Подробнее об инструменте',
                         style: text.bodyMedium?.copyWith(
-                          color: cbBody,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       const SizedBox(width: 4),
                       Icon(
                         _expanded ? Icons.expand_less : Icons.expand_more,
-                        color: cbBody,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         size: 20,
                       ),
                     ],
@@ -292,18 +295,19 @@ class _Badge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: const BoxDecoration(
-        color: cbSurfaceStrong,
-        borderRadius: BorderRadius.all(Radius.circular(100)),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: const BorderRadius.all(Radius.circular(100)),
       ),
       child: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w600,
-          color: cbBody,
+          color: scheme.onSurfaceVariant,
         ),
       ),
     );
@@ -322,7 +326,13 @@ class _StatTile extends StatelessWidget {
       children: [
         Text(item.$1, style: const TextStyle(fontSize: 13, color: cbMuted)),
         const SizedBox(height: 2),
-        Text(item.$2, style: cbMono(size: 15)),
+        Text(
+          item.$2,
+          style: cbMono(
+            size: 15,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
       ],
     );
   }

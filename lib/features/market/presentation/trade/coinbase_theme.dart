@@ -3,32 +3,18 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 // === ЭКСПЕРИМЕНТ: дизайн-система Coinbase, локально на торговом экране ===
-// Белый холст, единственный акцент Coinbase Blue (только primary-CTA),
+// Холст текущей темы, единственный акцент Coinbase Blue (только primary-CTA),
 // чернильный текст + серый body, hairline-границы вместо теней, карты r24,
 // кнопки-пилюли, числа моноширинным, торговые зелёный/красный только как текст.
 // Применяется через scoped Theme только на торговом экране — остальное
-// приложение не затрагивается.
+// приложение не затрагивается. Цвета берутся из AppPalette текущего режима,
+// поэтому тёмная тема работает так же, как в остальном приложении.
 
 /// Brand voltage — только primary-CTA.
 const cbBlue = AppColors.primary;
 
-/// Заголовки/эмфаза.
-const cbInk = AppLightColors.ink;
-
-/// Основной текст (прохладный серый).
-const cbBody = AppLightColors.body;
-
-/// Подписи/мьютед.
+/// Подписи/мьютед (средний серый — читается на обоих холстах).
 const cbMuted = TradeColors.muted;
-
-/// 1px разделители/границы карт.
-const cbHairline = AppLightColors.hairline;
-
-/// Холст.
-const cbCanvas = AppLightColors.canvas;
-
-/// Вторичные кнопки/плашки.
-const cbSurfaceStrong = AppLightColors.surfaceStrong;
 
 /// Semantic up (только текст).
 const cbUp = TradeColors.up;
@@ -37,11 +23,12 @@ const cbUp = TradeColors.up;
 const cbDown = TradeColors.down;
 
 /// Стиль чисел: Nunito с табличными цифрами (одна ширина → ровные колонки),
-/// современнее моноширинного «терминального» шрифта.
+/// современнее моноширинного «терминального» шрифта. Без [color] цвет
+/// наследуется от окружающего стиля текста (тон текущей темы).
 TextStyle cbMono({
   required double size,
   FontWeight weight = FontWeight.w600,
-  Color color = cbInk,
+  Color? color,
 }) => GoogleFonts.nunito(
   fontSize: size,
   fontWeight: weight,
@@ -50,62 +37,70 @@ TextStyle cbMono({
 );
 
 /// Scoped-тема торгового экрана поверх базовой темы приложения.
+/// Ink/body/hairline/canvas берутся из палитры активного режима (свет/тьма).
 ThemeData coinbaseTheme(BuildContext context) {
   final base = Theme.of(context);
   final t = base.textTheme;
+  final p = context.palette;
+  final ink = p.onSurface;
+  final body = p.onSurfaceVariant;
+  final hairline = p.outline;
+  final canvas = p.background;
+  final surfaceStrong = p.surfaceVariant;
+
   return base.copyWith(
-    scaffoldBackgroundColor: cbCanvas,
+    scaffoldBackgroundColor: canvas,
     colorScheme: base.colorScheme.copyWith(
       primary: cbBlue,
       onPrimary: Colors.white,
-      surface: cbCanvas,
-      onSurface: cbInk,
-      onSurfaceVariant: cbBody,
-      surfaceContainerHighest: cbSurfaceStrong,
-      outline: cbHairline,
-      outlineVariant: cbHairline,
+      surface: canvas,
+      onSurface: ink,
+      onSurfaceVariant: body,
+      surfaceContainerHighest: surfaceStrong,
+      outline: hairline,
+      outlineVariant: hairline,
     ),
     appBarTheme: base.appBarTheme.copyWith(
-      backgroundColor: cbCanvas,
+      backgroundColor: canvas,
       surfaceTintColor: Colors.transparent,
-      foregroundColor: cbInk,
+      foregroundColor: ink,
       elevation: 0,
     ),
     // Coinbase: плоско, hairline-граница вместо тени, радиус 24.
-    cardTheme: const CardThemeData(
-      color: cbCanvas,
+    cardTheme: CardThemeData(
+      color: canvas,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(Radius.circular(24)),
-        side: BorderSide(color: cbHairline),
+        borderRadius: const BorderRadius.all(Radius.circular(24)),
+        side: BorderSide(color: hairline),
       ),
     ),
-    dividerTheme: const DividerThemeData(color: cbHairline, thickness: 1),
+    dividerTheme: DividerThemeData(color: hairline, thickness: 1),
     textTheme: t.copyWith(
       headlineMedium: t.headlineMedium?.copyWith(
         fontWeight: FontWeight.w400,
         letterSpacing: -1,
-        color: cbInk,
+        color: ink,
       ),
       headlineSmall: t.headlineSmall?.copyWith(
         fontWeight: FontWeight.w400,
         letterSpacing: -0.5,
-        color: cbInk,
+        color: ink,
       ),
       titleMedium: t.titleMedium?.copyWith(
         fontWeight: FontWeight.w600,
         letterSpacing: 0,
-        color: cbInk,
+        color: ink,
       ),
       bodyLarge: t.bodyLarge?.copyWith(
         fontWeight: FontWeight.w400,
-        color: cbInk,
+        color: ink,
       ),
       bodyMedium: t.bodyMedium?.copyWith(
         fontWeight: FontWeight.w400,
-        color: cbBody,
+        color: body,
       ),
       labelMedium: t.labelMedium?.copyWith(color: cbMuted),
     ),
@@ -123,11 +118,11 @@ ThemeData coinbaseTheme(BuildContext context) {
     ),
     inputDecorationTheme: base.inputDecorationTheme.copyWith(
       filled: true,
-      fillColor: cbCanvas,
+      fillColor: canvas,
       labelStyle: const TextStyle(color: cbMuted),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: cbHairline),
+        borderSide: BorderSide(color: hairline),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
