@@ -8,6 +8,7 @@ import 'package:aloria/features/market/domain/macro_state.dart';
 import 'package:aloria/features/market/domain/market_news.dart';
 import 'package:aloria/features/market/presentation/numeric_text.dart';
 import 'package:aloria/features/market/presentation/widgets/aloria_index_card.dart';
+import 'package:aloria/features/market/presentation/widgets/companies_tab.dart';
 import 'package:aloria/features/market/presentation/widgets/how_market_works_page.dart';
 import 'package:aloria/features/market/presentation/widgets/instrument_avatar.dart';
 import 'package:aloria/features/market/presentation/widgets/macro_card.dart';
@@ -23,7 +24,11 @@ import 'package:go_router/go_router.dart';
 class MarketPage extends ConsumerWidget {
   const MarketPage({super.key});
 
-  static const _tabs = [_MarketTab.overview, _MarketTab.news];
+  static const _tabs = [
+    _MarketTab.overview,
+    _MarketTab.news,
+    _MarketTab.companies,
+  ];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -32,7 +37,7 @@ class MarketPage extends ConsumerWidget {
     final asyncMacro = ref.watch(macroStateProvider);
 
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
           toolbarHeight: 0,
@@ -64,12 +69,17 @@ class MarketPage extends ConsumerWidget {
                             ButtonSegment(
                               value: _MarketTab.overview,
                               icon: Icon(Icons.grid_view_rounded),
-                              label: Text('Обзор рынка'),
+                              label: Text('Обзор'),
                             ),
                             ButtonSegment(
                               value: _MarketTab.news,
                               icon: Icon(Icons.article_outlined),
                               label: Text('Новости'),
+                            ),
+                            ButtonSegment(
+                              value: _MarketTab.companies,
+                              icon: Icon(Icons.apartment_rounded),
+                              label: Text('Компании'),
                             ),
                           ],
                           selected: {selected},
@@ -126,6 +136,7 @@ class MarketPage extends ConsumerWidget {
               asyncMacro: asyncMacro,
             ),
             _MarketNewsTab(asyncNews: asyncNews),
+            const CompaniesTab(),
           ],
         ),
       ),
@@ -133,7 +144,7 @@ class MarketPage extends ConsumerWidget {
   }
 }
 
-enum _MarketTab { overview, news }
+enum _MarketTab { overview, news, companies }
 
 class _MarketOverviewTab extends StatelessWidget {
   const _MarketOverviewTab({
