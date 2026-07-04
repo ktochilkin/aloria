@@ -379,6 +379,72 @@ using (var scope = app.Services.CreateScope())
             ON ""CycleCalendar"" (""Day"", ""TickOfDay"", ""Type"", ""Symbol"");
     ");
 
+    // Справочник-каталог мира Алории (сектора с лором, компании, облигации,
+    // фонды, деривативы). Пушит целиком Aloria Director, читает приложение.
+    // EnsureCreated не докатывает новые таблицы к существующей БД — создаём вручную.
+    await db.Database.ExecuteSqlRawAsync(@"
+        CREATE TABLE IF NOT EXISTS ""ReferenceSectors"" (
+            ""Id"" TEXT NOT NULL CONSTRAINT ""PK_ReferenceSectors"" PRIMARY KEY,
+            ""Slug"" TEXT NOT NULL,
+            ""Title"" TEXT NOT NULL,
+            ""Description"" TEXT NOT NULL DEFAULT '',
+            ""Order"" INTEGER NOT NULL DEFAULT 0
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS ""IX_ReferenceSectors_Slug""
+            ON ""ReferenceSectors"" (""Slug"");
+
+        CREATE TABLE IF NOT EXISTS ""ReferenceCompanies"" (
+            ""Id"" TEXT NOT NULL CONSTRAINT ""PK_ReferenceCompanies"" PRIMARY KEY,
+            ""Symbol"" TEXT NOT NULL,
+            ""Name"" TEXT NOT NULL,
+            ""SectorSlug"" TEXT NOT NULL DEFAULT '',
+            ""Theme"" TEXT NOT NULL DEFAULT '',
+            ""Story"" TEXT NOT NULL DEFAULT '',
+            ""Payout"" REAL NOT NULL DEFAULT 0,
+            ""Leverage"" REAL NOT NULL DEFAULT 0,
+            ""Sigma"" REAL NOT NULL DEFAULT 0,
+            ""Order"" INTEGER NOT NULL DEFAULT 0
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS ""IX_ReferenceCompanies_Symbol""
+            ON ""ReferenceCompanies"" (""Symbol"");
+
+        CREATE TABLE IF NOT EXISTS ""ReferenceBonds"" (
+            ""Id"" TEXT NOT NULL CONSTRAINT ""PK_ReferenceBonds"" PRIMARY KEY,
+            ""Symbol"" TEXT NOT NULL,
+            ""Name"" TEXT NOT NULL,
+            ""IssuerSymbol"" TEXT NULL,
+            ""Quality"" TEXT NOT NULL DEFAULT '',
+            ""CouponPerCycle"" REAL NOT NULL DEFAULT 0,
+            ""CouponEveryDays"" INTEGER NOT NULL DEFAULT 0,
+            ""Order"" INTEGER NOT NULL DEFAULT 0
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS ""IX_ReferenceBonds_Symbol""
+            ON ""ReferenceBonds"" (""Symbol"");
+
+        CREATE TABLE IF NOT EXISTS ""ReferenceFunds"" (
+            ""Id"" TEXT NOT NULL CONSTRAINT ""PK_ReferenceFunds"" PRIMARY KEY,
+            ""Symbol"" TEXT NOT NULL,
+            ""Name"" TEXT NOT NULL,
+            ""IsBondFund"" INTEGER NOT NULL DEFAULT 0,
+            ""Description"" TEXT NOT NULL DEFAULT '',
+            ""Order"" INTEGER NOT NULL DEFAULT 0
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS ""IX_ReferenceFunds_Symbol""
+            ON ""ReferenceFunds"" (""Symbol"");
+
+        CREATE TABLE IF NOT EXISTS ""ReferenceDerivatives"" (
+            ""Id"" TEXT NOT NULL CONSTRAINT ""PK_ReferenceDerivatives"" PRIMARY KEY,
+            ""Symbol"" TEXT NOT NULL,
+            ""Name"" TEXT NOT NULL,
+            ""Type"" TEXT NOT NULL DEFAULT '',
+            ""UnderlyingSymbol"" TEXT NULL,
+            ""Description"" TEXT NOT NULL DEFAULT '',
+            ""Order"" INTEGER NOT NULL DEFAULT 0
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS ""IX_ReferenceDerivatives_Symbol""
+            ON ""ReferenceDerivatives"" (""Symbol"");
+    ");
+
     // Импорт markdown-уроков: при первом запуске (пустая БД) либо явно по флагу
     // --seed. Импортёр идемпотентный — обновляет уроки по (section, slug) и
     // добавляет новые, поэтому повторный прогон безопасен.

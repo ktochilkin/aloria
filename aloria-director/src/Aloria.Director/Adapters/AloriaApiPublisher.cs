@@ -71,6 +71,57 @@ public sealed class AloriaApiPublisher
             source = "director",
         }, ct);
 
+    /// <summary>
+    /// Публикует справочник мира (сектора, компании с лором, облигации, фонды,
+    /// деривативы) в aloria-api. Идемпотентная полная замена: PUT всего каталога,
+    /// источник правды — <see cref="Universe"/>. Вызывается один раз на старте.
+    /// </summary>
+    public Task PublishReferenceAsync(CancellationToken ct = default)
+        => PutAsync("api/admin/market/reference", new
+        {
+            sectors = Universe.Sectors.Select(s => new
+            {
+                slug = s.Slug,
+                title = s.Title,
+                description = s.Description,
+            }).ToArray(),
+            companies = Universe.Issuers.Select(i => new
+            {
+                symbol = i.Symbol,
+                name = i.Name,
+                sectorSlug = i.SectorSlug,
+                theme = i.Theme,
+                story = i.Story,
+                payout = i.PayoutRatio,
+                leverage = i.Leverage,
+                sigma = i.SigmaDaily,
+            }).ToArray(),
+            bonds = Universe.Bonds.Select(b => new
+            {
+                symbol = b.Symbol,
+                name = b.Name,
+                issuerSymbol = b.IssuerSymbol,
+                quality = b.Quality.ToString(),
+                couponPerCycle = b.CouponRatePerCycle,
+                couponEveryDays = b.CouponEveryDays,
+            }).ToArray(),
+            funds = Universe.Funds.Select(f => new
+            {
+                symbol = f.Symbol,
+                name = f.Name,
+                isBondFund = f.IsBondFund,
+                description = f.Description,
+            }).ToArray(),
+            derivatives = Universe.Derivatives.Select(d => new
+            {
+                symbol = d.Symbol,
+                name = d.Name,
+                type = d.Type,
+                underlyingSymbol = d.UnderlyingSymbol,
+                description = d.Description,
+            }).ToArray(),
+        }, ct);
+
     public async Task PublishCalendarAsync(
         IReadOnlyList<CalendarEvent> events, CancellationToken ct = default)
     {

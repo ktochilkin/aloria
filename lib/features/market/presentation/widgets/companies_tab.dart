@@ -1,6 +1,8 @@
 import 'package:aloria/features/market/application/market_controller.dart';
+import 'package:aloria/features/market/application/market_reference_provider.dart';
 import 'package:aloria/features/market/data/market_repository.dart';
 import 'package:aloria/features/market/domain/aloria_lore.dart';
+import 'package:aloria/features/market/domain/reference_catalog.dart';
 import 'package:aloria/features/market/presentation/widgets/company_detail_page.dart';
 import 'package:aloria/features/market/presentation/widgets/instrument_avatar.dart';
 import 'package:flutter/material.dart';
@@ -16,14 +18,19 @@ class CompaniesTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final securities =
         ref.watch(marketSecuritiesProvider).valueOrNull ?? const [];
+    // Пока каталог грузится (или бэк недоступен) — статический фолбэк,
+    // чтобы вкладка не мигала скелетоном.
+    final catalog =
+        ref.watch(marketReferenceProvider).valueOrNull ??
+        const ReferenceCatalog.fallback();
 
     return CustomScrollView(
       slivers: [
-        const SliverPadding(
-          padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
-          sliver: SliverToBoxAdapter(child: _WorldIntroCard()),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          sliver: SliverToBoxAdapter(child: _WorldIntroCard(catalog: catalog)),
         ),
-        for (final sector in aloriaSectors) ...[
+        for (final sector in catalog.sectors) ...[
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 18, 16, 4),
             sliver: SliverToBoxAdapter(child: _SectorHeader(sector: sector)),
@@ -32,10 +39,12 @@ class CompaniesTab extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             sliver: SliverList.list(
               children: [
-                for (final company in aloriaCompanies.where(
-                  (c) => c.sectorSlug == sector.slug,
-                ))
-                  _CompanyTile(company: company, securities: securities),
+                for (final company in catalog.companiesOfSector(sector.slug))
+                  _CompanyTile(
+                    company: company,
+                    catalog: catalog,
+                    securities: securities,
+                  ),
               ],
             ),
           ),
@@ -54,8 +63,8 @@ class CompaniesTab extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           sliver: SliverList.list(
             children: [
-              for (final bond in aloriaBonds)
-                _BondTile(bond: bond, securities: securities),
+              for (final bond in catalog.bonds)
+                _BondTile(bond: bond, catalog: catalog, securities: securities),
             ],
           ),
         ),
@@ -73,7 +82,7 @@ class CompaniesTab extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
           sliver: SliverList.list(
             children: [
-              for (final fund in aloriaFunds)
+              for (final fund in catalog.funds)
                 _FundTile(fund: fund, securities: securities),
             ],
           ),
@@ -100,7 +109,9 @@ void _openInstrument(
 }
 
 class _WorldIntroCard extends StatelessWidget {
-  const _WorldIntroCard();
+  const _WorldIntroCard({required this.catalog});
+
+  final ReferenceCatalog catalog;
 
   @override
   Widget build(BuildContext context) {
@@ -136,8 +147,8 @@ class _WorldIntroCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'Алория — вымышленная страна со своей биржей TEREX. На ней '
-            'торгуются ${aloriaCompanies.length} компаний из '
-            '${aloriaSectors.length} секторов, облигации государства и '
+            'торгуются ${catalog.companies.length} компаний из '
+            '${catalog.sectors.length} секторов, облигации государства и '
             'компаний и два фонда. У каждой компании свой характер: кто-то '
             'щедро платит дивиденды, кто-то живёт в долг и вздрагивает от '
             'каждой новости.',
@@ -204,16 +215,21 @@ class _SimpleHeader extends StatelessWidget {
 }
 
 class _CompanyTile extends StatelessWidget {
-  const _CompanyTile({required this.company, required this.securities});
+  const _CompanyTile({
+    required this.company,
+    required this.catalog,
+    required this.securities,
+  });
 
   final CompanyLore company;
+  final ReferenceCatalog catalog;
   final List<MarketSecurity> securities;
 
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
-    final bonds = aloriaBondsOfIssuer(company.symbol);
+    final bonds = catalog.bondsOfIssuer(company.symbol);
     final label = company.symbol.length > 2
         ? company.symbol.substring(0, 2)
         : company.symbol;
@@ -282,9 +298,14 @@ class _CompanyTile extends StatelessWidget {
 }
 
 class _BondTile extends StatelessWidget {
-  const _BondTile({required this.bond, required this.securities});
+  const _BondTile({
+    required this.bond,
+    required this.catalog,
+    required this.securities,
+  });
 
   final BondLore bond;
+  final ReferenceCatalog catalog;
   final List<MarketSecurity> securities;
 
   @override
@@ -294,7 +315,8 @@ class _BondTile extends StatelessWidget {
     final meta = bondQualityMeta(bond.quality);
     final issuer = bond.issuerSymbol == null
         ? 'Государство Алории'
-        : aloriaCompanyBySymbol(bond.issuerSymbol!)?.name ?? bond.issuerSymbol!;
+        : catalog.companyBySymbol(bond.issuerSymbol!)?.name ??
+              bond.issuerSymbol!;
     final couponPct = (bond.couponPerCycle * 100).toStringAsFixed(1);
 
     return InkWell(

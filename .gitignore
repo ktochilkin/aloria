@@ -80,3 +80,5 @@ app.*.map.json
 # push secrets (не коммитим)
 **/fcm-service-account.json
 *.p8
+aloria-director/**/bin/
+aloria-director/**/obj/

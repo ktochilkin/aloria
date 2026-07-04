@@ -39,6 +39,13 @@ public class AloriaDbContext(DbContextOptions<AloriaDbContext> options) : DbCont
     public DbSet<MacroState> MacroStates => Set<MacroState>();
     public DbSet<CycleCalendarItem> CycleCalendar => Set<CycleCalendarItem>();
 
+    // Справочник-каталог мира Алории (пушит Aloria Director целиком)
+    public DbSet<ReferenceSector> ReferenceSectors => Set<ReferenceSector>();
+    public DbSet<ReferenceCompany> ReferenceCompanies => Set<ReferenceCompany>();
+    public DbSet<ReferenceBond> ReferenceBonds => Set<ReferenceBond>();
+    public DbSet<ReferenceFund> ReferenceFunds => Set<ReferenceFund>();
+    public DbSet<ReferenceDerivative> ReferenceDerivatives => Set<ReferenceDerivative>();
+
     protected override void OnModelCreating(ModelBuilder b)
     {
         base.OnModelCreating(b);
@@ -245,6 +252,49 @@ public class AloriaDbContext(DbContextOptions<AloriaDbContext> options) : DbCont
             e.HasIndex(x => new { x.Day, x.TickOfDay, x.Type, x.Symbol }).IsUnique();
             e.Property(x => x.Type).HasMaxLength(32).IsRequired();
             e.Property(x => x.Symbol).HasMaxLength(20);
+        });
+
+        // Справочник-каталог мира Алории --------------------------------------
+
+        b.Entity<ReferenceSector>(e =>
+        {
+            e.HasIndex(x => x.Slug).IsUnique();
+            e.Property(x => x.Slug).HasMaxLength(32).IsRequired();
+            e.Property(x => x.Title).HasMaxLength(128).IsRequired();
+        });
+
+        b.Entity<ReferenceCompany>(e =>
+        {
+            e.HasIndex(x => x.Symbol).IsUnique();
+            e.Property(x => x.Symbol).HasMaxLength(16).IsRequired();
+            e.Property(x => x.Name).HasMaxLength(128).IsRequired();
+            e.Property(x => x.SectorSlug).HasMaxLength(32);
+            e.Property(x => x.Theme).HasMaxLength(128);
+        });
+
+        b.Entity<ReferenceBond>(e =>
+        {
+            e.HasIndex(x => x.Symbol).IsUnique();
+            e.Property(x => x.Symbol).HasMaxLength(16).IsRequired();
+            e.Property(x => x.Name).HasMaxLength(128).IsRequired();
+            e.Property(x => x.IssuerSymbol).HasMaxLength(16);
+            e.Property(x => x.Quality).HasMaxLength(8).IsRequired();
+        });
+
+        b.Entity<ReferenceFund>(e =>
+        {
+            e.HasIndex(x => x.Symbol).IsUnique();
+            e.Property(x => x.Symbol).HasMaxLength(16).IsRequired();
+            e.Property(x => x.Name).HasMaxLength(128).IsRequired();
+        });
+
+        b.Entity<ReferenceDerivative>(e =>
+        {
+            e.HasIndex(x => x.Symbol).IsUnique();
+            e.Property(x => x.Symbol).HasMaxLength(16).IsRequired();
+            e.Property(x => x.Name).HasMaxLength(128).IsRequired();
+            e.Property(x => x.Type).HasMaxLength(32).IsRequired();
+            e.Property(x => x.UnderlyingSymbol).HasMaxLength(16);
         });
     }
 }

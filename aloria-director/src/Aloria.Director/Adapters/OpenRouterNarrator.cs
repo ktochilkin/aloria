@@ -157,6 +157,7 @@ public sealed class OpenRouterNarrator : INarrator
            факт → операционные последствия → реакция рынка/эффект второго порядка,
            можно добавить деталь лора Алории или сухую шутку.
 
+        Можно опираться на лор компании (поле story у кандидатов), но не противоречить ему.
         Пиши так, чтобы новости хотелось читать: конкретика, детали, лёгкая ирония.
         Не повторяй недавние заголовки (recentHeadlines). Запрещено: советы
         покупать/продавать, обещания доходности, «ставка», «казино», преуменьшение риска.
@@ -172,7 +173,17 @@ public sealed class OpenRouterNarrator : INarrator
         var candidates = spec.CandidateSymbols.Count > 0
             ? Universe.Issuers
                 .Where(i => spec.CandidateSymbols.Contains(i.Symbol))
-                .Select(i => new { i.Symbol, i.Name, i.Theme })
+                .Select(i => new
+                {
+                    i.Symbol,
+                    i.Name,
+                    i.Theme,
+                    story = i.Story,
+                    bonds = Universe.Bonds
+                        .Where(b => b.IssuerSymbol == i.Symbol)
+                        .Select(b => b.Symbol)
+                        .ToArray(),
+                })
                 .Cast<object>()
                 .ToArray()
             : [];

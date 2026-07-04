@@ -8,7 +8,8 @@ namespace Aloria.Api.Endpoints;
 
 /// <summary>
 /// Эндпоинты экономического мира: новости (фильтр по symbol/сектору/типу),
-/// справочник секторов/компаний и макросостояние. Клиент читает их вместо
+/// справочник секторов/компаний, макросостояние и справочник-каталог мира
+/// (лор компаний, облигации, фонды, деривативы). Клиент читает их вместо
 /// торгового <c>/news/graphql</c>. Писатель данных на шаге 1 — мок-сидер,
 /// позже — ИИ-режиссёр.
 /// </summary>
@@ -69,6 +70,31 @@ public static class MarketEndpoints
                     .Select(c => new CompanyDto(c.Id, c.Symbol, c.Name, c.Theme, s.Slug, c.Order))
                     .ToList()));
             return Results.Ok(dto);
+        });
+
+        // Справочник-каталог мира Алории целиком: сектора с лором, компании,
+        // облигации, фонды, деривативы. Пока каталог не запушен режиссёром —
+        // отдаём пустые массивы (не 404), клиенту так проще.
+        market.MapGet("/reference", async (AloriaDbContext db, CancellationToken ct) =>
+        {
+            var sectors = await db.ReferenceSectors.OrderBy(x => x.Order).ToListAsync(ct);
+            var companies = await db.ReferenceCompanies.OrderBy(x => x.Order).ToListAsync(ct);
+            var bonds = await db.ReferenceBonds.OrderBy(x => x.Order).ToListAsync(ct);
+            var funds = await db.ReferenceFunds.OrderBy(x => x.Order).ToListAsync(ct);
+            var derivatives = await db.ReferenceDerivatives.OrderBy(x => x.Order).ToListAsync(ct);
+
+            return Results.Ok(new MarketReferenceDto(
+                sectors.Select(s => new ReferenceSectorDto(s.Slug, s.Title, s.Description)).ToList(),
+                companies.Select(c => new ReferenceCompanyDto(
+                    c.Symbol, c.Name, c.SectorSlug, c.Theme, c.Story,
+                    c.Payout, c.Leverage, c.Sigma)).ToList(),
+                bonds.Select(x => new ReferenceBondDto(
+                    x.Symbol, x.Name, x.IssuerSymbol, x.Quality,
+                    x.CouponPerCycle, x.CouponEveryDays)).ToList(),
+                funds.Select(f => new ReferenceFundDto(
+                    f.Symbol, f.Name, f.IsBondFund, f.Description)).ToList(),
+                derivatives.Select(d => new ReferenceDerivativeDto(
+                    d.Symbol, d.Name, d.Type, d.UnderlyingSymbol, d.Description)).ToList()));
         });
 
         app.MapGet("/api/v1/macro/state", async (AloriaDbContext db, CancellationToken ct) =>
@@ -167,6 +193,101 @@ public static class MarketEndpoints
             db.NewsItems.Add(item);
             await db.SaveChangesAsync(ct);
             return Results.Ok(new { id = item.Id });
+        });
+
+        // Ингест справочника-каталога мира от Aloria Director: полная атомарная
+        // замена содержимого reference-таблиц в одной транзакции (идемпотентно —
+        // повторный PUT того же каталога даёт то же состояние).
+        admin.MapPut("/reference", async (
+            MarketReferenceInput input,
+            AloriaDbContext db,
+            CancellationToken ct) =>
+        {
+            var sectors = input.Sectors ?? Array.Empty<ReferenceSectorDto>();
+            var companies = input.Companies ?? Array.Empty<ReferenceCompanyDto>();
+            var bonds = input.Bonds ?? Array.Empty<ReferenceBondDto>();
+            var funds = input.Funds ?? Array.Empty<ReferenceFundDto>();
+            var derivatives = input.Derivatives ?? Array.Empty<ReferenceDerivativeDto>();
+
+            if (sectors.Any(s => string.IsNullOrWhiteSpace(s.Slug)))
+                return Results.BadRequest("у каждого сектора должен быть непустой slug");
+            if (companies.Any(c => string.IsNullOrWhiteSpace(c.Symbol))
+                || bonds.Any(x => string.IsNullOrWhiteSpace(x.Symbol))
+                || funds.Any(f => string.IsNullOrWhiteSpace(f.Symbol))
+                || derivatives.Any(d => string.IsNullOrWhiteSpace(d.Symbol)))
+                return Results.BadRequest("у каждого инструмента должен быть непустой symbol");
+
+            await using var tx = await db.Database.BeginTransactionAsync(ct);
+
+            await db.ReferenceSectors.ExecuteDeleteAsync(ct);
+            await db.ReferenceCompanies.ExecuteDeleteAsync(ct);
+            await db.ReferenceBonds.ExecuteDeleteAsync(ct);
+            await db.ReferenceFunds.ExecuteDeleteAsync(ct);
+            await db.ReferenceDerivatives.ExecuteDeleteAsync(ct);
+
+            db.ReferenceSectors.AddRange(sectors.Select((s, i) => new ReferenceSector
+            {
+                Id = Guid.NewGuid(),
+                Slug = s.Slug.Trim(),
+                Title = s.Title ?? string.Empty,
+                Description = s.Description ?? string.Empty,
+                Order = i,
+            }));
+            db.ReferenceCompanies.AddRange(companies.Select((c, i) => new ReferenceCompany
+            {
+                Id = Guid.NewGuid(),
+                Symbol = c.Symbol.Trim().ToUpperInvariant(),
+                Name = c.Name ?? string.Empty,
+                SectorSlug = c.SectorSlug ?? string.Empty,
+                Theme = c.Theme ?? string.Empty,
+                Story = c.Story ?? string.Empty,
+                Payout = c.Payout,
+                Leverage = c.Leverage,
+                Sigma = c.Sigma,
+                Order = i,
+            }));
+            db.ReferenceBonds.AddRange(bonds.Select((x, i) => new ReferenceBond
+            {
+                Id = Guid.NewGuid(),
+                Symbol = x.Symbol.Trim().ToUpperInvariant(),
+                Name = x.Name ?? string.Empty,
+                IssuerSymbol = string.IsNullOrWhiteSpace(x.IssuerSymbol) ? null : x.IssuerSymbol.Trim().ToUpperInvariant(),
+                Quality = x.Quality ?? string.Empty,
+                CouponPerCycle = x.CouponPerCycle,
+                CouponEveryDays = x.CouponEveryDays,
+                Order = i,
+            }));
+            db.ReferenceFunds.AddRange(funds.Select((f, i) => new ReferenceFund
+            {
+                Id = Guid.NewGuid(),
+                Symbol = f.Symbol.Trim().ToUpperInvariant(),
+                Name = f.Name ?? string.Empty,
+                IsBondFund = f.IsBondFund,
+                Description = f.Description ?? string.Empty,
+                Order = i,
+            }));
+            db.ReferenceDerivatives.AddRange(derivatives.Select((d, i) => new ReferenceDerivative
+            {
+                Id = Guid.NewGuid(),
+                Symbol = d.Symbol.Trim().ToUpperInvariant(),
+                Name = d.Name ?? string.Empty,
+                Type = d.Type ?? string.Empty,
+                UnderlyingSymbol = string.IsNullOrWhiteSpace(d.UnderlyingSymbol) ? null : d.UnderlyingSymbol.Trim().ToUpperInvariant(),
+                Description = d.Description ?? string.Empty,
+                Order = i,
+            }));
+
+            await db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+
+            return Results.Ok(new
+            {
+                sectors = sectors.Length,
+                companies = companies.Length,
+                bonds = bonds.Length,
+                funds = funds.Length,
+                derivatives = derivatives.Length,
+            });
         });
 
         // Ингест календаря цикла от Aloria Director (идемпотентно по ключу события).

@@ -423,9 +423,10 @@ public sealed class DirectorWorker : BackgroundService
             restored is null ? "создан" : "восстановлен",
             _engine.State.Day, _engine.State.TickOfDay, _engine.State.Macro.Regime);
 
-        // Полное состояние календаря публикуем на старте.
+        // Справочник мира и полное состояние календаря публикуем на старте.
         if (_apiPublisher is not null)
         {
+            await _apiPublisher.PublishReferenceAsync(ct);
             await _apiPublisher.PublishCalendarAsync(
                 _engine.State.Calendar.Where(c => !c.Done).ToList(), ct);
             await _apiPublisher.PublishMacroAsync(_engine.Snapshot(), ct);
