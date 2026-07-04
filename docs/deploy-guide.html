@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aloria — как задеплоить режиссёра и связать всё вместе</title>
+<style>
+  :root {
+    --ink: #0a0b0d; --body: #5b616e; --hair: #dee1e6; --canvas: #ffffff;
+    --soft: #f5f7fa; --blue: #0052ff; --green: #05b169; --red: #cf202f;
+    --warn: #b45309; --warnbg: #fef3c7; --code: #f1f3f7;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 40px 20px 80px; background: var(--canvas); color: var(--ink);
+    font: 16px/1.55 -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 30px; letter-spacing: -0.5px; margin: 0 0 6px; }
+  h2 { font-size: 22px; margin: 48px 0 12px; padding-top: 24px; border-top: 1px solid var(--hair); }
+  h3 { font-size: 17px; margin: 26px 0 8px; }
+  p, li { color: var(--body); }
+  strong { color: var(--ink); }
+  .lead { font-size: 18px; }
+  code, pre {
+    font: 13px/1.5 ui-monospace, "SF Mono", Menlo, monospace;
+    background: var(--code); border-radius: 6px;
+  }
+  code { padding: 2px 6px; color: var(--ink); }
+  pre { padding: 14px 16px; overflow-x: auto; border: 1px solid var(--hair); }
+  pre code { background: none; padding: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--hair); vertical-align: top; }
+  th { color: var(--body); font-weight: 600; font-size: 13px; }
+  td { color: var(--ink); }
+  td.dim { color: var(--body); }
+  .pill {
+    display: inline-block; padding: 2px 10px; border-radius: 100px; font-size: 12px;
+    font-weight: 700; background: var(--soft); border: 1px solid var(--hair); color: var(--body);
+  }
+  .pill.b { color: var(--blue); border-color: rgba(0,82,255,.3); background: rgba(0,82,255,.06); }
+  .pill.g { color: var(--green); border-color: rgba(5,177,105,.3); background: rgba(5,177,105,.07); }
+  .warnbox {
+    background: var(--warnbg); border: 1px solid rgba(180,83,9,.25); color: var(--warn);
+    border-radius: 10px; padding: 12px 16px; margin: 14px 0; font-size: 14px;
+  }
+  .okbox {
+    background: rgba(5,177,105,.07); border: 1px solid rgba(5,177,105,.25); color: #056b41;
+    border-radius: 10px; padding: 12px 16px; margin: 14px 0; font-size: 14px;
+  }
+  /* Диаграмма */
+  .diagram { display: flex; flex-direction: column; gap: 8px; margin: 20px 0; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .node {
+    flex: 1 1 160px; border: 1.5px solid var(--hair); border-radius: 12px;
+    padding: 10px 12px; background: var(--canvas); min-width: 150px;
+  }
+  .node b { display: block; font-size: 14px; }
+  .node span { font-size: 12px; color: var(--body); }
+  .node.app  { border-color: rgba(0,82,255,.45); }
+  .node.dir  { border-color: rgba(5,177,105,.5); }
+  .node.trx  { border-color: rgba(207,32,47,.4); }
+  .arrows { text-align: center; color: var(--body); font-size: 12px; padding: 2px 0; }
+  .steps { counter-reset: step; list-style: none; padding: 0; }
+  .steps > li {
+    counter-increment: step; position: relative; padding: 0 0 18px 44px; margin: 0;
+  }
+  .steps > li::before {
+    content: counter(step); position: absolute; left: 0; top: 0;
+    width: 28px; height: 28px; border-radius: 50%; background: var(--blue); color: #fff;
+    font-weight: 700; font-size: 14px; display: flex; align-items: center; justify-content: center;
+  }
+  .steps b { color: var(--ink); }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Aloria: деплой ИИ-режиссёра и вся связка</h1>
+<p class="lead">Что где живёт, какие правки внесены в terex, в каком порядке разворачивать
+и как проверить, что мир ожил. Состояние на июль 2026, ветка <code>prototype/macro-world-extras</code>.</p>
+
+<h2>1. Карта системы</h2>
+
+<div class="diagram">
+  <div class="row">
+    <div class="node app"><b>Приложение Aloria (Flutter)</b><span>iOS / Android / Web. Торгует через торговый API Алора; новости, макро, календарь и справочник берёт из aloria-api.</span></div>
+    <div class="node app"><b>aloria-admin (React + Vite)</b><span>Админка: контент + «Мир» (управление режиссёром). Проксирует <code>/api</code> → aloria-api, <code>/director</code> → режиссёр.</span></div>
+  </div>
+  <div class="arrows">▲ читают контент ▲&nbsp;&nbsp;&nbsp;&nbsp;▼ админ-ручки ▼</div>
+  <div class="row">
+    <div class="node dir"><b>aloria-api (ASP.NET + SQLite) :5050</b><span>Клиентский бэк контента: новости, макро-состояние, календарь цикла, справочник мира. Хранит то, что напушил режиссёр.</span></div>
+    <div class="node dir"><b>Aloria.Director (ASP.NET) :5077</b><span>ИИ-режиссёр: экономика мира (RNG + формулы), новости (LLM/шаблоны), целевые цены. Admin-API для «Мира» в админке.</span></div>
+  </div>
+  <div class="arrows">▼ director пишет целевые цены в схему <code>director</code> той же Postgres ▼</div>
+  <div class="row">
+    <div class="node trx"><b>Postgres terex</b><span><code>instruments</code> (справочник движка, сидится режиссёром) + схема <code>director</code>: price_targets, world_state, events_log.</span></div>
+    <div class="node trx"><b>terex.ordergenerator</b><span>+ новый генератор TargetPriceCommandsGenerator: читает price_targets, котирует лестницу лимиток и тейкеров клиентом GEN.</span></div>
+    <div class="node trx"><b>Terex.Router → OrderProcessor → MarketData</b><span>Реальный мэтчинг: заявки идут через RabbitMQ (connectorCommands), стакан и сделки — в торговый API.</span></div>
+  </div>
+</div>
+
+<p><strong>Два контура:</strong></p>
+<ul>
+  <li><strong>Контур цены (реальный рынок):</strong> режиссёр считает целевые цены → пишет в
+  <code>director.price_targets</code> → ordergenerator тянет середину стакана к цели настоящими
+  заявками → мэтчинг в OrderProcessor → котировки/стакан/свечи в приложении. Ученики торгуют
+  в том же стакане и тоже двигают цену.</li>
+  <li><strong>Контур истории (контент):</strong> режиссёр пушит в aloria-api макро-состояние,
+  новости, календарь цикла и справочник мира → приложение и админка читают их по HTTP.</li>
+</ul>
+
+<h2>2. Что режиссёр пушит в aloria-api</h2>
+<table>
+  <tr><th>Что</th><th>Ручка aloria-api</th><th>Когда</th></tr>
+  <tr><td>Макро-состояние (режим, ставка, инфляция, день цикла)</td><td><code>PUT /api/admin/market/macro/state</code></td><td class="dim">каждый мировой день</td></tr>
+  <tr><td>Новости</td><td><code>POST /api/admin/market/news</code></td><td class="dim">по событиям</td></tr>
+  <tr><td>Календарь цикла (отчёты, отсечки, купоны, ставка)</td><td><code>POST /api/admin/market/calendar</code></td><td class="dim">при планировании цикла</td></tr>
+  <tr><td>Справочник мира (лор компаний, облигации, фонды, деривативы)</td><td><code>PUT /api/admin/market/reference</code></td><td class="dim">один раз при старте</td></tr>
+</table>
+<p>Приложение читает: <code>GET /api/v1/macro/state</code>, <code>/api/v1/news</code>,
+<code>/api/v1/macro/calendar</code>, <code>/api/v1/market/reference</code>. Если aloria-api
+недоступен — режиссёр логирует warning и продолжает жить; если пуст справочник — приложение
+падает на встроенную статику. Ничего ни от чего жёстко не зависит.</p>
+
+<h2>3. Правки в terex — что именно сделано</h2>
+<p>Патч лежит в двух местах: применён в
+<code>~/Documents/warp/Downloads/terex.ordergenerator-master/</code> и продублирован в репо
+<code>aloria-director/terex-patch/</code> (источник правды для переноса).</p>
+
+<h3>Новые файлы (старые генераторы не тронуты)</h3>
+<table>
+  <tr><th>Файл</th><th>Роль</th></tr>
+  <tr><td><code>Services/TargetPriceCommandsGenerator.cs</code></td><td>Сам маркетмейкер: тянет mid к целевой цене, котирует лестницу, шлёт тейкеров.</td></tr>
+  <tr><td><code>Data/ITargetsDataProvider.cs</code> + <code>TargetsDataProvider.cs</code></td><td>Чтение <code>director.price_targets</code> и инструментов из Postgres (Npgsql, raw SQL). Если схемы нет — пустой список, не падает.</td></tr>
+  <tr><td><code>Models/TargetInfo.cs</code></td><td>DTO целевой цены.</td></tr>
+  <tr><td><code>Configuration/TargetGeneratorOptions.cs</code></td><td>Опции генератора (см. конфиг ниже).</td></tr>
+</table>
+
+<h3>Правки существующих файлов — всего 2×2 строки (описаны в <code>terex-patch/PATCHES.md</code>)</h3>
+<ul>
+  <li><code>Configuration/GeneratorOptions.cs</code> — свойство <code>TargetGeneratorOptions</code>
+  с <code>[AlorSettings(..., SourceName = "Terex::TargetGenerator")]</code>, severity
+  <b>Warn</b>: нет секции в Identity — генератор просто выключен, сервис ведёт себя как раньше.</li>
+  <li><code>Configuration/ServiceCollectionExtensions.cs</code> — регистрация
+  <code>TargetPriceCommandsGenerator</code> и <code>TargetsDataProvider</code> в DI.</li>
+</ul>
+
+<h3>Как работает генератор</h3>
+<ul>
+  <li>Раз в <code>TargetsRefreshSeconds</code> (10 с) перечитывает целевые цены и инструменты.</li>
+  <li>Держит локальную середину; за одно котирование подтягивает её на <code>PullFactorPct</code>
+  (25 %) разрыва к цели, но не больше <code>MaxStepTicks</code> (40) шагов цены + шум
+  <code>NoiseSteps</code> (±3 шага).</li>
+  <li>Спред = max(2 шага, 0.8 × дневная σ × цена); лестница <code>DepthLevels</code> (3) уровней
+  в обе стороны, лимитки клиентом <code>GEN</code>, TIF OneDay.</li>
+  <li>С вероятностью <code>TakerProbPct</code> (8 % + больше при большом разрыве) шлёт рыночную
+  заявку в сторону цели — лента сделок живёт.</li>
+  <li>Цены квантуются к <code>MinPriceIncrement</code> через decimal (без int-каста — та самая
+  грабля H-5 из старых генераторов обойдена), объёмы целые.</li>
+</ul>
+
+<h2>4. Деплой по шагам</h2>
+
+<ol class="steps">
+  <li><b>Прероквизиты.</b> .NET 10 runtime на хосте режиссёра и aloria-api; доступ к Postgres
+  terex с правом создавать схему; сетевой доступ режиссёра к aloria-api; ключ OpenRouter
+  (не обязателен — без него новости пишет шаблонный нарратор).</li>
+
+  <li><b>aloria-api.</b> <code>dotnet publish aloria-api/src/Aloria.Api -c Release</code>,
+  запуск бинаря. Порт из <code>appsettings.json</code> (<code>"Port": "5050"</code>). SQLite-файл
+  создаётся сам, все таблицы — bootstrap при старте. Ничего сидить не нужно: контент напушит
+  режиссёр.</li>
+
+  <li><b>Сид инструментов terex.</b> Один раз:
+<pre><code>cd aloria-director/src/Aloria.Director
+DIRECTOR_TEREX_DB="Host=…;Database=terex;Username=…;Password=…" \
+  dotnet run -- seed</code></pre>
+  Идемпотентно: создаёт схему <code>director</code> (price_targets / world_state / events_log)
+  и вставляет 24 инструмента вселенной в <code>instruments</code> (raw SQL — у таблицы
+  surrogate PK <code>GENERATED ALWAYS</code>, EF туда писать нельзя). Ценовые коридоры широкие
+  (×0.25…×4 от старта), чтобы лимиты движка не мешали жизни цены.</li>
+
+  <li><b>Режиссёр.</b> <code>dotnet publish -c Release</code> и запуск с конфигом
+  (env-переменные перекрывают <code>appsettings.json</code>):
+<pre><code># мир
+Director__Seed=20260701          # зерно мира (видно и меняется в админке)
+Director__TicksPerDay=96
+Director__TickSeconds=900        # 900 = мировой день за сутки; в dev ставим 15
+Director__Port=5077
+# интеграции
+Director__AloriaApi__Enabled=true
+Director__AloriaApi__BaseUrl=http://&lt;aloria-api&gt;:5050
+Director__TerexDb__Enabled=true
+DIRECTOR_TEREX_DB="Host=…;Database=terex;…"
+# новости через LLM (опционально)
+Director__Llm__Enabled=true
+Director__Llm__Model=openai/gpt-4.1-mini
+OPENROUTER_API_KEY=sk-or-…       # только env, в конфиги/git не класть</code></pre>
+  При старте режиссёр сам: восстановит/создаст мир, запушит справочник и макро в aloria-api,
+  начнёт тикать и писать целевые цены.</li>
+
+  <li><b>Патч ordergenerator.</b> Разложить файлы из <code>aloria-director/terex-patch/</code>
+  по <code>Terex.OrderGenerator/</code> (таблица соответствия в README патча), внести 2×2 строки
+  из PATCHES.md, собрать (нужен корпоративный NuGet/VPN). В Identity добавить секцию
+  <code>Terex::TargetGenerator</code>:
+<pre><code>{
+  "MinIntervalMs": 800,  "MaxIntervalMs": 2500,
+  "TargetsRefreshSeconds": 10,
+  "PullFactorPct": 25,   "MaxStepTicks": 40,  "NoiseSteps": 3,
+  "SpreadSigmaFactorPct": 80,
+  "DepthLevels": 3,      "LevelStepTicks": 2,
+  "MaxLimitQuantity": 40,
+  "TakerProbPct": 8,     "MaxMarketQuantity": 10
+}</code></pre>
+  Выкатить ordergenerator. Откат простой: убрать секцию из Identity — генератор выключен.</li>
+
+  <li><b>Админка.</b> <code>npm run build</code> в <code>aloria-admin</code>; в прод-раздаче
+  нужен реверс-прокси: <code>/api → aloria-api:5050</code>, <code>/director →
+  режиссёр:5077</code> (в dev это делает vite). Вкладка «Мир» — рычаги, ансамбль-симуляции,
+  просчёт будущего, зерно.</li>
+</ol>
+
+<h3>Чек-лист проверки</h3>
+<pre><code># режиссёр жив и тикает
+curl -s http://&lt;director&gt;:5077/director/state | head -c 200
+# контент дошёл до aloria-api
+curl -s http://&lt;api&gt;:5050/api/v1/macro/state
+curl -s http://&lt;api&gt;:5050/api/v1/market/reference | head -c 200
+curl -s "http://&lt;api&gt;:5050/api/v1/news?limit=3"
+# целевые цены пишутся
+psql … -c "select symbol, target_price, updated_at from director.price_targets limit 5"
+# стакан ожил: в приложении на любом инструменте появились заявки клиента GEN</code></pre>
+
+<h2>5. LLM-новости: модель и стоимость</h2>
+<p>Дефолт — <code>openai/gpt-4.1-mini</code> (выбрана тестом на боевом промпте: держит знак
+события, придумывает конкретные продукты, чистый русский, ~2.4 с на новость).
+Стоимость ≈ <strong>$0.0005 за новость</strong> — при 10–20 LLM-новостях в день это
+<strong>меньше $0.3 в месяц</strong>. Хочется красивее — <code>anthropic/claude-haiku-4.5</code>
+(~$0.002/новость, всё равно копейки). Механические новости (купоны, отсечки, выплаты)
+LLM не трогают — токены не жгутся. При ошибках LLM: 1 ретрай → шаблонный фолбэк →
+после 3 подряд провалов пауза 5 минут (circuit breaker). Мир без сети не останавливается.</p>
+
+<h2>6. Грабли и нюансы</h2>
+<ul>
+  <li><strong>Порядок запуска:</strong> aloria-api → режиссёр (иначе первый пуш справочника
+  уйдёт в warning; следующие макро-пуши всё равно догонят, а справочник — при рестарте).</li>
+  <li><strong>Детерминизм:</strong> мир полностью определяется зерном; состояние RNG сохраняется
+  в снапшоте, поэтому «Просчёт» в админке показывает точное будущее. Кнопки «кризис»/«режим» и
+  смена зерна — это осознанное вмешательство, после них будущее другое.</li>
+  <li><strong>Рестарт режиссёра:</strong> с включённой TerexDb состояние мира персистится в
+  <code>director.world_state</code> и мир продолжается; в dev без Postgres рестарт = новый мир
+  с day 1.</li>
+  <li><strong>Ключ OpenRouter — только через env</strong> (<code>OPENROUTER_API_KEY</code>).
+  Не в appsettings, не в git, не в логи.</li>
+  <li><strong>Часовые пояса:</strong> всё в UTC; SQLite теряет DateTimeKind — в DTO aloria-api
+  уже стоит <code>SpecifyKind(Utc)</code>, не убирать.</li>
+  <li><strong>instruments в terex</strong> — рукописная таблица с DDL, отличающимся от EF-модели:
+  только raw SQL (сид так и сделан).</li>
+  <li><strong>MassCancel</strong> в terex ломает аудит роутера (известная проблема F-4) —
+  генератор его не использует.</li>
+  <li><strong>Просчёт (foresight)</strong> — по умолчанию 30 дней, потолок 120
+  (<code>Director__Foresight__*</code>): спойлер-гигиена для админа.</li>
+  <li><strong>Ученики двигают цену</strong> в том же стакане. Пока обратной связи
+  «активность учеников → мир» нет; когда появится — точный просчёт будущего перестанет
+  быть точным (осознанный размен).</li>
+</ul>
+
+<div class="okbox"><strong>Короткая версия:</strong> поднять aloria-api → прогнать
+<code>seed</code> → запустить режиссёра с env-конфигом → разложить патч ordergenerator +
+секция Identity → собрать админку за прокси → пройтись по чек-листу. Всё остальное система
+делает сама.</div>
+
+</main>
+</body>
+</html>

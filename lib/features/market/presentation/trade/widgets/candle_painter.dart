@@ -151,10 +151,12 @@ class CandlePainter extends CustomPainter {
       );
 
       final isUp = c.close >= c.open;
+      // Тела слегка прозрачные (одинаково у роста и падения), чтобы фитиль
+      // просвечивал сквозь тело свечи.
       final bodyPaint = Paint()
-        ..color = isUp
-            ? AppColors.success
-            : AppColors.error.withValues(alpha: 0.9)
+        ..color = (isUp ? AppColors.success : AppColors.error).withValues(
+          alpha: 0.9,
+        )
         ..style = PaintingStyle.fill;
 
       final top = priceToY(isUp ? c.close : c.open);

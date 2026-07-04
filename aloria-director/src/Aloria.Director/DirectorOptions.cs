@@ -37,8 +37,12 @@ public sealed class DirectorOptions
 
         public string BaseUrl { get; set; } = "https://openrouter.ai/api/v1";
 
-        /// <summary>Модель OpenRouter (дешёвая и быстрая по умолчанию).</summary>
-        public string Model { get; set; } = "openai/gpt-4o-mini";
+        /// <summary>
+        /// Модель OpenRouter. Выбрана по сравнительному тесту на боевом промпте
+        /// (07.2026): лучший баланс качества русского, следования знаку события
+        /// и цены (~$0.0005/новость). Дороже и лучше — anthropic/claude-haiku-4.5.
+        /// </summary>
+        public string Model { get; set; } = "openai/gpt-4.1-mini";
 
         /// <summary>Имя env-переменной с ключом.</summary>
         public string ApiKeyEnv { get; set; } = "OPENROUTER_API_KEY";
