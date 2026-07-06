@@ -155,15 +155,34 @@ class LearningApiClient {
   }
 
   /// Регистрирует push-токен устройства за пользователем (portfolioId).
+  /// [categories] — битовая маска категорий пушей (см. PushCategory);
+  /// без неё бэк оставит текущую (или дефолтную для нового устройства).
   Future<void> registerDevice({
     required String token,
     required String platform,
     required String portfolioId,
+    int? categories,
   }) async {
     await _dio.post<void>(
       '/api/v1/me/devices',
       queryParameters: {'portfolioId': portfolioId},
-      data: {'token': token, 'platform': platform},
+      data: {
+        'token': token,
+        'platform': platform,
+        if (categories != null) 'categories': categories,
+      },
+    );
+  }
+
+  /// Обновляет маску категорий пушей уже зарегистрированного устройства
+  /// (по token, без перерегистрации).
+  Future<void> updateDeviceCategories({
+    required String token,
+    required int categories,
+  }) async {
+    await _dio.patch<void>(
+      '/api/v1/me/devices',
+      data: {'token': token, 'categories': categories},
     );
   }
 

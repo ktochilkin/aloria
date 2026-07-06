@@ -15,6 +15,7 @@ import 'package:aloria/features/market/presentation/positions_page.dart';
 import 'package:aloria/features/market/presentation/trade_page.dart';
 import 'package:aloria/features/profile/presentation/progress_page.dart';
 import 'package:aloria/features/settings/application/settings_controller.dart';
+import 'package:aloria/features/settings/presentation/push_settings_page.dart';
 import 'package:aloria/features/settings/presentation/settings_page.dart';
 import 'package:aloria/features/support/presentation/support_tickets_page.dart';
 import 'package:aloria/l10n/generated/app_localizations.dart';
@@ -47,6 +48,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'settings',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (ctx, state) => const SettingsPage(),
+        routes: [
+          GoRoute(
+            path: 'notifications',
+            name: 'settings_notifications',
+            parentNavigatorKey: _rootNavigatorKey,
+            builder: (ctx, state) => const PushSettingsPage(),
+          ),
+        ],
       ),
       GoRoute(
         path: '/progress',

@@ -2,6 +2,7 @@ using Aloria.Api.Data;
 using Aloria.Api.Domain;
 using Aloria.Api.Dtos;
 using Aloria.Api.Services;
+using Aloria.Api.Services.Push;
 using Microsoft.EntityFrameworkCore;
 
 namespace Aloria.Api.Endpoints;
@@ -144,11 +145,17 @@ public static class MarketEndpoints
         admin.MapPut("/macro/state", async (
             MacroStateInput input,
             AloriaDbContext db,
+            PushDispatcher dispatcher,
+            ILoggerFactory loggerFactory,
             CancellationToken ct) =>
         {
             var m = await db.MacroStates
                 .OrderByDescending(x => x.UpdatedAt)
                 .FirstOrDefaultAsync(ct);
+            // Старое состояние — до перезаписи: по нему детектим смену фазы,
+            // старт нового цикла и открытие нового мирового дня.
+            var oldRegime = m?.Regime;
+            var oldCycleDay = m?.CycleDay;
             if (m == null)
             {
                 m = new MacroState { Id = Guid.NewGuid() };
@@ -164,6 +171,21 @@ public static class MarketEndpoints
             m.UpdatedAt = DateTime.UtcNow;
 
             await db.SaveChangesAsync(ct);
+
+            // Пуши шлём до return синхронно (scoped DbContext нельзя трогать
+            // после ответа), но сбой пуша не валит сам PUT — режиссёру важен
+            // только результат записи состояния.
+            try
+            {
+                await MarketPushTriggers.NotifyMacroChangedAsync(
+                    db, dispatcher, m, oldRegime, oldCycleDay, ct);
+            }
+            catch (Exception e)
+            {
+                loggerFactory.CreateLogger("MarketPush")
+                    .LogWarning(e, "Пуш по макросостоянию не отправлен");
+            }
+
             return Results.Ok(ToDto(m));
         });
 
@@ -171,6 +193,8 @@ public static class MarketEndpoints
         admin.MapPost("/news", async (
             DirectorNewsInput input,
             AloriaDbContext db,
+            PushDispatcher dispatcher,
+            ILoggerFactory loggerFactory,
             CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(input.Headline) || string.IsNullOrWhiteSpace(input.Content))
@@ -193,6 +217,19 @@ public static class MarketEndpoints
             };
             db.NewsItems.Add(item);
             await db.SaveChangesAsync(ct);
+
+            // Пуш о новости — до return синхронно (см. комментарий у macro/state);
+            // сбой пуша ингест не валит.
+            try
+            {
+                await MarketPushTriggers.NotifyNewsAsync(dispatcher, item, ct);
+            }
+            catch (Exception e)
+            {
+                loggerFactory.CreateLogger("MarketPush")
+                    .LogWarning(e, "Пуш о новости {Id} не отправлен", item.Id);
+            }
+
             return Results.Ok(new { id = item.Id });
         });
 

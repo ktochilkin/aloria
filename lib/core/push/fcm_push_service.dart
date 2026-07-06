@@ -44,6 +44,20 @@ class FcmPushService implements PushService {
   }
 
   @override
+  Future<PushPermission> permissionStatus() async {
+    final settings = await _msg.getNotificationSettings();
+    switch (settings.authorizationStatus) {
+      case AuthorizationStatus.authorized:
+      case AuthorizationStatus.provisional:
+        return PushPermission.granted;
+      case AuthorizationStatus.denied:
+        return PushPermission.denied;
+      default:
+        return PushPermission.notDetermined;
+    }
+  }
+
+  @override
   Future<String?> currentToken() => _msg.getToken();
 
   @override

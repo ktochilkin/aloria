@@ -43,6 +43,9 @@ builder.Services.AddScoped<ProgressUpdater>();
 builder.Services.AddScoped<PracticeEventDispatcher>();
 builder.Services.AddScoped<IBrokerageGateway, StubBrokerageGateway>();
 builder.Services.AddSingleton<IPushSender, FcmPushSender>();
+// Троттлинг пуш-категорий — singleton: диспетчер scoped, а окна троттлинга
+// должны жить между запросами (in-memory, сбрасываются рестартом — ок для прототипа).
+builder.Services.AddSingleton<PushThrottle>();
 builder.Services.AddScoped<PushDispatcher>();
 
 builder.Services.AddEndpointsApiExplorer();
@@ -145,12 +148,23 @@ using (var scope = app.Services.CreateScope())
             ""Token"" TEXT NOT NULL,
             ""Platform"" TEXT NOT NULL,
             ""Disabled"" INTEGER NOT NULL,
+            ""Categories"" INTEGER NOT NULL DEFAULT 27,
             ""CreatedAt"" TEXT NOT NULL,
             ""LastSeenAt"" TEXT NOT NULL
         );
         CREATE UNIQUE INDEX IF NOT EXISTS ""IX_DeviceTokens_Token""
             ON ""DeviceTokens"" (""Token"");
     ");
+
+    // Пуш-категории per-device: маска включённых категорий (дефолт 27 —
+    // всё, кроме новостей компаний). Таблица могла быть создана до колонки —
+    // докатываем через try/catch, как остальные ручные миграции.
+    try
+    {
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"DeviceTokens\" ADD COLUMN \"Categories\" INTEGER NOT NULL DEFAULT 27");
+    }
+    catch { /* колонка уже существует */ }
 
     // r11 — спиральная модель. Добавляем колонки Section/Lesson и новые
     // таблицы. ALTER в SQLite не поддерживает IF NOT EXISTS, поэтому

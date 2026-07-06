@@ -1,3 +1,5 @@
+using Aloria.Api.Services.Push;
+
 namespace Aloria.Api.Domain;
 
 /// <summary>
@@ -19,6 +21,10 @@ public class DeviceToken
     public string Platform { get; set; } = string.Empty;
 
     public bool Disabled { get; set; }
+
+    /// Битовая маска включённых пуш-категорий устройства (см. PushCategory).
+    /// Дефолт — всё, кроме новостей компаний.
+    public int Categories { get; set; } = PushCategories.DefaultMask;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime LastSeenAt { get; set; } = DateTime.UtcNow;

@@ -36,17 +36,38 @@ public static class DeviceEndpoints
                     UserId = user.Id,
                     Token = body.Token,
                     Platform = body.Platform ?? string.Empty,
+                    Categories = body.Categories ?? PushCategories.DefaultMask,
                 });
             }
             else
             {
                 existing.UserId = user.Id;
                 if (!string.IsNullOrWhiteSpace(body.Platform)) existing.Platform = body.Platform!;
+                if (body.Categories is { } categories) existing.Categories = categories;
                 existing.Disabled = false;
                 existing.LastSeenAt = DateTime.UtcNow;
             }
             await db.SaveChangesAsync(ct);
             return Results.Ok(new { registered = true });
+        });
+
+        // Обновление маски пуш-категорий устройства (тумблеры на экране
+        // «Уведомления»). Токен ещё не зарегистрирован — 404: клиент синкнет
+        // маску при следующей регистрации токена.
+        group.MapPatch("", async (
+            DeviceCategoriesRequest body,
+            AloriaDbContext db,
+            CancellationToken ct) =>
+        {
+            if (string.IsNullOrWhiteSpace(body.Token))
+                return Results.BadRequest("token required");
+
+            var updated = await db.DeviceTokens
+                .Where(d => d.Token == body.Token)
+                .ExecuteUpdateAsync(s => s.SetProperty(d => d.Categories, body.Categories), ct);
+            return updated == 0
+                ? Results.NotFound()
+                : Results.Ok(new { categories = body.Categories });
         });
 
         // Отписка устройства (logout / выключение пушей).

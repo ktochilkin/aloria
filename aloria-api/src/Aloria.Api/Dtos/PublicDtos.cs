@@ -127,4 +127,7 @@ public record DueReviewDto(
     string? RecallAnswer);
 
 // ----- Push-устройства ----------------------------------------------------
-public record DeviceRegisterRequest(string Token, string? Platform);
+public record DeviceRegisterRequest(string Token, string? Platform, int? Categories);
+
+/// <summary>Обновление маски пуш-категорий уже зарегистрированного устройства.</summary>
+public record DeviceCategoriesRequest(string Token, int Categories);

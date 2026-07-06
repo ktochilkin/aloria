@@ -68,6 +68,19 @@ class SettingsPage extends ConsumerWidget {
           ),
 
           const SizedBox(height: 20),
+          const _SectionLabel(text: 'Уведомления'),
+          _Card(
+            children: [
+              _LinkRow(
+                icon: Icons.notifications_outlined,
+                title: 'Уведомления',
+                subtitle: 'Какие пуши присылать',
+                onTap: () => context.push('/settings/notifications'),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
           const _SectionLabel(text: 'Помощь'),
           _Card(
             children: [

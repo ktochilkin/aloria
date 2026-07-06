@@ -11,6 +11,9 @@ abstract class PushService {
   /// Запрос разрешения на уведомления. true — разрешено.
   Future<bool> requestPermission();
 
+  /// Текущее состояние системного разрешения — без показа диалога.
+  Future<PushPermission> permissionStatus();
+
   /// Текущий push-токен устройства (или null, если недоступен/нет разрешения).
   Future<String?> currentToken();
 
@@ -19,6 +22,18 @@ abstract class PushService {
 
   /// Тап по уведомлению — для перехода на нужный экран (deep-link).
   Stream<PushTap> get onMessageTap;
+}
+
+/// Состояние системного разрешения на уведомления.
+enum PushPermission {
+  /// Разрешены (в т.ч. provisional на iOS).
+  granted,
+
+  /// Запрещены в системных настройках.
+  denied,
+
+  /// Диалог разрешения ещё не показывался.
+  notDetermined,
 }
 
 /// Данные тапа по пушу: целевой маршрут для go_router + сырой payload.
