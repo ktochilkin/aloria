@@ -87,7 +87,8 @@ public static class MarketEndpoints
                 sectors.Select(s => new ReferenceSectorDto(s.Slug, s.Title, s.Description)).ToList(),
                 companies.Select(c => new ReferenceCompanyDto(
                     c.Symbol, c.Name, c.SectorSlug, c.Theme, c.Story,
-                    c.Payout, c.Leverage, c.Sigma)).ToList(),
+                    c.Payout, c.Leverage, c.Sigma,
+                    c.Stage, c.CeoName, c.CeoSinceDay)).ToList(),
                 bonds.Select(x => new ReferenceBondDto(
                     x.Symbol, x.Name, x.IssuerSymbol, x.Quality,
                     x.CouponPerCycle, x.CouponEveryDays)).ToList(),
@@ -244,6 +245,11 @@ public static class MarketEndpoints
                 Payout = c.Payout,
                 Leverage = c.Leverage,
                 Sigma = c.Sigma,
+                // Отсутствие поля в PUT = дефолт (обратная совместимость со
+                // старым каталогом без stage/CEO).
+                Stage = string.IsNullOrWhiteSpace(c.Stage) ? "mature" : c.Stage.Trim(),
+                CeoName = string.IsNullOrWhiteSpace(c.CeoName) ? null : c.CeoName.Trim(),
+                CeoSinceDay = c.CeoSinceDay,
                 Order = i,
             }));
             db.ReferenceBonds.AddRange(bonds.Select((x, i) => new ReferenceBond

@@ -95,11 +95,14 @@ public static class RegimeMachine
 
     /// <summary>
     /// Решение «ЦБ Алории» по ставке (правило Тейлора с шагом 0.25 п.п.).
-    /// Возвращает изменение ставки в п.п. за цикл.
+    /// «Характер» главы смещает порог: ястреб (hawkishness &gt; 0) повышает
+    /// раньше и охотнее, снижает позже; голубь — наоборот. Сдвиг — до
+    /// ±0.5 п.п. к «сырому» правилу. Возвращает изменение ставки в п.п. за цикл.
     /// </summary>
-    public static double PolicyDelta(MacroState m)
+    public static double PolicyDelta(MacroState m, double hawkishness = 0)
     {
-        var raw = 0.5 * (m.Inflation - 4.0) - 0.25 * (m.Growth - 2.0);
+        var raw = 0.5 * (m.Inflation - 4.0) - 0.25 * (m.Growth - 2.0)
+                  + hawkishness * 0.5;
         var stepped = Math.Round(raw * 4, MidpointRounding.AwayFromZero) / 4.0;
         return Math.Clamp(stepped, -2.0, 2.0);
     }

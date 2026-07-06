@@ -426,7 +426,7 @@ public sealed class DirectorWorker : BackgroundService
         // Справочник мира и полное состояние календаря публикуем на старте.
         if (_apiPublisher is not null)
         {
-            await _apiPublisher.PublishReferenceAsync(ct);
+            await _apiPublisher.PublishReferenceAsync(_engine.State, ct);
             await _apiPublisher.PublishCalendarAsync(
                 _engine.State.Calendar.Where(c => !c.Done).ToList(), ct);
             await _apiPublisher.PublishMacroAsync(_engine.Snapshot(), ct);
@@ -462,6 +462,11 @@ public sealed class DirectorWorker : BackgroundService
                         await _apiPublisher.PublishMacroAsync(output.Snapshot, ct);
                     if (output.NewCalendarEvents.Count > 0)
                         await _apiPublisher.PublishCalendarAsync(output.NewCalendarEvents, ct);
+                    // Смена CEO меняет видимую часть справочника (ceoName) —
+                    // пере-пушим весь каталог (PUT атомарный и идемпотентный).
+                    if (output.Events.Any(e =>
+                            e.Spec is { Type: EventType.CeoChange, Scope: EventScope.Company }))
+                        await _apiPublisher.PublishReferenceAsync(_engine.State, ct);
                 }
 
                 if (output.News.Count > 0 || output.Events.Count > 0)

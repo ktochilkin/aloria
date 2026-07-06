@@ -82,16 +82,29 @@ IconData _sectorIcon(String slug) {
   return Icons.category_rounded;
 }
 
-CompanyLore _parseCompany(Map<String, dynamic> json) => CompanyLore(
-  symbol: json['symbol'] as String? ?? '',
-  name: json['name'] as String? ?? '',
-  sectorSlug: json['sectorSlug'] as String? ?? '',
-  theme: json['theme'] as String? ?? '',
-  story: json['story'] as String? ?? '',
-  payout: _toDouble(json['payout']),
-  leverage: _toDouble(json['leverage']),
-  sigma: _toDouble(json['sigma']),
-);
+CompanyLore _parseCompany(Map<String, dynamic> json) {
+  final symbol = json['symbol'] as String? ?? '';
+  return CompanyLore(
+    symbol: symbol,
+    name: json['name'] as String? ?? '',
+    sectorSlug: json['sectorSlug'] as String? ?? '',
+    stage: _parseStage(json['stage'], symbol),
+    theme: json['theme'] as String? ?? '',
+    story: json['story'] as String? ?? '',
+    payout: _toDouble(json['payout']),
+    leverage: _toDouble(json['leverage']),
+    sigma: _toDouble(json['sigma']),
+    ceoName: json['ceoName'] as String?,
+    ceoSinceDay: (json['ceoSinceDay'] as num?)?.toInt(),
+  );
+}
+
+/// Стадия без учёта регистра. Старый бэк поля не отдаёт — тогда берём
+/// стадию из статического лора по тикеру, а для незнакомых бумаг — mature.
+CompanyStage _parseStage(Object? value, String symbol) =>
+    companyStageFrom(value) ??
+    aloriaCompanyBySymbol(symbol)?.stage ??
+    CompanyStage.mature;
 
 BondLore _parseBond(Map<String, dynamic> json) => BondLore(
   symbol: json['symbol'] as String? ?? '',

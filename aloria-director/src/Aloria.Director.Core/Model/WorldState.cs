@@ -57,11 +57,40 @@ public sealed class IssuerState
     /// <summary>Эмитент в дефолте (купоны не платятся).</summary>
     public bool Defaulted { get; set; }
 
+    /// <summary>
+    /// Живое качество менеджмента [0..1] — СКРЫТЫЙ параметр (наружу не отдаётся,
+    /// кроме админ-ручки). Старт = <c>Spec.MgmtQuality0</c>, меняется при смене CEO.
+    /// </summary>
+    public double Management { get; set; }
+
+    /// <summary>Текущий CEO (видимая часть: имя уходит в справочник приложения).</summary>
+    public string CeoName { get; set; } = string.Empty;
+
+    /// <summary>С какого мирового дня руководит текущий CEO.</summary>
+    public int CeoSinceDay { get; set; }
+
     /// <summary>Остаток «тлеющих» шоков: (тиков осталось, лог-дельта за тик).</summary>
     public List<(int TicksLeft, double PerTick)> Smoulder { get; } = [];
 
     /// <summary>Временные шоки: (тиков осталось, полный лог-сдвиг, скорость возврата).</summary>
     public List<(int TicksLeft, double Level)> Transients { get; } = [];
+}
+
+/// <summary>
+/// Состояние ЦБ Алории: у регулятора есть «характер» — ястребиность главы
+/// смещает решения по ставке. Скрытая часть ДНК мира: число наружу не отдаётся,
+/// наблюдается по паттерну решений и окраске новостей.
+/// </summary>
+public sealed class CentralBankState
+{
+    /// <summary>Ястребиность главы [-1..1]: ястреб повышает раньше, снижает позже.</summary>
+    public double Hawkishness { get; set; } = 0.3;
+
+    /// <summary>Имя главы ЦБ (вымышленное).</summary>
+    public string GovernorName { get; set; } = Universe.InitialCbGovernor;
+
+    /// <summary>С какого мирового дня руководит текущий глава.</summary>
+    public int SinceDay { get; set; }
 }
 
 /// <summary>Живое состояние выпуска облигации.</summary>
@@ -116,6 +145,8 @@ public sealed class WorldState
     public int TicksPerDay { get; init; } = 96;
 
     public MacroState Macro { get; } = new();
+
+    public CentralBankState CentralBank { get; } = new();
 
     public Dictionary<string, IssuerState> Issuers { get; } = new();
     public Dictionary<string, BondState> Bonds { get; } = new();

@@ -96,11 +96,24 @@ app.MapGet("/director/state", (DirectorWorker worker) =>
         snapshot = worker.CurrentSnapshot,
         futureSeed = worker.CurrentFutureSeed,
         macro = state.Macro,
+        // Админ-ручка — инструмент наблюдения владельца: здесь видно и
+        // скрытую часть ДНК (moat/mgmt/характер ЦБ).
+        centralBank = new
+        {
+            governorName = state.CentralBank.GovernorName,
+            hawkishness = Math.Round(state.CentralBank.Hawkishness, 3),
+            sinceDay = state.CentralBank.SinceDay,
+        },
         issuers = state.Issuers.Values.Select(i => new
         {
             i.Spec.Symbol,
             i.Spec.Name,
             sector = i.Spec.SectorSlug,
+            stage = i.Spec.Stage.ToString().ToLowerInvariant(),
+            ceoName = i.CeoName,
+            ceoSinceDay = i.CeoSinceDay,
+            moat = i.Spec.Moat,
+            mgmt = Math.Round(i.Management, 3),
             fair = Math.Round(Math.Exp(i.LogFair), 2),
             target = Math.Round(i.Target, 2),
             eps = Math.Round(i.EpsTrend, 2),

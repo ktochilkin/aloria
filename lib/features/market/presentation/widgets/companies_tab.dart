@@ -1,13 +1,10 @@
 import 'package:aloria/features/market/application/market_controller.dart';
 import 'package:aloria/features/market/application/market_reference_provider.dart';
-import 'package:aloria/features/market/data/market_repository.dart';
 import 'package:aloria/features/market/domain/aloria_lore.dart';
 import 'package:aloria/features/market/domain/reference_catalog.dart';
-import 'package:aloria/features/market/presentation/widgets/company_detail_page.dart';
-import 'package:aloria/features/market/presentation/widgets/instrument_avatar.dart';
+import 'package:aloria/features/market/presentation/widgets/reference_tiles.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 /// Вкладка «Компании»: справочник мира Алории — кто есть на бирже,
 /// чем занимается и какие облигации выпустил.
@@ -40,7 +37,7 @@ class CompaniesTab extends ConsumerWidget {
             sliver: SliverList.list(
               children: [
                 for (final company in catalog.companiesOfSector(sector.slug))
-                  _CompanyTile(
+                  CompanyTile(
                     company: company,
                     catalog: catalog,
                     securities: securities,
@@ -52,7 +49,7 @@ class CompaniesTab extends ConsumerWidget {
         const SliverPadding(
           padding: EdgeInsets.fromLTRB(16, 22, 16, 4),
           sliver: SliverToBoxAdapter(
-            child: _SimpleHeader(
+            child: ReferenceSectionHeader(
               icon: Icons.receipt_long_rounded,
               title: 'Облигации',
               subtitle: 'Государство и компании занимают в долг под купоны',
@@ -64,14 +61,14 @@ class CompaniesTab extends ConsumerWidget {
           sliver: SliverList.list(
             children: [
               for (final bond in catalog.bonds)
-                _BondTile(bond: bond, catalog: catalog, securities: securities),
+                BondTile(bond: bond, catalog: catalog, securities: securities),
             ],
           ),
         ),
         const SliverPadding(
           padding: EdgeInsets.fromLTRB(16, 22, 16, 4),
           sliver: SliverToBoxAdapter(
-            child: _SimpleHeader(
+            child: ReferenceSectionHeader(
               icon: Icons.pie_chart_rounded,
               title: 'Фонды',
               subtitle: 'Готовые корзины — весь рынок одним паем',
@@ -83,29 +80,13 @@ class CompaniesTab extends ConsumerWidget {
           sliver: SliverList.list(
             children: [
               for (final fund in catalog.funds)
-                _FundTile(fund: fund, securities: securities),
+                FundTile(fund: fund, securities: securities),
             ],
           ),
         ),
       ],
     );
   }
-}
-
-/// Открывает инструмент, подложив живую котировку, если она уже загружена.
-void _openInstrument(
-  BuildContext context,
-  String symbol,
-  List<MarketSecurity> securities,
-) {
-  MarketSecurity? match;
-  for (final s in securities) {
-    if (s.symbol == symbol) {
-      match = s;
-      break;
-    }
-  }
-  context.push('/market/$symbol', extra: match);
 }
 
 class _WorldIntroCard extends StatelessWidget {
@@ -167,283 +148,10 @@ class _SectorHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _SimpleHeader(
+    return ReferenceSectionHeader(
       icon: sector.icon,
       title: sector.title,
       subtitle: sector.description,
     );
   }
 }
-
-class _SimpleHeader extends StatelessWidget {
-  const _SimpleHeader({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    final scheme = Theme.of(context).colorScheme;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icon, size: 18, color: scheme.primary),
-            const SizedBox(width: 8),
-            Text(
-              title,
-              style: text.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-            ),
-          ],
-        ),
-        const SizedBox(height: 2),
-        Text(
-          subtitle,
-          style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-        ),
-      ],
-    );
-  }
-}
-
-class _CompanyTile extends StatelessWidget {
-  const _CompanyTile({
-    required this.company,
-    required this.catalog,
-    required this.securities,
-  });
-
-  final CompanyLore company;
-  final ReferenceCatalog catalog;
-  final List<MarketSecurity> securities;
-
-  @override
-  Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    final scheme = Theme.of(context).colorScheme;
-    final bonds = catalog.bondsOfIssuer(company.symbol);
-    final label = company.symbol.length > 2
-        ? company.symbol.substring(0, 2)
-        : company.symbol;
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(14),
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => CompanyDetailPage(company: company),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        child: Row(
-          children: [
-            InstrumentAvatar(symbol: company.symbol, label: label),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    company.name,
-                    style: text.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${company.symbol} · ${_capitalize(company.theme)}',
-                    style: text.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            if (bonds.isNotEmpty) ...[
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: scheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  bonds.length == 1
-                      ? '1 облигация'
-                      : '${bonds.length} облигации',
-                  style: text.labelSmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
-            const SizedBox(width: 4),
-            Icon(Icons.chevron_right, size: 20, color: scheme.outline),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _BondTile extends StatelessWidget {
-  const _BondTile({
-    required this.bond,
-    required this.catalog,
-    required this.securities,
-  });
-
-  final BondLore bond;
-  final ReferenceCatalog catalog;
-  final List<MarketSecurity> securities;
-
-  @override
-  Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    final scheme = Theme.of(context).colorScheme;
-    final meta = bondQualityMeta(bond.quality);
-    final issuer = bond.issuerSymbol == null
-        ? 'Государство Алории'
-        : catalog.companyBySymbol(bond.issuerSymbol!)?.name ??
-              bond.issuerSymbol!;
-    final couponPct = (bond.couponPerCycle * 100).toStringAsFixed(1);
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(14),
-      onTap: () => _openInstrument(context, bond.symbol, securities),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: meta.color.withValues(alpha: 0.14),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.receipt_long_rounded,
-                size: 20,
-                color: meta.color,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    bond.name,
-                    style: text.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '$issuer · купон $couponPct% за цикл',
-                    style: text.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: meta.color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                meta.label,
-                style: text.labelSmall?.copyWith(
-                  color: meta.color,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _FundTile extends StatelessWidget {
-  const _FundTile({required this.fund, required this.securities});
-
-  final FundLore fund;
-  final List<MarketSecurity> securities;
-
-  @override
-  Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    final scheme = Theme.of(context).colorScheme;
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(14),
-      onTap: () => _openInstrument(context, fund.symbol, securities),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: scheme.primary.withValues(alpha: 0.12),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.pie_chart_rounded,
-                size: 20,
-                color: scheme.primary,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${fund.name} · ${fund.symbol}',
-                    style: text.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    fund.description,
-                    style: text.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 4),
-            Icon(Icons.chevron_right, size: 20, color: scheme.outline),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-String _capitalize(String s) =>
-    s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);

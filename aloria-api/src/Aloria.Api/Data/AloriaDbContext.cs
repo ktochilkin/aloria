@@ -270,6 +270,8 @@ public class AloriaDbContext(DbContextOptions<AloriaDbContext> options) : DbCont
             e.Property(x => x.Name).HasMaxLength(128).IsRequired();
             e.Property(x => x.SectorSlug).HasMaxLength(32);
             e.Property(x => x.Theme).HasMaxLength(128);
+            e.Property(x => x.Stage).HasMaxLength(16);
+            e.Property(x => x.CeoName).HasMaxLength(128);
         });
 
         b.Entity<ReferenceBond>(e =>

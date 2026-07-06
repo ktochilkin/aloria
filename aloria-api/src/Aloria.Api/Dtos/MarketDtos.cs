@@ -73,7 +73,11 @@ public record CalendarItemDto(int Day, int TickOfDay, string Type, string? Symbo
 /// <summary>Сектор каталога с лором.</summary>
 public record ReferenceSectorDto(string Slug, string Title, string Description);
 
-/// <summary>Компания каталога: лор плюс фундаментальные параметры мира.</summary>
+/// <summary>
+/// Компания каталога: лор плюс фундаментальные параметры мира.
+/// Stage/CeoName/CeoSinceDay nullable для обратной совместимости: старый PUT
+/// без этих полей не падает (отсутствие поля = дефолт), GET всегда отдаёт stage.
+/// </summary>
 public record ReferenceCompanyDto(
     string Symbol,
     string Name,
@@ -82,7 +86,10 @@ public record ReferenceCompanyDto(
     string Story,
     double Payout,
     double Leverage,
-    double Sigma);
+    double Sigma,
+    string? Stage = null,
+    string? CeoName = null,
+    int? CeoSinceDay = null);
 
 /// <summary>Облигация каталога. Quality: Gov | A | Bbb | Bb.</summary>
 public record ReferenceBondDto(

@@ -165,6 +165,15 @@ public sealed class OpenRouterNarrator : INarrator
         Не повторяй недавние заголовки (recentHeadlines). Запрещено: советы
         покупать/продавать, обещания доходности, «ставка», «казино», преуменьшение риска.
 
+        Для смены руководителя (type=CeoChange, detail = имя назначенца):
+        напиши новость о назначении. Знак (sign) — единственный намёк на силу
+        назначения: +1 — «рынок встретил со сдержанным оптимизмом», -1 —
+        «инвесторы пожимают плечами», 0 — рабочее назначение без ярлыков.
+        Намекай ТОЛЬКО качественно; никаких чисел, рейтингов и оценок
+        «качества менеджмента» — этот параметр скрыт от игроков. Для scope=Macro
+        это смена главы ЦБ Алории: sign +1 — ястреб (жёстче к инфляции),
+        -1 — голубь (мягче к экономике), 0 — прагматик.
+
         Ответ — ТОЛЬКО валидный JSON без markdown:
         {"symbol": "ТИКЕР или null", "headline": "...", "body": "...",
          "sentiment": "positive|negative|neutral"}
@@ -182,6 +191,9 @@ public sealed class OpenRouterNarrator : INarrator
                     i.Name,
                     i.Theme,
                     story = i.Story,
+                    stage = i.Stage.ToString().ToLowerInvariant(),
+                    // Живое имя CEO — из состояния мира; спек — только фолбэк.
+                    ceoName = draft.CandidateCeos.GetValueOrDefault(i.Symbol, i.CeoName0),
                     bonds = Universe.Bonds
                         .Where(b => b.IssuerSymbol == i.Symbol)
                         .Select(b => b.Symbol)
@@ -219,6 +231,7 @@ public sealed class OpenRouterNarrator : INarrator
                 actual = spec.Actual,
                 expected = spec.Expected,
                 surpriseSigmas = spec.SurpriseZ,
+                detail = spec.Detail,
             },
             candidates,
             recentHeadlines = draft.RecentHeadlines,

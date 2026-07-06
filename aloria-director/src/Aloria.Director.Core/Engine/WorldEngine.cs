@@ -81,6 +81,9 @@ public sealed class WorldEngine
                 LogFair = Math.Log((double)i.StartPrice),
                 Target = (double)i.StartPrice,
                 EpsTrend = i.BaseEpsPerCycle,
+                Management = i.MgmtQuality0,
+                CeoName = i.CeoName0,
+                CeoSinceDay = 0,
             };
         }
 
@@ -140,7 +143,7 @@ public sealed class WorldEngine
         var output = new TickOutput { Snapshot = Snapshot() };
 
         if (State.TickOfDay == 0)
-            await DailyOpenAsync(output, ct);
+            await DailyOpenAsync(narrator, output, ct);
 
         await PublishExpectationsAsync(narrator, output, ct);
         await ExecuteScheduledAsync(narrator, output, ct);
@@ -163,7 +166,7 @@ public sealed class WorldEngine
 
     // ------------------------------------------------------------- daily open
 
-    private async Task DailyOpenAsync(TickOutput output, CancellationToken ct)
+    private async Task DailyOpenAsync(INarrator narrator, TickOutput output, CancellationToken ct)
     {
         var m = State.Macro;
 
@@ -233,6 +236,14 @@ public sealed class WorldEngine
                 sector.BetaGrowth * (m.Growth - 2.0)
                 + sector.BetaInflation * (m.Inflation - 4.0));
 
+            // Скрытое качество менеджмента: медленный дневной дрейф тренда
+            // прибыли — сильная команда понемногу растит EPS, слабая размывает.
+            // Дрейф относительный (EPS у компаний отличается на порядок) и
+            // ограничен коридором вокруг базового EPS, чтобы не убегал.
+            issuer.EpsTrend = Math.Clamp(
+                issuer.EpsTrend * (1 + (issuer.Management - 0.5) * 0.004),
+                0.25 * spec.BaseEpsPerCycle, 4.0 * spec.BaseEpsPerCycle);
+
             // Накопление прибыли: за цикл цена прирастает на earnings yield,
             // дивидендная часть вычитается на отсечке → в цене остаётся
             // нераспределённая прибыль. Без этого дивиденды съедали бы цену.
@@ -280,6 +291,93 @@ public sealed class WorldEngine
             bond.Accrued = BondMath.Accrued(
                 bond.Spec.CouponRatePerCycle, bond.Spec.CouponEveryDays, DaysSinceCoupon(bond));
         }
+
+        await CeoTurnoverAsync(narrator, output, ct);
+        await CbGovernorTurnoverAsync(narrator, output, ct);
+    }
+
+    // -------------------------------------------------------- смена CEO / ЦБ
+
+    /// <summary>Базовый дневной hazard смены CEO (1 раз в ~150 дней на компанию).</summary>
+    private const double CeoHazardPerDay = 1.0 / 150;
+
+    /// <summary>Дневной hazard смены главы ЦБ (1 раз в ~250 дней).</summary>
+    private const double CbGovernorHazardPerDay = 1.0 / 250;
+
+    /// <summary>
+    /// Смена CEO: hazard на компанию в день (при глубоком дистрессе ×4 —
+    /// советы директоров не терпят). Новое качество менеджмента — Beta(2,2)
+    /// вокруг середины, с хвостами «звезда»/«неудачник». Число скрыто:
+    /// новость лишь качественно намекает через знак.
+    /// </summary>
+    private async Task CeoTurnoverAsync(INarrator narrator, TickOutput output, CancellationToken ct)
+    {
+        foreach (var issuer in State.Issuers.Values)
+        {
+            var hazard = CeoHazardPerDay * (issuer.Distress > 0.8 ? 4.0 : 1.0);
+            if (!_rng.Chance(hazard)) continue;
+
+            var newMgmt = 0.25 + 0.5 * _rng.NextBeta(2, 2);
+            var tail = _rng.NextDouble();
+            if (tail < 0.10) newMgmt += 0.15;      // «звезда»
+            else if (tail < 0.20) newMgmt -= 0.15; // «неудачник»
+            issuer.Management = Math.Clamp(newMgmt, 0.15, 0.95);
+            issuer.CeoName = PickFreshName(Universe.CeoNamePool, issuer.CeoName);
+            issuer.CeoSinceDay = State.Day;
+
+            var spec = new EventSpec
+            {
+                Type = EventType.CeoChange,
+                Scope = EventScope.Company,
+                Severity = 0.3,
+                // Знак — единственный КАЧЕСТВЕННЫЙ намёк на скрытое качество.
+                Sign = issuer.Management >= 0.6 ? +1 : issuer.Management <= 0.4 ? -1 : 0,
+                Shape = EventShape.Jump,
+                Symbol = issuer.Spec.Symbol,
+                // Кандидат один и уже выбран — но пул нужен, чтобы LLM-нарратор
+                // получил лор компании в промпт.
+                CandidateSymbols = [issuer.Spec.Symbol],
+                Detail = issuer.CeoName,
+            };
+            var story = await narrator.NarrateAsync(Draft(spec), ct);
+            AddNews(output, story, spec, urgency: 2);
+            LogEvent(output, spec, new(), story.Headline);
+        }
+    }
+
+    /// <summary>
+    /// Смена главы ЦБ: редкое крупное событие. Новый характер — равномерно
+    /// [-0.7, +0.7]; дальше он сдвигает решения по ставке и окраску новостей.
+    /// </summary>
+    private async Task CbGovernorTurnoverAsync(INarrator narrator, TickOutput output, CancellationToken ct)
+    {
+        if (!_rng.Chance(CbGovernorHazardPerDay)) return;
+
+        var cb = State.CentralBank;
+        cb.GovernorName = PickFreshName(Universe.CbGovernorNamePool, cb.GovernorName);
+        cb.Hawkishness = -0.7 + 1.4 * _rng.NextDouble();
+        cb.SinceDay = State.Day;
+
+        var spec = new EventSpec
+        {
+            Type = EventType.CeoChange,
+            Scope = EventScope.Macro,
+            Severity = 0.6,
+            // Знак кодирует характер для нарратора: ястреб / голубь / нейтрал.
+            Sign = cb.Hawkishness >= 0.25 ? +1 : cb.Hawkishness <= -0.25 ? -1 : 0,
+            Shape = EventShape.Jump,
+            Detail = cb.GovernorName,
+        };
+        var story = await narrator.NarrateAsync(Draft(spec), ct);
+        AddNews(output, story, spec, urgency: 3);
+        LogEvent(output, spec, new(), story.Headline);
+    }
+
+    /// <summary>Имя из пула, не совпадающее с текущим (детерминированно от _rng).</summary>
+    private string PickFreshName(IReadOnlyList<string> pool, string current)
+    {
+        var candidates = pool.Where(n => n != current).ToArray();
+        return candidates.Length == 0 ? current : _rng.Pick(candidates);
     }
 
     private int DaysSinceCoupon(BondState b) => State.Day % b.Spec.CouponEveryDays;
@@ -344,7 +442,8 @@ public sealed class WorldEngine
             }
             else
             {
-                expected = RegimeMachine.PolicyDelta(State.Macro);
+                // Консенсус знает характер главы ЦБ: ястребиность в ожидании.
+                expected = RegimeMachine.PolicyDelta(State.Macro, State.CentralBank.Hawkishness);
                 sigma = 0.25;
                 ApplyRateImpact(expected * PreMoveShare);
             }
@@ -613,7 +712,8 @@ public sealed class WorldEngine
     private async Task RateDecisionAsync(CalendarEvent evt, INarrator narrator, TickOutput output, CancellationToken ct)
     {
         var exp = State.Expectations.GetValueOrDefault(evt.Id);
-        var expected = exp?.Expected ?? RegimeMachine.PolicyDelta(State.Macro);
+        var expected = exp?.Expected
+                       ?? RegimeMachine.PolicyDelta(State.Macro, State.CentralBank.Hawkishness);
 
         var surprise = _rng.NextDouble() switch
         {
@@ -698,6 +798,10 @@ public sealed class WorldEngine
                     if (!State.Issuers.TryGetValue(symbol, out var issuer)) break;
 
                     var magnitude = spec.Sign * spec.Severity * spec.Severity * CompanyImpactScale;
+                    // Скрытая устойчивость (moat): негативный корпоративный
+                    // удар гасится брендом/позицией — множитель (1.5 − Moat).
+                    if (magnitude < 0)
+                        magnitude *= 1.5 - issuer.Spec.Moat;
                     ApplyShaped(issuer, magnitude, spec);
                     applied[symbol] = magnitude;
                     if (spec.Sign < 0)
@@ -728,6 +832,11 @@ public sealed class WorldEngine
                         var sector = Universe.SectorOf(issuer.Spec.SectorSlug);
                         var magnitude = spec.Sign * spec.Severity * spec.Severity * MacroImpactScale
                                         * (0.5 + 0.5 * sector.BetaGrowth);
+                        // В кризис устойчивость (moat) видна лучше всего:
+                        // негативный макро-шок по компании гасится тем же
+                        // множителем (1.5 − Moat), что и корпоративный.
+                        if (State.Macro.Crisis && magnitude < 0)
+                            magnitude *= 1.5 - issuer.Spec.Moat;
                         ApplyShaped(issuer, magnitude, spec);
                         applied[issuer.Spec.Symbol] = magnitude;
                     }
@@ -788,8 +897,13 @@ public sealed class WorldEngine
             }
 
             var sigma = issuer.Spec.SigmaDaily * volMult;
+            // Устойчивые компании (Moat > 0.6) возвращаются к справедливой
+            // стоимости чуть быстрее — рынок верит бренду.
+            var gravity = GravityPerDay * (issuer.Spec.Moat > 0.6
+                ? 1 + 0.3 * (issuer.Spec.Moat - 0.6)
+                : 1.0);
             var logT = Math.Log(Math.Max(1e-9, issuer.Target));
-            logT += GravityPerDay / tpd * (issuer.LogFair - logT)
+            logT += gravity / tpd * (issuer.LogFair - logT)
                     + 0.7 * sigma / Math.Sqrt(tpd) * _rng.NextGaussian();
             issuer.Target = Math.Exp(logT);
         }
@@ -872,6 +986,9 @@ public sealed class WorldEngine
         Spec = spec,
         World = Snapshot(),
         RecentHeadlines = _recentHeadlines.ToArray(),
+        CandidateCeos = spec.CandidateSymbols
+            .Where(State.Issuers.ContainsKey)
+            .ToDictionary(s => s, s => State.Issuers[s].CeoName),
     };
 
     public WorldSnapshot Snapshot() => new()
@@ -884,6 +1001,8 @@ public sealed class WorldEngine
         Inflation = Math.Round(State.Macro.Inflation, 2),
         Growth = Math.Round(State.Macro.Growth, 2),
         DaysSinceCrisis = State.Macro.DaysSinceCrisis,
+        CbGovernorName = State.CentralBank.GovernorName,
+        CbHawkishness = State.CentralBank.Hawkishness,
     };
 
     private void AddNews(

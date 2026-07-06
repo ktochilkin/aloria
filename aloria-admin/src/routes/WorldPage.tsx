@@ -29,6 +29,31 @@ const regimeWash: Record<string, string> = {
   Recovery: 'rgba(42,120,214,0.12)',
 };
 
+const stageRu: Record<string, { label: string; tone: 'primary' | 'neutral' | 'success' }> = {
+  growth: { label: 'растущая', tone: 'primary' },
+  mature: { label: 'зрелая', tone: 'neutral' },
+  defensive: { label: 'защитная', tone: 'success' },
+};
+
+/// Характер главы ЦБ по hawkishness: ястреб / голубь / нейтрален.
+function hawkishnessRu(h: number): string {
+  if (h > 0.25) return 'ястреб';
+  if (h < -0.25) return 'голубь';
+  return 'нейтрален';
+}
+
+/// Скрытый ДНК-параметр [0..1] с цветовой шкалой: слабый / средний / сильный.
+function DnaValue({ value }: { value: number | null | undefined }) {
+  if (value == null) return <span className="text-xs text-(--color-fg-muted)">—</span>;
+  const cls =
+    value > 0.65
+      ? 'text-(--color-success)'
+      : value < 0.4
+        ? 'text-(--color-error)'
+        : 'text-(--color-fg-muted)';
+  return <span className={`tabular-nums text-xs font-semibold ${cls}`}>{value.toFixed(2)}</span>;
+}
+
 const tuningFields: {
   key: keyof WorldTuning;
   label: string;
@@ -394,6 +419,8 @@ export function WorldPage() {
   }
 
   const s = state.data!.snapshot;
+  // Защищаемся от старого бэка без ДНК-полей: карточка ЦБ просто не рисуется.
+  const cb = state.data!.centralBank ?? null;
 
   return (
     <>
@@ -432,7 +459,7 @@ export function WorldPage() {
             день {s.day} · цикл {Math.floor((s.day - 1) / 10) + 1}, день {s.cycleDay}/10
           </span>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4">
           <Stat label="Ставка" value={`${s.keyRate.toFixed(2)}%`} />
           <Stat label="Инфляция" value={`${s.inflation.toFixed(1)}%`} />
           <Stat label="Рост" value={`${s.growth.toFixed(1)}%`} />
@@ -441,6 +468,22 @@ export function WorldPage() {
           <Stat
             label="Дефолты"
             value={state.data!.bonds.filter((b) => b.defaulted).length}
+          />
+          <Stat
+            label="ЦБ"
+            value={
+              cb ? (
+                <span className="block text-base leading-tight">
+                  {cb.governorName}
+                  <span className="block text-xs font-normal text-(--color-fg-muted) mt-0.5">
+                    {hawkishnessRu(cb.hawkishness)} · {cb.hawkishness > 0 ? '+' : ''}
+                    {cb.hawkishness.toFixed(2)}
+                  </span>
+                </span>
+              ) : (
+                '—'
+              )
+            }
           />
         </div>
       </Card>
@@ -757,7 +800,7 @@ export function WorldPage() {
           <HelpCircle className="size-4" />
           Как работают рычаги (и при чём тут seed)
         </h2>
-        <div className="grid sm:grid-cols-3 gap-4 text-sm text-(--color-fg-muted) leading-relaxed">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-(--color-fg-muted) leading-relaxed">
           <div>
             <div className="font-semibold text-(--color-fg) mb-1">Будущее не записано</div>
             Seed — это не сценарий, а зерно потока случайностей. Мир генерируется тик за тиком:
@@ -776,45 +819,89 @@ export function WorldPage() {
             живой мир не меняется. Это одно из возможных будущих: частоты честные,
             конкретные даты у реального мира будут другие.
           </div>
+          <div>
+            <div className="font-semibold text-(--color-fg) mb-1">ДНК компаний</div>
+            У каждой компании есть скрытые черты: moat гасит кризисный урон и негативные события,
+            mgmt смещает знак продуктовых новостей и дрейф прибыли. Смена CEO перебрасывает mgmt
+            (и рождает новость), а характер главы ЦБ (ястреб/голубь) смещает решения по ставке.
+          </div>
         </div>
       </Card>
 
       {/* Инструменты */}
       <div className="grid lg:grid-cols-2 gap-4 mt-4 items-start">
         <Card className="p-6">
-          <h2 className="text-base font-bold mb-3">Акции · справедливая vs цель</h2>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs uppercase tracking-wider text-(--color-fg-muted)">
-                <th className="pb-2">Тикер</th>
-                <th className="pb-2">Компания</th>
-                <th className="pb-2 text-right">Правда</th>
-                <th className="pb-2 text-right">Цель</th>
-                <th className="pb-2 text-right">Дистресс</th>
-              </tr>
-            </thead>
-            <tbody>
-              {state.data!.issuers.map((i) => (
-                <tr key={i.symbol} className="border-t border-(--color-border)">
-                  <td className="py-1.5 font-mono text-xs">{i.symbol}</td>
-                  <td className="py-1.5">{i.name}</td>
-                  <td className="py-1.5 text-right tabular-nums">{i.fair.toFixed(1)}</td>
-                  <td className="py-1.5 text-right tabular-nums font-semibold">{i.target.toFixed(1)}</td>
-                  <td className="py-1.5 text-right">
-                    {i.defaulted ? (
-                      <Badge tone="error">дефолт</Badge>
-                    ) : i.distress > 0.5 ? (
-                      <Badge tone="warning">{(i.distress * 100).toFixed(0)}%</Badge>
-                    ) : (
-                      <span className="text-(--color-fg-muted) tabular-nums text-xs">
-                        {(i.distress * 100).toFixed(0)}%
-                      </span>
-                    )}
-                  </td>
+          <div className="flex items-center gap-2 mb-1">
+            <h2 className="text-base font-bold">Акции · справедливая vs цель</h2>
+            <Badge tone="warning">скрыто от учеников</Badge>
+          </div>
+          <p className="text-xs text-(--color-fg-muted) mb-3">
+            Стадия, CEO, moat и mgmt — ДНК компаний: ученики видят только следы
+            (устойчивость в кризис, сюрпризы отчётности, новости о руководстве).
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs uppercase tracking-wider text-(--color-fg-muted)">
+                  <th className="pb-2">Тикер</th>
+                  <th className="pb-2">Компания</th>
+                  <th className="pb-2">Стадия</th>
+                  <th className="pb-2">CEO</th>
+                  <th className="pb-2 text-right">Правда</th>
+                  <th className="pb-2 text-right">Цель</th>
+                  <th className="pb-2 text-right">Moat</th>
+                  <th className="pb-2 text-right">Mgmt</th>
+                  <th className="pb-2 text-right">Дистресс</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {state.data!.issuers.map((i) => (
+                  <tr key={i.symbol} className="border-t border-(--color-border)">
+                    <td className="py-1.5 font-mono text-xs">{i.symbol}</td>
+                    <td className="py-1.5 whitespace-nowrap">{i.name}</td>
+                    <td className="py-1.5">
+                      {stageRu[i.stage] ? (
+                        <Badge tone={stageRu[i.stage].tone}>{stageRu[i.stage].label}</Badge>
+                      ) : (
+                        <span className="text-xs text-(--color-fg-muted)">—</span>
+                      )}
+                    </td>
+                    <td className="py-1.5 whitespace-nowrap">
+                      {i.ceoName ? (
+                        <>
+                          {i.ceoName}
+                          <span className="block text-[11px] text-(--color-fg-muted)">
+                            с дня {i.ceoSinceDay ?? 0}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-xs text-(--color-fg-muted)">—</span>
+                      )}
+                    </td>
+                    <td className="py-1.5 text-right tabular-nums">{i.fair.toFixed(1)}</td>
+                    <td className="py-1.5 text-right tabular-nums font-semibold">{i.target.toFixed(1)}</td>
+                    <td className="py-1.5 text-right">
+                      <DnaValue value={i.moat} />
+                    </td>
+                    <td className="py-1.5 text-right">
+                      <DnaValue value={i.mgmt} />
+                    </td>
+                    <td className="py-1.5 text-right">
+                      {i.defaulted ? (
+                        <Badge tone="error">дефолт</Badge>
+                      ) : i.distress > 0.5 ? (
+                        <Badge tone="warning">{(i.distress * 100).toFixed(0)}%</Badge>
+                      ) : (
+                        <span className="text-(--color-fg-muted) tabular-nums text-xs">
+                          {(i.distress * 100).toFixed(0)}%
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Card>
 
         <Card className="p-6">

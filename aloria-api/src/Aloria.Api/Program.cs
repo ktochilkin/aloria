@@ -403,6 +403,9 @@ using (var scope = app.Services.CreateScope())
             ""Payout"" REAL NOT NULL DEFAULT 0,
             ""Leverage"" REAL NOT NULL DEFAULT 0,
             ""Sigma"" REAL NOT NULL DEFAULT 0,
+            ""Stage"" TEXT NOT NULL DEFAULT 'mature',
+            ""CeoName"" TEXT NULL,
+            ""CeoSinceDay"" INTEGER NULL,
             ""Order"" INTEGER NOT NULL DEFAULT 0
         );
         CREATE UNIQUE INDEX IF NOT EXISTS ""IX_ReferenceCompanies_Symbol""
@@ -444,6 +447,20 @@ using (var scope = app.Services.CreateScope())
         CREATE UNIQUE INDEX IF NOT EXISTS ""IX_ReferenceDerivatives_Symbol""
             ON ""ReferenceDerivatives"" (""Symbol"");
     ");
+
+    // ДНК компаний: стадия и текущий CEO в reference-каталоге. Таблица могла
+    // быть создана до этих колонок — докатываем через try/catch (у SQLite нет
+    // ADD COLUMN IF NOT EXISTS), как и остальные ручные миграции выше.
+    foreach (var alter in new[]
+    {
+        "ALTER TABLE \"ReferenceCompanies\" ADD COLUMN \"Stage\" TEXT NOT NULL DEFAULT 'mature'",
+        "ALTER TABLE \"ReferenceCompanies\" ADD COLUMN \"CeoName\" TEXT NULL",
+        "ALTER TABLE \"ReferenceCompanies\" ADD COLUMN \"CeoSinceDay\" INTEGER NULL",
+    })
+    {
+        try { await db.Database.ExecuteSqlRawAsync(alter); }
+        catch { /* колонка уже существует */ }
+    }
 
     // Импорт markdown-уроков: при первом запуске (пустая БД) либо явно по флагу
     // --seed. Импортёр идемпотентный — обновляет уроки по (section, slug) и

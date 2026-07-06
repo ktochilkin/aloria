@@ -74,9 +74,11 @@ public sealed class AloriaApiPublisher
     /// <summary>
     /// Публикует справочник мира (сектора, компании с лором, облигации, фонды,
     /// деривативы) в aloria-api. Идемпотентная полная замена: PUT всего каталога,
-    /// источник правды — <see cref="Universe"/>. Вызывается один раз на старте.
+    /// источник правды — <see cref="Universe"/> плюс живое состояние мира
+    /// (текущий CEO — из <paramref name="world"/>, не из спеков). Вызывается на
+    /// старте и после каждой смены CEO.
     /// </summary>
-    public Task PublishReferenceAsync(CancellationToken ct = default)
+    public Task PublishReferenceAsync(WorldState world, CancellationToken ct = default)
         => PutAsync("api/admin/market/reference", new
         {
             sectors = Universe.Sectors.Select(s => new
@@ -85,16 +87,23 @@ public sealed class AloriaApiPublisher
                 title = s.Title,
                 description = s.Description,
             }).ToArray(),
-            companies = Universe.Issuers.Select(i => new
+            companies = Universe.Issuers.Select(i =>
             {
-                symbol = i.Symbol,
-                name = i.Name,
-                sectorSlug = i.SectorSlug,
-                theme = i.Theme,
-                story = i.Story,
-                payout = i.PayoutRatio,
-                leverage = i.Leverage,
-                sigma = i.SigmaDaily,
+                var live = world.Issuers.GetValueOrDefault(i.Symbol);
+                return new
+                {
+                    symbol = i.Symbol,
+                    name = i.Name,
+                    sectorSlug = i.SectorSlug,
+                    theme = i.Theme,
+                    story = i.Story,
+                    payout = i.PayoutRatio,
+                    leverage = i.Leverage,
+                    sigma = i.SigmaDaily,
+                    stage = StageSlug(i.Stage),
+                    ceoName = live?.CeoName,
+                    ceoSinceDay = live?.CeoSinceDay,
+                };
             }).ToArray(),
             bonds = Universe.Bonds.Select(b => new
             {
@@ -139,6 +148,14 @@ public sealed class AloriaApiPublisher
         await PostAsync("api/admin/market/calendar", payload, ct);
     }
 
+    /// <summary>Slug стадии компании для каталога («growth|mature|defensive»).</summary>
+    private static string StageSlug(CompanyStage stage) => stage switch
+    {
+        CompanyStage.Growth => "growth",
+        CompanyStage.Defensive => "defensive",
+        _ => "mature",
+    };
+
     /// <summary>Словарь типов между миром режиссёра и лентой приложения.</summary>
     private static string MapType(EventType t) => t switch
     {
@@ -153,6 +170,7 @@ public sealed class AloriaApiPublisher
         EventType.OperationsShock => "operations",
         EventType.Default => "default",
         EventType.ExpectationNote => "guidance",
+        EventType.CeoChange => "management",
         _ => "operations",
     };
 

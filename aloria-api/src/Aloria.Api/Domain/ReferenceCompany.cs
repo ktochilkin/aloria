@@ -29,6 +29,15 @@ public class ReferenceCompany
     /// <summary>Базовая волатильность бумаги (сигма на тик).</summary>
     public double Sigma { get; set; }
 
+    /// <summary>Стадия компании: growth | mature | defensive.</summary>
+    public string Stage { get; set; } = "mature";
+
+    /// <summary>Имя текущего руководителя (null — режиссёр ещё не назначил).</summary>
+    public string? CeoName { get; set; }
+
+    /// <summary>Мировой день, с которого руководит текущий CEO.</summary>
+    public int? CeoSinceDay { get; set; }
+
     /// <summary>Позиция в каталоге (порядок, в котором прислал режиссёр).</summary>
     public int Order { get; set; }
 }

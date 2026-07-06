@@ -26,9 +26,20 @@ export type WorldSnapshot = {
   daysSinceCrisis: number;
 };
 
+/// Стадия компании: растущая / зрелая / защитная.
+export type CompanyStage = 'growth' | 'mature' | 'defensive';
+
+/// Состояние ЦБ Алории: глава и его характер (ястреб/голубь).
+export type CentralBankState = {
+  governorName: string;
+  hawkishness: number; // [-1..1], >0 — ястреб
+  sinceDay: number;
+};
+
 export type DirectorState = {
   snapshot: WorldSnapshot;
   futureSeed: number | null;
+  centralBank: CentralBankState;
   issuers: {
     symbol: string;
     name: string;
@@ -38,6 +49,12 @@ export type DirectorState = {
     eps: number;
     distress: number;
     defaulted: boolean;
+    stage: CompanyStage;
+    ceoName: string;
+    ceoSinceDay: number;
+    // Скрытое ДНК (видно только админу): устойчивость и качество менеджмента, [0..1].
+    moat: number;
+    mgmt: number;
   }[];
   bonds: {
     symbol: string;

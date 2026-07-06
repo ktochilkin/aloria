@@ -58,6 +58,23 @@ public enum EventType
     Default,
     // Служебные
     ExpectationNote,
+    /// <summary>
+    /// Смена руководителя: Scope=Company — CEO компании,
+    /// Scope=Macro — глава ЦБ Алории. Всегда добавляется в КОНЕЦ enum'а,
+    /// чтобы не сдвигать номера в сохранённых снимках.
+    /// </summary>
+    CeoChange,
+}
+
+/// <summary>
+/// Стадия компании (видимая часть «ДНК», уходит в справочник приложения):
+/// растущая / зрелая / защитная.
+/// </summary>
+public enum CompanyStage
+{
+    Growth,
+    Mature,
+    Defensive,
 }
 
 /// <summary>Тональность новости.</summary>

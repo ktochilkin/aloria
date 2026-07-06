@@ -21,6 +21,7 @@ const sectorTitles = <String, String>{
   'tech': 'Технологии',
   'travel': 'Туризм',
   'energy': 'Энергетика',
+  'realty': 'Недвижимость',
 };
 
 /// Тенденция чувствительности сектора к режиму: 1 — обычно выигрывает,
@@ -32,6 +33,7 @@ const sectorSensitivity = <String, Map<String, int>>{
     'travel': 1,
     'finance': 1,
     'logistics': 1,
+    'realty': 1,
     'consumer': 0,
     'food': 0,
     'energy': 0,
@@ -45,6 +47,7 @@ const sectorSensitivity = <String, Map<String, int>>{
     'retail': -1,
     'travel': -1,
     'tech': -1,
+    'realty': -1,
   },
   'recession': {
     'food': 1,
@@ -55,6 +58,7 @@ const sectorSensitivity = <String, Map<String, int>>{
     'travel': -1,
     'tech': -1,
     'logistics': -1,
+    'realty': -1,
   },
   'recovery': {
     'tech': 1,
@@ -62,6 +66,7 @@ const sectorSensitivity = <String, Map<String, int>>{
     'travel': 1,
     'finance': 1,
     'logistics': 1,
+    'realty': 1,
     'consumer': 0,
     'food': 0,
     'energy': 0,

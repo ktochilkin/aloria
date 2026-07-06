@@ -89,13 +89,19 @@ public sealed class EventSampler
             pool = [_rng.Pick(Universe.Issuers).Symbol];
         var victim = _rng.Pick((IReadOnlyList<string>)pool);
 
+        // Скрытое качество менеджмента смещает знак продуктовых/операционных
+        // событий: у сильной команды запуски чаще удаются. Наблюдаемый след
+        // ДНК: P(positive) = 0.35 + 0.4·Management.
+        var mgmt = w.Issuers.TryGetValue(victim, out var vs) ? vs.Management : 0.5;
+        var pPositive = 0.35 + 0.4 * mgmt;
+
         var (shape, dur) = SampleShape();
         return new EventSpec
         {
             Type = _rng.Chance(0.35) ? EventType.ProductNews : EventType.OperationsShock,
             Scope = EventScope.Company,
             Severity = SampleSeverity(tuning),
-            Sign = SampleSign(w),
+            Sign = _rng.Chance(pPositive) ? +1 : -1,
             Shape = shape,
             DurationTicks = dur,
             SectorSlug = sector.Slug,

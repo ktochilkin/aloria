@@ -42,6 +42,12 @@ public sealed record EventSpec
     /// Влияет ТОЛЬКО на стиль новости; числа уже решены серьёзностью.
     /// </summary>
     public bool Quirky { get; init; }
+
+    /// <summary>
+    /// Текстовая деталь события для нарратора: имя нового CEO (CeoChange,
+    /// Scope=Company) или нового главы ЦБ (CeoChange, Scope=Macro).
+    /// </summary>
+    public string? Detail { get; init; }
 }
 
 /// <summary>Черновик новости для нарратора (LLM или шаблоны).</summary>
@@ -52,6 +58,10 @@ public sealed record NewsDraft
 
     /// <summary>Последние заголовки — антидубль для LLM.</summary>
     public IReadOnlyList<string> RecentHeadlines { get; init; } = [];
+
+    /// <summary>Текущие CEO кандидатов (тикер → имя) — для промпта LLM.</summary>
+    public IReadOnlyDictionary<string, string> CandidateCeos { get; init; }
+        = new Dictionary<string, string>();
 }
 
 /// <summary>Готовая история от нарратора.</summary>
@@ -93,6 +103,15 @@ public sealed record WorldSnapshot
 
     /// <summary>Дней с конца последнего кризиса (питает пейсинг).</summary>
     public int DaysSinceCrisis { get; init; }
+
+    /// <summary>Имя главы ЦБ — для окраски новостей о ставке.</summary>
+    public string CbGovernorName { get; init; } = Universe.InitialCbGovernor;
+
+    /// <summary>
+    /// Ястребиность главы ЦБ [-1..1] — для КАЧЕСТВЕННОЙ окраски текста
+    /// (число в новости не попадает).
+    /// </summary>
+    public double CbHawkishness { get; init; } = 0.3;
 }
 
 /// <summary>Запись журнала события (для дебага/презентации/уроков «почему двигалось»).</summary>

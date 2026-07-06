@@ -3,6 +3,7 @@ import 'package:aloria/features/market/data/market_repository.dart';
 import 'package:aloria/features/market/domain/aloria_lore.dart';
 import 'package:aloria/features/market/domain/macro_extras.dart';
 import 'package:aloria/features/market/presentation/widgets/instrument_avatar.dart';
+import 'package:aloria/features/market/presentation/widgets/reference_tiles.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -19,6 +20,7 @@ class CompanyDetailPage extends ConsumerWidget {
     final text = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
     final sector = aloriaSectorOf(company.sectorSlug);
+    final stage = companyStageMeta(company.stage);
     final bonds = aloriaBondsOfIssuer(company.symbol);
     final label = company.symbol.length > 2
         ? company.symbol.substring(0, 2)
@@ -55,34 +57,12 @@ class CompanyDetailPage extends ConsumerWidget {
                             color: scheme.onSurfaceVariant,
                           ),
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: scheme.primary.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                sector.icon,
-                                size: 13,
-                                color: scheme.primary,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                sector.title,
-                                style: text.labelSmall?.copyWith(
-                                  color: scheme.primary,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
-                          ),
+                        ReferenceChip(
+                          icon: sector.icon,
+                          label: sector.title,
+                          color: scheme.primary,
                         ),
+                        ReferenceChip(label: stage.label, color: stage.color),
                       ],
                     ),
                   ],
@@ -99,6 +79,11 @@ class CompanyDetailPage extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           _TraitRow(
+            icon: Icons.timeline_rounded,
+            title: '${stage.label} компания',
+            subtitle: stage.hint,
+          ),
+          _TraitRow(
             icon: Icons.payments_rounded,
             title: _dividendTrait(company.payout).title,
             subtitle: _dividendTrait(company.payout).hint,
@@ -113,6 +98,17 @@ class CompanyDetailPage extends ConsumerWidget {
             title: _volTrait(company.sigma).title,
             subtitle: _volTrait(company.sigma).hint,
           ),
+          if (company.ceoName != null)
+            _TraitRow(
+              icon: Icons.person_rounded,
+              title: company.ceoSinceDay != null
+                  ? 'Руководитель: ${company.ceoName} '
+                        '· с дня ${company.ceoSinceDay}'
+                  : 'Руководитель: ${company.ceoName}',
+              subtitle: 'Назначения и отставки выходят в новостях Алории.',
+            ),
+          const SizedBox(height: 10),
+          const _HiddenTraitsHint(),
           if (bonds.isNotEmpty) ...[
             const SizedBox(height: 18),
             Text(
@@ -257,6 +253,50 @@ class _TraitRow extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Обучающая подсказка о скрытых чертах компании: устойчивость к кризисам
+/// и качество управления в карточке не публикуются — их видно только по
+/// поведению бумаги и новостям.
+class _HiddenTraitsHint extends StatelessWidget {
+  const _HiddenTraitsHint();
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.visibility_off_rounded,
+            size: 18,
+            color: scheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'У компании есть и скрытые черты — устойчивость к кризисам и '
+              'качество управления. Их не пишут в карточке: смотри, как '
+              'бумага проходит кризисы, сбываются ли прогнозы по отчётам, '
+              'и следи за новостями о руководстве.',
+              style: text.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+                height: 1.4,
+              ),
             ),
           ),
         ],

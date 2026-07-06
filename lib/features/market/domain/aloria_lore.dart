@@ -1,9 +1,12 @@
 import 'package:aloria/core/theme/tokens.dart';
 import 'package:flutter/material.dart';
 
+export 'package:aloria/features/market/domain/aloria_companies.dart';
+
 /// Справочник мира Алории: сектора, компании, облигации, фонды.
-/// Зеркалит вселенную ИИ-режиссёра (Universe.cs). Пока статический мок —
-/// позже переедет на aloria-api, когда появится эндпоинт справочника.
+/// Зеркалит вселенную ИИ-режиссёра (Universe.cs). Статические данные —
+/// фолбэк: живой каталог приезжает с aloria-api (reference-эндпоинт).
+/// Список компаний вынесен в aloria_companies.dart и реэкспортируется отсюда.
 
 /// Сектор экономики Алории.
 class SectorLore {
@@ -20,22 +23,31 @@ class SectorLore {
   final String description;
 }
 
+/// Стадия жизненного цикла компании.
+enum CompanyStage { growth, mature, defensive }
+
 /// Компания-эмитент с лором и чертами характера.
 class CompanyLore {
   const CompanyLore({
     required this.symbol,
     required this.name,
     required this.sectorSlug,
+    required this.stage,
     required this.theme,
     required this.story,
     required this.payout,
     required this.leverage,
     required this.sigma,
+    this.ceoName,
+    this.ceoSinceDay,
   });
 
   final String symbol;
   final String name;
   final String sectorSlug;
+
+  /// Стадия компании: растущая / зрелая / защитная.
+  final CompanyStage stage;
 
   /// Чем занимается, коротко.
   final String theme;
@@ -51,6 +63,12 @@ class CompanyLore {
 
   /// Дневная волатильность бумаги (лог).
   final double sigma;
+
+  /// Текущий руководитель. null — бэк ещё не сообщил (в статике всегда null).
+  final String? ceoName;
+
+  /// С какого мирового дня руководит. null — неизвестно.
+  final int? ceoSinceDay;
 }
 
 /// Кредитное качество выпуска облигаций.
@@ -141,205 +159,13 @@ const aloriaSectors = <SectorLore>[
     icon: Icons.bolt_rounded,
     description: 'Сети и топливо. Инфляция для них часто плюс, не минус.',
   ),
-];
-
-const aloriaCompanies = <CompanyLore>[
-  CompanyLore(
-    symbol: 'ALBK',
-    name: 'Банк Алория',
-    sectorSlug: 'finance',
-    theme: 'системный банк',
-    story:
-        'Старейший банк страны: через него проходит половина платежей Алории. '
-        'Кредитует всех — от пекарен до порта, поэтому его отчёт читают как '
-        'сводку здоровья всей экономики.',
-    payout: 0.50,
-    leverage: 0.55,
-    sigma: 0.011,
-  ),
-  CompanyLore(
-    symbol: 'INSA',
-    name: 'Страж Полис',
-    sectorSlug: 'finance',
-    theme: 'страхование',
-    story:
-        'Страхует дома, грузы и урожай. Зарабатывает на спокойных временах: '
-        'пока ничего не горит и не тонет, премии капают, а выплат мало.',
-    payout: 0.40,
-    leverage: 0.30,
-    sigma: 0.012,
-  ),
-  CompanyLore(
-    symbol: 'ICEC',
-    name: 'Холодок и Ко',
-    sectorSlug: 'consumer',
-    theme: 'производитель мороженого',
-    story:
-        'Легенда алорийского лета. Полстраны выросло на пломбире «Холодок», '
-        'и каждую жару компания бьёт рекорды продаж — а в холодный сезон '
-        'спасается тортами-мороженое.',
-    payout: 0.45,
-    leverage: 0.25,
-    sigma: 0.012,
-  ),
-  CompanyLore(
-    symbol: 'DRNK',
-    name: 'ЖивВода',
-    sectorSlug: 'consumer',
-    theme: 'напитки и вода',
-    story:
-        'Разливает воду из северных источников Алории и делает лимонады по '
-        'старым рецептам. Скучный стабильный бизнес — пить хотят всегда.',
-    payout: 0.50,
-    leverage: 0.20,
-    sigma: 0.009,
-  ),
-  CompanyLore(
-    symbol: 'HOME',
-    name: 'ДомоТехника',
-    sectorSlug: 'consumer',
-    theme: 'бытовая техника',
-    story:
-        'Собирает холодильники и стиральные машины «для алорийской семьи». '
-        'Покупки крупные и нечастые: когда у людей туго с деньгами, новую '
-        'плиту откладывают на потом.',
-    payout: 0.30,
-    leverage: 0.45,
-    sigma: 0.013,
-  ),
-  CompanyLore(
-    symbol: 'SHOP',
-    name: 'РядомМаркет',
-    sectorSlug: 'retail',
-    theme: 'магазины у дома',
-    story:
-        'Сеть «магазинов за углом» в каждом районе. Держится на обороте: '
-        'маржа копеечная, зато покупатель заходит каждый день.',
-    payout: 0.35,
-    leverage: 0.50,
-    sigma: 0.012,
-  ),
-  CompanyLore(
-    symbol: 'WEAR',
-    name: 'НосиСмело',
-    sectorSlug: 'retail',
-    theme: 'одежда и обувь',
-    story:
-        'Модный бренд для молодёжи: яркие коллекции, шумные распродажи. '
-        'Продажи скачут вместе с модой — угадали сезон или нет.',
-    payout: 0.25,
-    leverage: 0.40,
-    sigma: 0.016,
-  ),
-  CompanyLore(
-    symbol: 'FAST',
-    name: 'ШустроЕд',
-    sectorSlug: 'food',
-    theme: 'сеть быстрого питания',
-    story:
-        'Бургерные на каждой площади страны. Фирменный соус «Шустрый» — '
-        'государственная тайна похлеще резервов центробанка.',
-    payout: 0.40,
-    leverage: 0.35,
-    sigma: 0.011,
-  ),
-  CompanyLore(
-    symbol: 'BRED',
-    name: 'Тёплый Хлеб',
-    sectorSlug: 'food',
-    theme: 'кафе и пекарни',
-    story:
-        'Семейные пекарни с круассанами, за которыми стоят очереди с утра. '
-        'Маленькая, уютная и на удивление живучая в любой кризис.',
-    payout: 0.45,
-    leverage: 0.20,
-    sigma: 0.010,
-  ),
-  CompanyLore(
-    symbol: 'MOVE',
-    name: 'ЕдемБыстро',
-    sectorSlug: 'logistics',
-    theme: 'доставка и логистика',
-    story:
-        'Курьеры в зелёных куртках и фуры на всех трассах Алории. Растёт '
-        'агрессивно и в долг — ставка по кредитам для неё больной вопрос.',
-    payout: 0.20,
-    leverage: 0.60,
-    sigma: 0.015,
-  ),
-  CompanyLore(
-    symbol: 'PORT',
-    name: 'Порт Алория',
-    sectorSlug: 'logistics',
-    theme: 'морской порт и грузовой хаб',
-    story:
-        'Морские ворота страны: почти весь импорт и экспорт проходит через '
-        'его краны. Полугосударственный гигант со стабильными тарифами.',
-    payout: 0.55,
-    leverage: 0.45,
-    sigma: 0.012,
-  ),
-  CompanyLore(
-    symbol: 'DIGI',
-    name: 'ЦифраЛаб',
-    sectorSlug: 'tech',
-    theme: 'онлайн-сервисы и IT',
-    story:
-        'Главная IT-компания Алории: почта, карты, облака и такси в одном '
-        'приложении. Прибыль почти не раздаёт — всё уходит в новые сервисы.',
-    payout: 0.05,
-    leverage: 0.15,
-    sigma: 0.021,
-  ),
-  CompanyLore(
-    symbol: 'GAME',
-    name: 'ИгроСфера',
-    sectorSlug: 'tech',
-    theme: 'игры и развлечения',
-    story:
-        'Студия, чей хит «Драконы Алории» играла вся страна. Живёт от релиза '
-        'до релиза: удачная игра — праздник, провал — долгая зима.',
-    payout: 0.00,
-    leverage: 0.10,
-    sigma: 0.026,
-  ),
-  CompanyLore(
-    symbol: 'TRVL',
-    name: 'Свободный Путь',
-    sectorSlug: 'travel',
-    theme: 'туризм и отдых',
-    story:
-        'Туроператор и сеть отелей на южном побережье. Набрала кредитов на '
-        'новые курорты — в хорошие годы летает, в плохие считает каждую '
-        'монету.',
-    payout: 0.30,
-    leverage: 0.65,
-    sigma: 0.020,
-  ),
-  CompanyLore(
-    symbol: 'NRGA',
-    name: 'АлорЭнерго',
-    sectorSlug: 'energy',
-    theme: 'электросети и генерация',
-    story:
-        'Держит все провода страны: свет в домах — её работа. Тарифы '
-        'регулируются, поэтому сюрпризов мало, а дивиденды регулярные.',
-    payout: 0.60,
-    leverage: 0.50,
-    sigma: 0.010,
-  ),
-  CompanyLore(
-    symbol: 'FUEL',
-    name: 'ТопливоПром',
-    sectorSlug: 'energy',
-    theme: 'добыча и переработка топлива',
-    story:
-        'Качает и перерабатывает топливо на севере Алории. Когда цены на '
-        'сырьё растут, здесь праздник — даже если всей остальной экономике '
-        'от этого больно.',
-    payout: 0.45,
-    leverage: 0.40,
-    sigma: 0.018,
+  SectorLore(
+    slug: 'realty',
+    title: 'Недвижимость',
+    icon: Icons.home_work_rounded,
+    description:
+        'Застройщики и жильё. Главный заложник ключевой ставки: ипотека '
+        'дешевеет — сектор летит, дорожает — замирает.',
   ),
 ];
 
@@ -392,6 +218,22 @@ const aloriaBonds = <BondLore>[
     couponPerCycle: 0.160,
     couponEveryDays: 2,
   ),
+  BondLore(
+    symbol: 'ALZB1',
+    name: 'АлоЗон Б1',
+    issuerSymbol: 'ALZN',
+    quality: BondQuality.bb,
+    couponPerCycle: 0.150,
+    couponEveryDays: 2,
+  ),
+  BondLore(
+    symbol: 'BLDB1',
+    name: 'СтройГранд Б1',
+    issuerSymbol: 'BLDR',
+    quality: BondQuality.bbb,
+    couponPerCycle: 0.130,
+    couponEveryDays: 2,
+  ),
 ];
 
 const aloriaFunds = <FundLore>[
@@ -436,17 +278,40 @@ const aloriaFunds = <FundLore>[
       ),
     };
 
+/// Метаданные стадии компании: подпись, цвет и человеческое пояснение.
+({String label, Color color, String hint}) companyStageMeta(CompanyStage s) =>
+    switch (s) {
+      CompanyStage.growth => (
+        label: 'Растущая',
+        color: AppColors.secondary,
+        hint: 'Вкладывает всё в рост, дивиденды редки, движется размашисто.',
+      ),
+      CompanyStage.mature => (
+        label: 'Зрелая',
+        color: AppColors.primary,
+        hint: 'Устоявшийся бизнес, платит дивиденды.',
+      ),
+      CompanyStage.defensive => (
+        label: 'Защитная',
+        color: AppColors.success,
+        hint: 'Спрос стабилен в любую фазу цикла.',
+      ),
+    };
+
+/// «growth» / «mature» / «defensive» без учёта регистра.
+/// Неизвестное или отсутствующее значение — null, решает вызывающий.
+CompanyStage? companyStageFrom(Object? value) =>
+    switch (value is String ? value.toLowerCase() : '') {
+      'growth' => CompanyStage.growth,
+      'mature' => CompanyStage.mature,
+      'defensive' => CompanyStage.defensive,
+      _ => null,
+    };
+
 SectorLore aloriaSectorOf(String slug) => aloriaSectors.firstWhere(
   (s) => s.slug == slug,
   orElse: () => aloriaSectors.first,
 );
-
-CompanyLore? aloriaCompanyBySymbol(String symbol) {
-  for (final c in aloriaCompanies) {
-    if (c.symbol == symbol) return c;
-  }
-  return null;
-}
 
 List<BondLore> aloriaBondsOfIssuer(String? issuerSymbol) =>
     aloriaBonds.where((b) => b.issuerSymbol == issuerSymbol).toList();
