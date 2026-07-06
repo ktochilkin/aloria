@@ -116,12 +116,14 @@
   <tr><td>Макро-состояние (режим, ставка, инфляция, день цикла)</td><td><code>PUT /api/admin/market/macro/state</code></td><td class="dim">каждый мировой день</td></tr>
   <tr><td>Новости</td><td><code>POST /api/admin/market/news</code></td><td class="dim">по событиям</td></tr>
   <tr><td>Календарь цикла (отчёты, отсечки, купоны, ставка)</td><td><code>POST /api/admin/market/calendar</code></td><td class="dim">при планировании цикла</td></tr>
-  <tr><td>Справочник мира (лор компаний, облигации, фонды, деривативы)</td><td><code>PUT /api/admin/market/reference</code></td><td class="dim">один раз при старте</td></tr>
+  <tr><td>Справочник мира (22 компании / 9 секторов / 8 облигаций / 2 фонда: лор, стадии, CEO)</td><td><code>PUT /api/admin/market/reference</code></td><td class="dim">при старте + после каждой смены CEO</td></tr>
 </table>
 <p>Приложение читает: <code>GET /api/v1/macro/state</code>, <code>/api/v1/news</code>,
 <code>/api/v1/macro/calendar</code>, <code>/api/v1/market/reference</code>. Если aloria-api
 недоступен — режиссёр логирует warning и продолжает жить; если пуст справочник — приложение
-падает на встроенную статику. Ничего ни от чего жёстко не зависит.</p>
+падает на встроенную статику. Ничего ни от чего жёстко не зависит. После каждой смены CEO
+режиссёр пере-пушит каталог целиком, поэтому имя руководителя в карточке компании всегда
+актуальное.</p>
 
 <h2>3. Правки в terex — что именно сделано</h2>
 <p>Патч лежит в двух местах: применён в
@@ -177,7 +179,8 @@
 DIRECTOR_TEREX_DB="Host=…;Database=terex;Username=…;Password=…" \
   dotnet run -- seed</code></pre>
   Идемпотентно: создаёт схему <code>director</code> (price_targets / world_state / events_log)
-  и вставляет 24 инструмента вселенной в <code>instruments</code> (raw SQL — у таблицы
+  и вставляет 32 инструмента вселенной (22 компании, 8 облигаций, 2 фонда) в
+  <code>instruments</code> (raw SQL — у таблицы
   surrogate PK <code>GENERATED ALWAYS</code>, EF туда писать нельзя). Ценовые коридоры широкие
   (×0.25…×4 от старта), чтобы лимиты движка не мешали жизни цены.</li>
 
@@ -226,8 +229,11 @@ OPENROUTER_API_KEY=sk-or-…       # только env, в конфиги/git н�
 curl -s http://&lt;director&gt;:5077/director/state | head -c 200
 # контент дошёл до aloria-api
 curl -s http://&lt;api&gt;:5050/api/v1/macro/state
-curl -s http://&lt;api&gt;:5050/api/v1/market/reference | head -c 200
 curl -s "http://&lt;api&gt;:5050/api/v1/news?limit=3"
+# справочник полный: ожидаем «22 9 8» (компании / секторы / облигации)
+curl -s http://&lt;api&gt;:5050/api/v1/market/reference | python3 -c \
+  "import json,sys; d=json.load(sys.stdin); \
+   print(len(d['companies']), len(d['sectors']), len(d['bonds']))"
 # целевые цены пишутся
 psql … -c "select symbol, target_price, updated_at from director.price_targets limit 5"
 # стакан ожил: в приложении на любом инструменте появились заявки клиента GEN</code></pre>
@@ -244,7 +250,8 @@ LLM не трогают — токены не жгутся. При ошибка�
 <h2>6. Грабли и нюансы</h2>
 <ul>
   <li><strong>Порядок запуска:</strong> aloria-api → режиссёр (иначе первый пуш справочника
-  уйдёт в warning; следующие макро-пуши всё равно догонят, а справочник — при рестарте).</li>
+  уйдёт в warning; следующие макро-пуши всё равно догонят, а справочник — при рестарте
+  или ближайшей смене CEO).</li>
   <li><strong>Детерминизм:</strong> мир полностью определяется зерном; состояние RNG сохраняется
   в снапшоте, поэтому «Просчёт» в админке показывает точное будущее. Кнопки «кризис»/«режим» и
   смена зерна — это осознанное вмешательство, после них будущее другое.</li>

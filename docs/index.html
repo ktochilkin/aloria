@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aloria — навигатор документации</title>
+<style>
+  :root {
+    --ink: #0a0b0d; --body: #5b616e; --hair: #dee1e6; --canvas: #ffffff;
+    --soft: #f5f7fa; --blue: #0052ff; --green: #05b169; --red: #cf202f;
+    --warn: #b45309; --warnbg: #fef3c7; --code: #f1f3f7;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 40px 20px 80px; background: var(--canvas); color: var(--ink);
+    font: 16px/1.55 -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 30px; letter-spacing: -0.5px; margin: 0 0 6px; }
+  h2 { font-size: 22px; margin: 48px 0 12px; padding-top: 24px; border-top: 1px solid var(--hair); }
+  p, li { color: var(--body); }
+  strong { color: var(--ink); }
+  .lead { font-size: 18px; }
+  code {
+    font: 13px/1.5 ui-monospace, "SF Mono", Menlo, monospace;
+    background: var(--code); border-radius: 6px; padding: 2px 6px; color: var(--ink);
+  }
+  .pill {
+    display: inline-block; padding: 2px 10px; border-radius: 100px; font-size: 12px;
+    font-weight: 700; background: var(--soft); border: 1px solid var(--hair); color: var(--body);
+  }
+  .pill.b { color: var(--blue); border-color: rgba(0,82,255,.3); background: rgba(0,82,255,.06); }
+  .pill.g { color: var(--green); border-color: rgba(5,177,105,.3); background: rgba(5,177,105,.07); }
+  .pill.w { color: var(--warn); border-color: rgba(180,83,9,.3); background: rgba(180,83,9,.07); }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 14px; margin: 16px 0; }
+  .doccard {
+    border: 1.5px solid var(--hair); border-radius: 14px; padding: 16px 18px;
+    background: var(--canvas); display: flex; flex-direction: column; gap: 8px;
+  }
+  .doccard h3 { margin: 0; font-size: 16px; line-height: 1.3; }
+  .doccard h3 a { color: var(--ink); text-decoration: none; }
+  .doccard h3 a:hover { color: var(--blue); }
+  .doccard p { margin: 0; font-size: 13.5px; }
+  .doccard .meta { margin-top: auto; padding-top: 6px; font-size: 12px; color: var(--body); }
+  .doccard .meta code { font-size: 11.5px; }
+  .doccard.hot { border-color: rgba(0,82,255,.4); }
+  .steps { counter-reset: step; list-style: none; padding: 0; }
+  .steps > li {
+    counter-increment: step; position: relative; padding: 0 0 18px 44px; margin: 0;
+  }
+  .steps > li::before {
+    content: counter(step); position: absolute; left: 0; top: 0;
+    width: 28px; height: 28px; border-radius: 50%; background: var(--blue); color: #fff;
+    font-weight: 700; font-size: 14px; display: flex; align-items: center; justify-content: center;
+  }
+  .steps b { color: var(--ink); }
+  .okbox {
+    background: rgba(5,177,105,.07); border: 1px solid rgba(5,177,105,.25); color: #056b41;
+    border-radius: 10px; padding: 12px 16px; margin: 14px 0; font-size: 14px;
+  }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Aloria: навигатор документации</h1>
+<p class="lead">Все документы из <code>docs/</code>: что где лежит, о чём и насколько свежее.
+Состояние на июль 2026.</p>
+
+<div class="okbox"><strong>С чего начать:</strong> если нужно понять экономический мир —
+презентация → математика → деплой-гайд. Если нужно про уроки — карта форматов → каталог идей
+блоков. Если готовим релиз — чек-лист публикации.</div>
+
+<h2>Что построено — краткая хронология</h2>
+<ol class="steps">
+  <li><b>Экономический мир на двух бэках.</b> aloria-api (ASP.NET + SQLite, :5050) — клиентский
+  бэк контента: новости, макро-состояние, календарь цикла, справочник мира. Aloria.Director
+  (ASP.NET, :5077) — ИИ-режиссёр: RNG и формулы решают экономику (полумарковские режимы,
+  OU-процессы, правило Тейлора, Пуассон-события, сюрприз против ожиданий), LLM только
+  рассказывает истории (шаблонный фолбэк + circuit breaker).</li>
+  <li><b>Полный детерминизм «как в Майнкрафте».</b> PCG32, состояние RNG персистится, точный
+  просчёт будущего (30 дней по умолчанию, 120 максимум), зерно видно и меняется в админке.
+  Плюс пейсинг кризисов (кулдаун + защита от засухи) и ансамбль-симуляции ×20 с перцентилями.</li>
+  <li><b>Интеграция с движком terex.</b> Патч terex.ordergenerator: новый
+  TargetPriceCommandsGenerator читает <code>director.price_targets</code> из Postgres и котирует
+  лестницу лимиток клиентом GEN — режиссёр управляет магнитом цены, а не ценником. Сид
+  инструментов — <code>dotnet run -- seed</code>.</li>
+  <li><b>Справочник мира.</b> Universe.cs — источник правды (лор компаний, облигации, фонды,
+  задел деривативов) → режиссёр пушит <code>PUT /api/admin/market/reference</code> → приложение
+  читает с фолбэком на статику; в приложении — вкладка «Компании».</li>
+  <li><b>Живые новости.</b> Продуктовые новости с конкретными продуктами («Цифра.Диск»,
+  пломбир «Полярник»), казусы-новости, серый бейдж «в рамках ожиданий» у отчётов без сюрприза.</li>
+  <li><b>ДНК компаний и характер ЦБ.</b> Вселенная выросла до 22 компаний / 9 секторов
+  (добавлена недвижимость) / 8 облигаций. У компаний — видимая стадия и CEO плюс скрытые
+  устойчивость (Moat) и качество менеджмента; смены CEO с пере-пушем каталога; у главы ЦБ —
+  характер (ястреб/голубь), сдвигающий правило Тейлора. Скрытые числа видны только в админке.</li>
+</ol>
+
+<h2>Экономический мир</h2>
+<div class="cards">
+  <div class="doccard hot">
+    <h3><a href="deploy-guide.html">Деплой ИИ-режиссёра и вся связка</a> <span class="pill b">HTML</span></h3>
+    <p>Карта системы (приложение, админка, aloria-api, режиссёр, terex), что режиссёр пушит и куда,
+    патч ordergenerator, деплой по шагам, чек-лист проверки и грабли. Практический документ:
+    по нему разворачивают и проверяют весь контур.</p>
+    <div class="meta"><code>docs/deploy-guide.html</code> · обновлён 6 июля 2026 — актуален
+    (22 компании, пере-пуш каталога при смене CEO)</div>
+  </div>
+  <div class="doccard hot">
+    <h3><a href="ai-director-math-architecture.html">Математика мира и архитектура данных</a> <span class="pill b">HTML</span></h3>
+    <p>Каждая формула — с переводом на русский и числовым примером: лог-цены, OU-«резинки», режимы,
+    события с тяжёлыми хвостами, сюрприз против ожиданий, облигации, дистресс, ДНК компаний и
+    характер ЦБ. Плюс карта хранилищ, анатомия тика и путь события до свечки.</p>
+    <div class="meta"><code>docs/ai-director-math-architecture.html</code> · обновлён 6 июля 2026 —
+    актуален (добавлен раздел «ДНК компаний»)</div>
+  </div>
+  <div class="doccard">
+    <h3><a href="ai-director-presentation.html">Презентация концепции режиссёра</a> <span class="pill b">HTML</span></h3>
+    <p>Обзорная презентация: идея «перевёрнутой причинности» (сначала событие, потом цена),
+    встройка в terex, прогон 120 дней жизни мира с графиками, вселенная и статус. Написана до
+    «ДНК компаний» — числа вселенной устарели (16 компаний), идея и механика актуальны.</p>
+    <div class="meta"><code>docs/ai-director-presentation.html</code> · 2 июля 2026, частично устарела</div>
+  </div>
+  <div class="doccard">
+    <h3><a href="ai-director-design.md">Технический дизайн режиссёра</a> <span class="pill g">Markdown</span></h3>
+    <p>Как устроен terex на самом деле (результаты разведки всех модулей), факты, определившие
+    дизайн, и решения по интеграции: почему целевые цены живут в отдельной схеме, почему raw SQL,
+    почему клиент GEN.</p>
+    <div class="meta"><code>docs/ai-director-design.md</code> · 2 июля 2026</div>
+  </div>
+  <div class="doccard">
+    <h3><a href="macro-economy-concept.md">Концепция экономического мира</a> <span class="pill g">Markdown</span></h3>
+    <p>«Что и почему» живой экономики: философия одного общего мира, автономность на рандоме,
+    отказ от сценарного режима, принцип «не приучать к наивным корреляциям». Предшественник
+    реализации — местами уже обогнана кодом.</p>
+    <div class="meta"><code>docs/macro-economy-concept.md</code> · 29 июня 2026</div>
+  </div>
+</div>
+
+<h2>Обучение и уроки</h2>
+<div class="cards">
+  <div class="doccard">
+    <h3><a href="lesson-format-map.md">Карта форматов уроков</a> <span class="pill g">Markdown</span></h3>
+    <p>План ухода от «голого markdown» к переиспользуемым блокам: каталог из 12 блоков
+    (mini-chart, mini-orderbook, seesaw и другие) и покрытие всех 46 уроков — какой блок куда.</p>
+    <div class="meta"><code>docs/lesson-format-map.md</code> · 5 июня 2026</div>
+  </div>
+  <div class="doccard">
+    <h3><a href="block-ideas.md">Каталог идей интерактивных блоков</a> <span class="pill g">Markdown</span></h3>
+    <p>~120 идей от шести линз-идеаторов, сведённые и дедуплицированные: песочницы на реальном
+    движке (стакан, мэтчинг), визуализации, мини-игры. Отмечено, что уже построено и что в топе
+    на постройку.</p>
+    <div class="meta"><code>docs/block-ideas.md</code> · 12 июня 2026</div>
+  </div>
+  <div class="doccard">
+    <h3><a href="block-verdicts.md">Вердикты по блокам</a> <span class="pill g">Markdown</span></h3>
+    <p>Ревью пользователя по построенным блокам: оценки 1–5, что оставлено (39 блоков), что
+    удалено и заметки, что улучшать.</p>
+    <div class="meta"><code>docs/block-verdicts.md</code> · 12 июня 2026</div>
+  </div>
+  <div class="doccard">
+    <h3><a href="block-design-system.md">Дизайн-система блоков — план</a> <span class="pill g">Markdown</span></h3>
+    <p>Handoff-план единой системы для блоков уроков: выбор визуального направления, токены,
+    примитивы block_kit (карточка, слайдер, метрика, легенда, графики) и порядок раскатки.</p>
+    <div class="meta"><code>docs/block-design-system.md</code> · 12 июня 2026</div>
+  </div>
+</div>
+
+<h2>Релиз</h2>
+<div class="cards">
+  <div class="doccard">
+    <h3><a href="store-release-checklist.md">Чек-лист публикации в сторы</a> <span class="pill g">Markdown</span></h3>
+    <p>Что нужно закрыть до сабмита в App Store и Google Play: bundle ID (сейчас placeholder),
+    продовый бэкенд, Firebase, ассеты и странички сторов. Жёсткие блокеры помечены.</p>
+    <div class="meta"><code>docs/store-release-checklist.md</code> · июнь 2026</div>
+  </div>
+</div>
+
+<p style="margin-top:40px; font-size:13px;">Этот навигатор — <code>docs/index.html</code>.
+При добавлении нового документа в <code>docs/</code> — добавить карточку сюда.</p>
+
+</main>
+</body>
+</html>
