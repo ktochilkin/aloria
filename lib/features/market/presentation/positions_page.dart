@@ -19,6 +19,7 @@ import 'package:aloria/features/market/presentation/positions/widgets/portfolio_
 import 'package:aloria/features/market/presentation/positions/widgets/portfolio_tabs_header.dart';
 import 'package:aloria/features/market/presentation/positions/widgets/portfolio_title_bar.dart';
 import 'package:aloria/features/market/presentation/positions/widgets/positions_list_section.dart';
+import 'package:aloria/features/market/presentation/positions/widgets/purchasing_power_card.dart';
 import 'package:aloria/features/market/presentation/positions/widgets/trades_list_section.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -138,6 +139,8 @@ class _PositionsBlockState extends ConsumerState<_PositionsBlock>
                   onTopUp: _openTopUp,
                 ),
               ),
+              const SizedBox(height: 10),
+              PurchasingPowerCard(summary: widget.summary),
               const SizedBox(height: 18),
               Explainable(
                 slug: 'portfolio.tabs',
