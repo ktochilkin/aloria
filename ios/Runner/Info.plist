@@ -63,6 +63,13 @@
 				<key>NSIncludesSubdomains</key>
 				<true/>
 			</dict>
+			<!-- Временный тестовый VPS (бэк Алории). Перед релизом в сторы
+			     убрать и перейти на домен с HTTPS. -->
+			<key>79.132.138.131</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+			</dict>
 		</dict>
 	</dict>
 	<!-- Локальная сеть: для подключения к 192.168.x.x на iOS 14+ -->
